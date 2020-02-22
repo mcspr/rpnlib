@@ -136,25 +136,6 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
 // Stack methods
 // ----------------------------------------------------------------------------
 
-rpn_variable::rpn_variable(const rpn_variable& other) :
-    name(strdup(other.name))
-{}
-
-rpn_variable::rpn_variable(rpn_variable&& other) {
-    name = other.name;
-    other.name = nullptr;
-}
-
-rpn_variable::~rpn_variable() {
-    free(name);
-}
-
-rpn_variable& rpn_variable::operator=(const rpn_variable& other) {
-    if (name) free(name);
-    name = strdup(other.name);
-    return *this;
-}
-
 rpn_value::rpn_value() :
     type(rpn_value::unknown)
 {}
@@ -345,9 +326,6 @@ bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc,
 }
 
 bool rpn_operators_clear(rpn_context & ctxt) {
-    for (auto & v : ctxt.operators) {
-        free(v.name);
-    }
     ctxt.operators.clear();
     return true;
 }
@@ -423,13 +401,13 @@ bool rpn_operators_init(rpn_context & ctxt) {
 // TODO: handle charptr lifetime in rpn_value class
 bool rpn_variable_set(rpn_context & ctxt, const char * name, float value) {
     for (auto & v : ctxt.variables) {
-        if (strcmp(v.name, name) != 0) continue;
+        if (v.name != name) continue;
         if (v.value.type != rpn_value::f64) break;
         v.value.as_f64 = value;
         return true;
     }
     rpn_variable variable;
-    variable.name = strdup(name);
+    variable.name = name;
     variable.value = rpn_value(double(value));
     ctxt.variables.emplace_back(std::move(variable));
     return true;
@@ -437,7 +415,7 @@ bool rpn_variable_set(rpn_context & ctxt, const char * name, float value) {
 
 bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
     for (auto & v : ctxt.variables) {
-        if (strcmp(v.name, name) != 0) continue;
+        if (v.name != name) continue;
         if (v.value.type != rpn_value::f64) break;
         value = v.value.as_f64;
         return true;
@@ -447,7 +425,7 @@ bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
 
 bool rpn_variable_del(rpn_context & ctxt, const char * name) {
     for (auto v = ctxt.variables.begin(); v != ctxt.variables.end(); v++) {
-        if (strcmp((*v).name, name) == 0) {
+        if ((*v).name == name) {
             ctxt.variables.erase(v);
             return true;
         }
@@ -459,17 +437,14 @@ unsigned char rpn_variables_size(rpn_context & ctxt) {
     return ctxt.variables.size();
 }
 
-char * rpn_variable_name(rpn_context & ctxt, unsigned char i) {
+const char * rpn_variable_name(rpn_context & ctxt, unsigned char i) {
     if (i < ctxt.variables.size()) {
-        return ctxt.variables[i].name;
+        return ctxt.variables[i].name.c_str();
     }
     return NULL;
 }
 
 bool rpn_variables_clear(rpn_context & ctxt) {
-    for (auto & v : ctxt.variables) {
-        free(v.name);
-    }
     ctxt.variables.clear();
     return true;
 }
@@ -527,7 +502,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             _rpn_debug_callback(ctxt, "is variable");
             const char* name = token + 1;
             auto var = std::find_if(ctxt.variables.begin(), ctxt.variables.end(), [name](const rpn_variable& var) {
-                return (strcmp(var.name, name) == 0);
+                return (var.name ==name);
             });
 
             const bool found = (var != ctxt.variables.end());
@@ -560,7 +535,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         {
             bool found = false;
             for (auto & f : ctxt.operators) {
-                if (strcmp(f.name, token) == 0) {
+                if (f.name == token) {
                     _rpn_debug_callback(ctxt, "is operator");
                     if (rpn_stack_size(ctxt) < f.argc) {
                         char buffer[64];

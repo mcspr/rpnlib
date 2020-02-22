@@ -24,6 +24,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 // ----------------------------------------------------------------------------
 
+#include <string>
 #include <vector>
 #include <cstdint>
 
@@ -68,12 +69,7 @@ struct rpn_value {
 };
 
 struct rpn_variable {
-    rpn_variable() : name(nullptr) {}
-    ~rpn_variable(); 
-    rpn_variable(const rpn_variable&);
-    rpn_variable(rpn_variable&&);
-    rpn_variable& operator=(const rpn_variable&);
-    char * name; // TODO: use String / std::string / custom string obj
+    std::string name;
     rpn_value value; // TODO: track value with shared_ptr to allow to share it with stack-value
 };
 
@@ -98,7 +94,7 @@ struct rpn_stack_value {
 struct rpn_context;
 
 struct rpn_operator {
-    char * name; // TODO: use String / std::string / custom string obj 
+    std::string name;
     unsigned char argc;
     bool (*callback)(rpn_context &);
 };
@@ -135,7 +131,7 @@ bool rpn_variable_set(rpn_context &, const char *, float);
 bool rpn_variable_get(rpn_context &, const char *, float &);
 bool rpn_variable_del(rpn_context &, const char *);
 unsigned char rpn_variables_size(rpn_context &);
-char * rpn_variable_name(rpn_context &, unsigned char);
+const char * rpn_variable_name(rpn_context &, unsigned char);
 bool rpn_variables_clear(rpn_context &);
 
 bool rpn_stack_clear(rpn_context &);
