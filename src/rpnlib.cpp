@@ -369,8 +369,10 @@ bool rpn_operators_init(rpn_context & ctxt) {
     rpn_operator_set(ctxt, "drop", 1, _rpn_drop);
     rpn_operator_set(ctxt, "over", 2, _rpn_over);
     rpn_operator_set(ctxt, "depth", 0, _rpn_depth);
+
     rpn_operator_set(ctxt, "exists", 1, _rpn_exists);
     rpn_operator_set(ctxt, "=", 2, _rpn_assign);
+    rpn_operator_set(ctxt, "p", 1, _rpn_print);
 
     rpn_operator_set(ctxt, "ifn", 3, _rpn_ifn);
     rpn_operator_set(ctxt, "end", 1, _rpn_end);

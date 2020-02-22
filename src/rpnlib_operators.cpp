@@ -520,7 +520,6 @@ bool _rpn_exists(rpn_context & ctxt) {
 bool _rpn_assign(rpn_context & ctxt) {
     auto& stack_variable = *(ctxt.stack.end() - 1);
     auto& stack_value = *(ctxt.stack.end() - 2);
-    printf("= $%s %s\n", stack_variable.variable->name.c_str(), stack_value.value->as_charptr);
     if (stack_variable.variable) {
         auto var = stack_variable.variable;
         stack_variable.variable->value = stack_value.value;
@@ -530,4 +529,38 @@ bool _rpn_assign(rpn_context & ctxt) {
     ctxt.stack.pop_back();
     ctxt.stack.pop_back();
     return false;
+}
+
+bool _rpn_print(rpn_context & ctxt) {
+    auto top = ctxt.stack.back();
+    ctxt.stack.pop_back();
+
+    char buffer[128];
+    auto& val = *(top.value.get());
+    int offset = sprintf(buffer, "%s", "hello from operator `p`: ");
+
+    switch (val.type) {
+        case rpn_value::s32:
+            sprintf(buffer + offset, "%d", val.as_s32);
+            break;
+        case rpn_value::u32:
+            sprintf(buffer + offset, "%u", val.as_u32);
+            break;
+        case rpn_value::f64:
+            sprintf(buffer + offset, "%f", val.as_f64);
+            break;
+        case rpn_value::charptr:
+            sprintf(buffer + offset, "\"%s\"", val.as_charptr);
+            break;
+        case rpn_value::null:
+        default:
+            sprintf(buffer + offset, "null", val.as_charptr);
+            break;
+    }
+
+    if (_rpn_debug_callback) {
+        _rpn_debug_callback(ctxt, buffer);
+    }
+
+    return true;
 }

@@ -76,7 +76,7 @@ void test_assign() {
     rpn_debug([](rpn_context&, const char* message) {
         std::cout << "dbg: " << message << std::endl;
     });
-    rpn_process(ctxt, "\"hello world\" $var =");
+    rpn_process(ctxt, "\"hello world\" $var = $var p");
     dump_stack(ctxt);
     dump_variables(ctxt);
     rpn_clear(ctxt);
