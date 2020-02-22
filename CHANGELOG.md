@@ -3,6 +3,23 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.4.0] IN DEVELOPMENT
+### Added
+- `p` operator to print the top of the stack via debug function
+- `=` operator for variable assignment in expression
+- `exists` operator to check for variable existance
+- `"..."` syntax for strings
+- `true` and `false` in expressions, add boolean types
+
+### Changed
+- Stack structure no longer holds raw `float`, but internal `rpn_value` type
+- Variables in expressions are no longer required to exist
+- rpn\_... setter and getter methods now support String, bool and double
+- Improve precision of `e` and `pi`
+
+### Fix
+- Proper value for `e` constant
+
 ## [0.3.0] 2019-05-24
 ### Added
 - Added abs operator

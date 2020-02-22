@@ -1,13 +1,23 @@
 # RPNlib
 
+> **Notice** this is the fork of the original rpnlib
+> 
+> Main differences are:
+> - double instead of float as number type
+> - String support in expressions and variables
+> - variable assignment in expressions
+
 RPNlib is a **Reverse Polish Notation** calculator for ESP8266 & ESP32 microcontrollers. 
 The library accepts a c-string with commands to execute and provides methods to evaluate the output.
 It is meant to be embedded into third party software as a way to provide the user a simple to implement scripting language.
 
-[![version](https://img.shields.io/badge/version-0.3.0-brightgreen.svg)](CHANGELOG.md)
-[![codacy](https://img.shields.io/codacy/grade/dca10aead98240db83c23ef550b591dc/master.svg)](https://www.codacy.com/app/xoseperez/rpnlib/dashboard)
-[![travis](https://travis-ci.org/xoseperez/rpnlib.svg?branch=master)](https://travis-ci.org/xoseperez/rpnlib)
-[![license](https://img.shields.io/github/license/xoseperez/rpnlib.svg)](LICENSE)
+[![version](https://img.shields.io/badge/version-0.4.0--pre1-brightgreen.svg)](CHANGELOG.md)
+[![codacy](https://img.shields.io/codacy/grade/dca10aead98240db83c23ef550b591dc/master.svg)](https://www.codacy.com/app/mcspr/rpnlib/dashboard)
+[![travis](https://travis-ci.org/mcspr/rpnlib.svg?branch=master)](https://travis-ci.org/mcspr/rpnlib)
+[![license](https://img.shields.io/github/license/mcspr/rpnlib.svg)](LICENSE)
+<br />
+<br />
+**[@xoseperez](https://github.com/xoseperez)**:
 <br />
 [![donate](https://img.shields.io/badge/donate-PayPal-blue.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=xose%2eperez%40gmail%2ecom&lc=US&no_note=0&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHostedGuest)
 [![twitter](https://img.shields.io/twitter/follow/xoseperez.svg?style=social)](https://twitter.com/intent/follow?screen_name=xoseperez)
@@ -54,13 +64,13 @@ rpn_context ctxt;
 rpn_init(ctxt);
 rpn_process(ctxt, "4 2 - 5 * 1 +");
 
-unsigned char size = rpn_stack_size(ctxt);
+const auto size = rpn_stack_size(ctxt);
 Serial.printf("Stack size: %d\n", size);
 
-float value;
-for (unsigned char i=0; i<size; i++) {
+double value;
+for (unsigned char i=0; i < size; i++) {
     rpn_stack_pop(ctxt, value);
-    Serial.printf("Stack level #%d value: %f\n", i, value);
+    Serial.printf("Stack level #%u value: %f\n", i, value);
 }
 
 rpn_clear(ctxt);
@@ -72,10 +82,13 @@ This is a list of supported operators with their stack behaviour.
 
 * Operators (and variables) are case-sensitive.
 * All operators will throw an error if the number of available elements in the stack is less than the required parameters.
-* All elements in the stack are repesented as natural (float) numbers. 
+* All stack elements are stored in heap.
+* All numbers in the stack are repesente `double` (fundamental type).
+* All strings in the stack are repesented as `String` (Arduino class).
+* Some operators may return different results depending on the type of elements.
 * Some operators perform an automatic cast of the elements poped from the stack.
 * A boolean cast will be false if the element is 0, true otherwise.
-* True is represented as 1, whilst false is represented as 0.
+* True is represented as 1, whilst false is represented as 0. It is possible to directly access boolean value, without the cast.
 
 
 ```
@@ -134,13 +147,16 @@ depth   ( a b c ... -> a b c ... n ) where n is the number of elements in the st
 ifn     ( a b c -> d ) if a!=0 then b else c
 end     ( a -> ...) ends execution if a resolves to false
 
+=       ( a $var = -> $var ) sets $var to the value of a and keeps $var on the stack
+
 ```
 
 Operators flagged with an asterisk (*) are only available if compiled with RPNLIB_ADVANCED_MATH build flag.
 
 ## License
 
-Copyright (C) 2018-2019 by Xose Pérez <xose dot perez at gmail dot com>
+Copyright (C) 2018-2019 by Xose Pérez <xose dot perez at gmail dot com>  
+Copyright (C) 2020 by Maxim Prokhorov <prokhorov dot max at outlook dot com>
 
 The rpnlib library is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by

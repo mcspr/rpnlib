@@ -22,26 +22,73 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <Arduino.h>
-#include "rpnlib.h"
+#include <rpnlib.h>
 #include <unity.h>
+
+#include <cmath>
+#include <cstdio>
+#include <limits>
+#include <vector>
 
 // -----------------------------------------------------------------------------
 // Helper methods
 // -----------------------------------------------------------------------------
 
-void run_and_compare(const char * command, unsigned char depth, float * expected) {
+void highlight_stack_index(rpn_context& ctxt, unsigned char match, double value, double match_value) {
+    char buffer[256] = {0};
 
-    float value;
+    snprintf(buffer, sizeof(buffer) - 1, "Stack size = %u", ctxt.stack.size());
+    TEST_MESSAGE(buffer);
+
+    snprintf(buffer, sizeof(buffer) - 1,
+        "Expected stack[%u] == %.*ef, but it is %.*ef instead (fabs diff is %.*e, %s)",
+        match, match_value, value,
+        std::fabs(match_value - value),
+        (std::fabs(match_value - value) < std::numeric_limits<double>::epsilon()) ? "less than epsilon" : "more than epsilon"
+    );
+    TEST_MESSAGE(buffer);
+
+    size_t index = ctxt.stack.size() - 1;
+    for (auto& stack_value : ctxt.stack) {
+        char highlight = (index == match) ? '*' : ' ';
+        switch (stack_value.value->type) {
+            case rpn_value::f64:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: %f", highlight, index, stack_value.value->as_f64);
+                break;
+            case rpn_value::string:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: \"%s\"", highlight, index, stack_value.value->as_string.c_str());
+                break;
+            case rpn_value::boolean:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: %s", highlight, index, stack_value.value->as_boolean ? "true" : "false");
+                break;
+            case rpn_value::null:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: null", highlight, index);
+                break;
+        }
+        --index;
+        TEST_MESSAGE(buffer);
+    }
+}
+
+void run_and_compare(const char * command, std::vector<double> expected) {
+
+    double value;
     rpn_context ctxt;
 
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, command));
-    TEST_ASSERT_EQUAL_INT8(RPN_ERROR_OK, rpn_error);
+    TEST_ASSERT_TRUE_MESSAGE(rpn_init(ctxt), "rpn_init() should return true");
+    TEST_ASSERT_TRUE_MESSAGE(rpn_process(ctxt, command), "rpn_process() should return true");
+    TEST_ASSERT_EQUAL_INT8_MESSAGE(RPN_ERROR_OK, rpn_error, "There should be no rpn_error set");
 
-    TEST_ASSERT_EQUAL_INT8(depth, rpn_stack_size(ctxt));
-    for (unsigned char i=0; i<depth; i++) {
-        TEST_ASSERT_TRUE(rpn_stack_get(ctxt, i, value));
-        TEST_ASSERT_EQUAL_FLOAT(expected[i], value);
+    TEST_ASSERT_EQUAL_MESSAGE(expected.size(), rpn_stack_size(ctxt), "Stack size does not match the expected value");
+    for (unsigned char i=0; i<expected.size(); i++) {
+        if (!rpn_stack_get(ctxt, i, value)) {
+            highlight_stack_index(ctxt, i, value, expected[i]);
+            TEST_FAIL_MESSAGE("Can't get stack value at specified index");
+        }
+        if (std::fabs(expected[i] - value) > std::numeric_limits<double>::epsilon()) {
+            highlight_stack_index(ctxt, i, value, expected[i]);
+            TEST_FAIL_MESSAGE("Stack value does not match the expected value");
+        }
     }
 
 }
@@ -61,78 +108,73 @@ void run_and_error(const char * command, unsigned char error_code) {
 // -----------------------------------------------------------------------------
 
 void test_math(void) {
-    float expected[] = {3};
-    run_and_compare("5 2 * 3 + 5 mod", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("5 2 * 3 + 5 mod", {3.0L});
 }
 
 void test_math_advanced(void) {
-    float expected[] = {1};
-    run_and_compare("10 2 pow sqrt log10", sizeof(expected)/sizeof(float), expected);
+#ifdef RPNLIB_ADVANCED_MATH
+    run_and_compare("10 2 pow sqrt log10", {1.0L});
+#else
+    TEST_IGNORE_MESSAGE("fmath is disabled");
+#endif
 }
 
 void test_trig(void) {
-    float expected[] = {1};
-    run_and_compare("pi 4 / cos 2 sqrt *", sizeof(expected)/sizeof(float), expected);
+#ifdef RPNLIB_ADVANCED_MATH
+    run_and_compare("pi 4 / cos 2 sqrt *", {1.0L});
+#else
+    TEST_IGNORE_MESSAGE("fmath is disabled");
+#endif
 }
 
 void test_cast(void) {
-    float expected[] = {2, 1, 3.1416, 3.14};
-    run_and_compare("pi 2 round pi 4 round 1.1 floor 1.1 ceil", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("pi 2 round pi 4 round 1.1 floor 1.1 ceil", {2.0L, 1.0L, 3.1416L, 3.14L});
 }
 
 void test_map(void) {
-    float expected[] = {25};
-    run_and_compare("256 0 1024 0 100 map", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("256 0 1024 0 100 map", {25.0L});
+    run_and_compare("1 0 100 0 1000 map", {10.0L});
 }
 
 void test_index(void) {
-    float expected[] = {30};
-    run_and_compare("2 10 20 30 40 50 5 index", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("2 10 20 30 40 50 5 index", {30.0L});
 }
 
 void test_cmp3_below(void) {
-    float expected[] = {-1};
-    run_and_compare("13 18 24 cmp3", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("13 18 24 cmp3", {-1.0L});
 }
 
 void test_cmp3_between(void) {
-    float expected[] = {0};
-    run_and_compare("18 18 24 cmp3", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("18 18 24 cmp3", {0.0L});
 }
 
 void test_cmp3_above(void) {
-    float expected[] = {1};
-    run_and_compare("25 18 24 cmp3", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("25 18 24 cmp3", {1.0L});
 }
 
 void test_conditional(void) {
-    float expected[] = {2};
-    run_and_compare("1 2 3 ifn", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("1 2 3 ifn", {2.0L});
 }
 
 void test_stack(void) {
-    float expected[] = {6};
-    run_and_compare("1 3 dup unrot swap - *", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("1 3 dup unrot swap - *", {6.0L});
 }
 
 void test_logic(void) {
-    float expected[] = {0, 1, 0, 1};
-    run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt", {0.0L, 1.0L, 0.0L, 1.0L});
 }
 
 void test_boolean(void) {
-    float expected[] = {0, 1, 1, 0};
-    run_and_compare("2 0 and 2 0 or 2 0 xor 1 not", sizeof(expected)/sizeof(float), expected);
+    run_and_compare("2 0 and 2 0 or 2 0 xor 1 not", {0.0L, 1.0L, 1.0L, 0.0L});
 }
-
 
 void test_variable(void) {
 
-    float value;
+    double value;
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", 25));
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", double(25)));
     TEST_ASSERT_TRUE(rpn_process(ctxt, "$tmp 5 /"));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
     TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
@@ -143,14 +185,33 @@ void test_variable(void) {
 
 }
 
+void test_variable_operator(void) {
+
+    double value = 0.0L;
+    rpn_context ctxt;
+
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "25 $tmp ="));
+    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
+    TEST_ASSERT_EQUAL_FLOAT(25, value);
+    TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
+
+    value = 0.0L;
+    TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "tmp", value));
+    TEST_ASSERT_EQUAL_FLOAT(25, value);
+    TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
+    TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
+}
+
 void test_custom_operator(void) {
 
-    float value;
+    double value;
     rpn_context ctxt;
     
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_TRUE(rpn_operator_set(ctxt, "cube", 1, [](rpn_context & ctxt) {
-        float a;
+        double a;
         rpn_stack_pop(ctxt, a);
         rpn_stack_push(ctxt, a*a*a);
         return true;
@@ -163,7 +224,8 @@ void test_custom_operator(void) {
 }
 
 void test_error_divide_by_zero(void) {
-    run_and_error("5 0 /", RPN_ERROR_DIVIDE_BY_ZERO);
+    //run_and_error("5 0 /", RPN_ERROR_DIVIDE_BY_ZERO);
+    TEST_IGNORE_MESSAGE("division by zero, inf and nan are handled internally, operator will not set anything");
 }
 
 void test_error_argument_count_mismatch(void) {
@@ -174,6 +236,7 @@ void test_error_unknown_token(void) {
     run_and_error("1 2 sum", RPN_ERROR_UNKNOWN_TOKEN);
 }
 
+#if not HOST_MOCK
 void test_memory(void) {
 
     unsigned long start = ESP.getFreeHeap();
@@ -181,7 +244,7 @@ void test_memory(void) {
     {
         rpn_context ctxt;
         TEST_ASSERT_TRUE(rpn_init(ctxt));
-        TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", 5));
+        TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", double(5)));
         TEST_ASSERT_TRUE(rpn_process(ctxt, "$value dup 1 - dup 1 - dup 1 - dup 1 -"));
         TEST_ASSERT_TRUE(rpn_clear(ctxt));
     }
@@ -189,13 +252,18 @@ void test_memory(void) {
     TEST_ASSERT_EQUAL_INT32(start, ESP.getFreeHeap());
 
 }
+#else
+void test_memory(void) {
+    TEST_IGNORE_MESSAGE("running on host");
+}
+#endif
 
 // -----------------------------------------------------------------------------
 // Main
 // -----------------------------------------------------------------------------
 
 void setup() {
-    delay(2000);
+    //delay(2000);
     UNITY_BEGIN();
     RUN_TEST(test_math);
     RUN_TEST(test_math_advanced);
@@ -211,6 +279,7 @@ void setup() {
     RUN_TEST(test_logic);
     RUN_TEST(test_boolean);
     RUN_TEST(test_variable);
+    RUN_TEST(test_variable_operator);
     RUN_TEST(test_custom_operator);
     RUN_TEST(test_error_divide_by_zero);
     RUN_TEST(test_error_argument_count_mismatch);
