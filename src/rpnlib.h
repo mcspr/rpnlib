@@ -55,10 +55,12 @@ enum rpn_errors {
     RPN_ERROR_UNVALID_ARGUMENT
 };
 
+using rpn_debug_callback_f = void(rpn_context &, char *);
+
 // ----------------------------------------------------------------------------
 
 extern rpn_errors rpn_error;
-extern void(*_rpn_debug_callback)(rpn_context &, char *);
+extern rpn_debug_callbacK_f *_rpn_debug_callback;
 
 // ----------------------------------------------------------------------------
 
@@ -83,7 +85,7 @@ bool rpn_process(rpn_context &, const char *, bool variable_must_exist = false);
 bool rpn_init(rpn_context &);
 bool rpn_clear(rpn_context &);
 
-bool rpn_debug(void(*)(rpn_context &, char *));
+bool rpn_debug(rpn_debug_callback_f);
 
 // ----------------------------------------------------------------------------
 

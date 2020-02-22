@@ -20,7 +20,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "rpnlib.h"
-#include "rpnlib_operators.cpp"
+#include "rpnlib_operators.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -31,7 +31,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
 rpn_errors rpn_error = RPN_ERROR_OK;
-void(*_rpn_debug_callback)(rpn_context &, char *) = NULL;
+_rpn_debug_callback = nullptr;
 
 // ----------------------------------------------------------------------------
 // Utils
@@ -246,7 +246,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         
         // Debug callback
         if (_rpn_debug_callback) {
-            (*_rpn_debug_callback)(ctxt, token);
+            _rpn_debug_callback(ctxt, token);
         }
 
         // Multiple spaces
@@ -304,7 +304,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
 }
 
-bool rpn_debug(void(*callback)(rpn_context &, char *)) {
+bool rpn_debug(rpn_debug_callback_f callback) {
     _rpn_debug_callback = callback;
     return true;
 }

@@ -20,6 +20,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "rpnlib.h"
+#include "rpnlib_operators.h"
 
 extern "C" {
     #include "fs_math.h"
