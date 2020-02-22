@@ -71,3 +71,5 @@ bool _rpn_unrot(rpn_context &);
 bool _rpn_rot(rpn_context &);
 bool _rpn_drop(rpn_context &);
 bool _rpn_depth(rpn_context &);
+bool _rpn_exists(rpn_context &);
+bool _rpn_assign(rpn_context &);

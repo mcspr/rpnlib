@@ -25,24 +25,86 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
 #include <vector>
+#include <cstdint>
 
 // ----------------------------------------------------------------------------
 
+struct rpn_value {
+    enum value_t {
+        unknown,
+        s32,
+        u32,
+        f64,
+        charptr
+    };
+
+    rpn_value();
+    rpn_value(int32_t);
+    rpn_value(uint32_t);
+    rpn_value(double);
+    rpn_value(char*);
+
+    rpn_value(rpn_value&&);
+    rpn_value(const rpn_value&);
+    ~rpn_value();
+
+    rpn_value& operator=(const rpn_value&);
+
+    operator int32_t() const;
+    operator uint32_t() const;
+    operator double() const;
+    operator char*() const;
+
+    // TODO: generic variant struct to manage String / std::string / custom string obj member
+    // TODO: if not, sso?
+    union {
+        int32_t as_s32;
+        uint32_t as_u32;
+        double as_f64;
+        char* as_charptr;
+    };
+
+    value_t type;
+};
+
 struct rpn_variable {
-    char * name;
-    float value;
+    rpn_variable() : name(nullptr) {}
+    ~rpn_variable(); 
+    rpn_variable(const rpn_variable&);
+    rpn_variable(rpn_variable&&);
+    rpn_variable& operator=(const rpn_variable&);
+    char * name; // TODO: use String / std::string / custom string obj
+    rpn_value value; // TODO: track value with shared_ptr to allow to share it with stack-value
+};
+
+struct rpn_stack_value {
+    rpn_stack_value(const rpn_value&, rpn_variable* variable);
+    rpn_stack_value(const rpn_value&);
+    rpn_stack_value(rpn_stack_value&& other) {
+        variable = other.variable;
+        value = other.value;
+        other.variable = nullptr;
+    }
+    rpn_stack_value& operator=(const rpn_stack_value& other) {
+        variable = other.variable;
+        value = other.value;
+        return *this;
+    }
+    rpn_stack_value(rpn_variable*);
+    rpn_variable* variable; // TODO: track variable with shared_ptr to avoid outdated ptr
+    rpn_value value; // TODO: track value with shared_ptr to allow to share it with variable
 };
 
 struct rpn_context;
 
 struct rpn_operator {
-    char * name;
+    char * name; // TODO: use String / std::string / custom string obj 
     unsigned char argc;
     bool (*callback)(rpn_context &);
 };
 
 struct rpn_context {
-    std::vector<float> stack;
+    std::vector<rpn_stack_value> stack;
     std::vector<rpn_variable> variables;
     std::vector<rpn_operator> operators;
 };
@@ -52,15 +114,16 @@ enum rpn_errors {
     RPN_ERROR_UNKNOWN_TOKEN,
     RPN_ERROR_ARGUMENT_COUNT_MISMATCH,
     RPN_ERROR_DIVIDE_BY_ZERO,
-    RPN_ERROR_UNVALID_ARGUMENT
+    RPN_ERROR_UNVALID_ARGUMENT,
+    RPN_ERROR_VARIABLE_DOES_NOT_EXIST
 };
 
-using rpn_debug_callback_f = void(rpn_context &, char *);
+using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 
 // ----------------------------------------------------------------------------
 
 extern rpn_errors rpn_error;
-extern rpn_debug_callbacK_f *_rpn_debug_callback;
+extern rpn_debug_callback_f _rpn_debug_callback;
 
 // ----------------------------------------------------------------------------
 

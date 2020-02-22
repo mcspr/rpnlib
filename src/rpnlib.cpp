@@ -22,20 +22,30 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include "rpnlib.h"
 #include "rpnlib_operators.h"
 
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
+#include <algorithm>
+#include <functional>
+#include <memory>
+#include <vector>
+
+#include <cstring>
+#include <cstdlib>
+#include <cctype>
+
+// XXX REMOVE XXX ME XXX
+#include <cstdio>
 
 // ----------------------------------------------------------------------------
 // Globals
 // ----------------------------------------------------------------------------
 
 rpn_errors rpn_error = RPN_ERROR_OK;
-_rpn_debug_callback = nullptr;
+rpn_debug_callback_f _rpn_debug_callback = nullptr;
 
 // ----------------------------------------------------------------------------
 // Utils
 // ----------------------------------------------------------------------------
+
+using rpn_tokenizer_callback = std::function<bool(const char* ptr)>;
 
 bool _rpn_is_number(const char * s) {
     unsigned char len = strlen(s);
@@ -58,9 +68,207 @@ bool _rpn_is_number(const char * s) {
     return digit;
 }
 
+bool _rpn_is_string(const char * s) {
+    const auto len = strlen(s);
+    return (len && len > 2 && (s[0] == '"') && (s[len - 1] == '"'));
+}
+
+void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
+    char *p = buffer;
+    char *start_of_word = nullptr;
+
+	char c = '\0';
+	char tmp = '\0';
+
+    enum states { DULL, IN_WORD, IN_STRING } state = DULL;
+
+	while (true) {
+		if (*p == '\0') break;
+
+        c = *p;
+        switch (state) {
+        case DULL:
+            if (isspace(c)) {
+                continue;
+            }
+
+            if (c == '"') {
+                state = IN_STRING;
+                start_of_word = p; 
+                break;
+            }
+            state = IN_WORD;
+            start_of_word = p;
+            break;
+
+        case IN_STRING:
+            if (c == '"') {
+                ++p;
+                tmp = *p;
+                *p = '\0';
+				if (!callback(start_of_word)) break;
+                *p = tmp;
+                state = DULL;
+            }
+            break;
+
+        case IN_WORD:
+            if (isspace(c)) {
+                tmp = *p;
+                *p = '\0';
+				if (!callback(start_of_word)) break;
+                *p = tmp;
+                state = DULL;
+            }
+            break;
+        }
+
+		++p;
+    }
+
+    if (strlen(start_of_word) && (state != DULL)) {
+        callback(start_of_word);
+    }
+
+}
+
 // ----------------------------------------------------------------------------
 // Stack methods
 // ----------------------------------------------------------------------------
+
+rpn_variable::rpn_variable(const rpn_variable& other) :
+    name(strdup(other.name))
+{}
+
+rpn_variable::rpn_variable(rpn_variable&& other) {
+    name = other.name;
+    other.name = nullptr;
+}
+
+rpn_variable::~rpn_variable() {
+    free(name);
+}
+
+rpn_variable& rpn_variable::operator=(const rpn_variable& other) {
+    if (name) free(name);
+    name = strdup(other.name);
+    return *this;
+}
+
+rpn_value::rpn_value() :
+    type(rpn_value::unknown)
+{}
+
+rpn_value::rpn_value(const rpn_value& other) {
+    if (type == rpn_value::charptr) {
+        free(as_charptr);
+    }
+    if (other.type == rpn_value::charptr) {
+        as_charptr = strdup(other.as_charptr);
+    }
+    type = other.type;
+}
+
+rpn_value::rpn_value(rpn_value&& other) {
+    if (type == rpn_value::charptr) {
+        free(as_charptr);
+    }
+    if (other.type == rpn_value::charptr) {
+        as_charptr = other.as_charptr;
+        other.as_charptr = nullptr;
+    }
+    type = other.type;
+    other.type = rpn_value::unknown;
+}
+
+rpn_value::rpn_value(int32_t value) :
+    as_s32(value),
+    type(rpn_value::s32)
+{}
+
+rpn_value::rpn_value(uint32_t value) :
+    as_u32(value),
+    type(rpn_value::u32)
+{}
+
+rpn_value::rpn_value(double value) :
+    as_f64(value),
+    type(rpn_value::f64)
+{}
+
+rpn_value& rpn_value::operator=(const rpn_value& other) {
+    type = other.type;
+
+    switch (other.type) {
+        case rpn_value::s32:
+            as_s32 = other.as_s32;
+            break;
+        case rpn_value::u32:
+            as_u32 = other.as_u32;
+            break;
+        case rpn_value::f64:
+            as_f64 = other.as_f64;
+            break;
+        case rpn_value::charptr:
+            as_charptr = strdup(other.as_charptr);
+            break;
+    }
+            
+    return *this;
+}
+
+rpn_value::rpn_value(char* value) :
+    as_charptr(strdup(value)),
+    type(rpn_value::charptr)
+{}
+
+rpn_value::~rpn_value() {
+    if (type == rpn_value::charptr) {
+        free(as_charptr);
+    }
+}
+
+rpn_value::operator int32_t() const {
+    if (type == rpn_value::s32) {
+        return as_s32;
+    }
+    return 0;
+}
+
+rpn_value::operator uint32_t() const {
+    if (type == rpn_value::u32) {
+        return as_u32;
+    }
+    return 0;
+}
+
+rpn_value::operator double() const {
+    if (type == rpn_value::f64) {
+        return as_f64;
+    }
+    return 0.0L;
+}
+
+rpn_value::operator char*() const {
+    if (type == rpn_value::charptr) {
+        return as_charptr;
+    }
+    return nullptr;
+}
+
+rpn_stack_value::rpn_stack_value(const rpn_value& value, rpn_variable* variable) :
+    variable(variable),
+    value(value)
+{}
+
+rpn_stack_value::rpn_stack_value(const rpn_value& value) :
+    rpn_stack_value(value, nullptr)
+{}
+
+rpn_stack_value::rpn_stack_value(rpn_variable* variable) :
+    variable(variable),
+    value(variable->value)
+{}
 
 unsigned char rpn_stack_size(rpn_context & ctxt) {
     return ctxt.stack.size();
@@ -72,13 +280,45 @@ bool rpn_stack_clear(rpn_context & ctxt) {
 }
 
 bool rpn_stack_push(rpn_context & ctxt, float value) {
-    ctxt.stack.push_back(value);
+    ctxt.stack.emplace_back(rpn_value{double(value)});
+    return true;
+}
+
+bool rpn_stack_push(rpn_context & ctxt, double value) {
+    ctxt.stack.emplace_back(rpn_value{value});
+    return true;
+}
+
+bool rpn_stack_push(rpn_context & ctxt, int32_t value) {
+    ctxt.stack.emplace_back(rpn_value{value});
+    return true;
+}
+
+bool rpn_stack_push(rpn_context & ctxt, uint32_t value) {
+    ctxt.stack.emplace_back(rpn_value{value});
+    return true;
+}
+
+bool rpn_stack_push(rpn_context & ctxt, char* value) {
+    ctxt.stack.emplace_back(rpn_value{value});
     return true;
 }
 
 bool rpn_stack_pop(rpn_context & ctxt, float & value) {
     if (0 == ctxt.stack.size()) return false;
-    value = ctxt.stack.back();
+    auto& ref = ctxt.stack.back();
+    if (ref.value.type == rpn_value::f64) {
+        value = ref.value.as_f64;
+    } else {
+        value = 0;
+    }
+    ctxt.stack.pop_back();
+    return true;
+}
+
+bool rpn_stack_pop(rpn_context & ctxt, char** value) {
+    if (0 == ctxt.stack.size()) return false;
+    *value = ctxt.stack.back().value;
     ctxt.stack.pop_back();
     return true;
 }
@@ -86,7 +326,12 @@ bool rpn_stack_pop(rpn_context & ctxt, float & value) {
 bool rpn_stack_get(rpn_context & ctxt, unsigned char index, float & value) {
     unsigned char size = ctxt.stack.size();
     if (index >= size) return false;
-    value = ctxt.stack[size-index-1];
+    auto& ref = ctxt.stack.at(size-index-1);
+    if (ref.value.type == rpn_value::f64) {
+        value = ref.value.as_f64;
+    } else {
+        value = 0.0;
+    }
     return true;
 }
 
@@ -95,11 +340,7 @@ bool rpn_stack_get(rpn_context & ctxt, unsigned char index, float & value) {
 // ----------------------------------------------------------------------------
 
 bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, bool (*callback)(rpn_context &)) {
-    rpn_operator f;
-    f.name = strdup(name);
-    f.argc = argc;
-    f.callback = callback;
-    ctxt.operators.push_back(f);
+    ctxt.operators.emplace_back(rpn_operator{strdup(name), argc, callback});
     return true;
 }
 
@@ -166,6 +407,8 @@ bool rpn_operators_init(rpn_context & ctxt) {
     rpn_operator_set(ctxt, "drop", 1, _rpn_drop);
     rpn_operator_set(ctxt, "over", 2, _rpn_over);
     rpn_operator_set(ctxt, "depth", 0, _rpn_depth);
+    rpn_operator_set(ctxt, "exists", 1, _rpn_exists);
+    rpn_operator_set(ctxt, "=", 2, _rpn_assign);
 
     rpn_operator_set(ctxt, "ifn", 3, _rpn_ifn);
     rpn_operator_set(ctxt, "end", 1, _rpn_end);
@@ -177,26 +420,27 @@ bool rpn_operators_init(rpn_context & ctxt) {
 // Variables methods
 // ----------------------------------------------------------------------------
 
+// TODO: handle charptr lifetime in rpn_value class
 bool rpn_variable_set(rpn_context & ctxt, const char * name, float value) {
     for (auto & v : ctxt.variables) {
-        if (strcmp(v.name, name) == 0) {
-            v.value = value;
-            return true;
-        }
+        if (strcmp(v.name, name) != 0) continue;
+        if (v.value.type != rpn_value::f64) break;
+        v.value.as_f64 = value;
+        return true;
     }
-    rpn_variable v;
-    v.name = strdup(name);
-    v.value = value;
-    ctxt.variables.push_back(v);
+    rpn_variable variable;
+    variable.name = strdup(name);
+    variable.value = rpn_value(double(value));
+    ctxt.variables.emplace_back(std::move(variable));
     return true;
 }
 
 bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
     for (auto & v : ctxt.variables) {
-        if (strcmp(v.name, name) == 0) {
-            value = v.value;
-            return true;
-        }
+        if (strcmp(v.name, name) != 0) continue;
+        if (v.value.type != rpn_value::f64) break;
+        value = v.value.as_f64;
+        return true;
     }
     return false;
 }
@@ -204,7 +448,6 @@ bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
 bool rpn_variable_del(rpn_context & ctxt, const char * name) {
     for (auto v = ctxt.variables.begin(); v != ctxt.variables.end(); v++) {
         if (strcmp((*v).name, name) == 0) {
-            free((*v).name);
             ctxt.variables.erase(v);
             return true;
         }
@@ -237,12 +480,11 @@ bool rpn_variables_clear(rpn_context & ctxt) {
 
 bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exist) {
 
-    char * token;
-    char * base = strdup(input);
-
     rpn_error = RPN_ERROR_OK;
 
-    for (token = strtok(base, " "); token != NULL; token = strtok(NULL, " ")) {
+    std::unique_ptr<char[]> _input_copy(strdup(input));
+
+    _rpn_tokenize(_input_copy.get(), [&ctxt, variable_must_exist](const char* token) {
         
         // Debug callback
         if (_rpn_debug_callback) {
@@ -251,55 +493,108 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
         // Multiple spaces
         if (0 == strlen(token)) {
-            continue;
+            _rpn_debug_callback(ctxt, "is space");
+            return true;
+        }
+
+        // Is token a (quoted) string?
+        if (_rpn_is_string(token)) {
+            _rpn_debug_callback(ctxt, "is string");
+            // TODO: implement generic copy func
+            rpn_value val;
+            val.type = rpn_value::charptr;
+            val.as_charptr = (char*)malloc(strlen(token) - 2 + 1);
+            memcpy(val.as_charptr, token + 1, strlen(token) - 2);
+            val.as_charptr[strlen(token) - 2] = '\0';
+            _rpn_debug_callback(ctxt, "string without quotes:");
+            _rpn_debug_callback(ctxt, val.as_charptr);
+            ctxt.stack.emplace_back(val);
+            char buffer[64];
+            sprintf(buffer, "stack has %u values\n", ctxt.stack.size());
+            _rpn_debug_callback(ctxt, buffer);
+            return true;
         }
 
         // Is token a number?
         if (_rpn_is_number(token)) {
-            ctxt.stack.push_back(atof(token));
-            continue;
+            _rpn_debug_callback(ctxt, "is number");
+            ctxt.stack.emplace_back(rpn_value{atof(token)});
+            return true;
         }
 
-        // Is token a operator?
+        // Is token a variable?
+        if (token[0] == '$') {
+            _rpn_debug_callback(ctxt, "is variable");
+            const char* name = token + 1;
+            auto var = std::find_if(ctxt.variables.begin(), ctxt.variables.end(), [name](const rpn_variable& var) {
+                return (strcmp(var.name, name) == 0);
+            });
+
+            const bool found = (var != ctxt.variables.end());
+
+            if (found) {
+                _rpn_debug_callback(ctxt, "existing variable");
+                ctxt.stack.emplace_back(&(*var));
+                return true;
+            }
+
+            // no reason to continue
+            if (!found && variable_must_exist) {
+                _rpn_debug_callback(ctxt, "variable does not exist");
+                rpn_error = RPN_ERROR_VARIABLE_DOES_NOT_EXIST;
+                return false;
+            }
+
+            // since we don't have the variable yet, push uninitialized one
+            if (!found) {
+                _rpn_debug_callback(ctxt, "undefined variable");
+                rpn_variable variable;
+                variable.name = strdup(name);
+                ctxt.variables.emplace_back(variable);
+                ctxt.stack.emplace_back(&ctxt.variables.back());
+                return true;
+            }
+        }
+
+        // Is token an operator?
         {
             bool found = false;
             for (auto & f : ctxt.operators) {
                 if (strcmp(f.name, token) == 0) {
+                    _rpn_debug_callback(ctxt, "is operator");
                     if (rpn_stack_size(ctxt) < f.argc) {
+                        char buffer[64];
+                        sprintf(buffer, "%s: %u vs %u mismatch", f.name, rpn_stack_size(ctxt), f.argc);
+                        _rpn_debug_callback(ctxt, buffer);
                         rpn_error = RPN_ERROR_ARGUMENT_COUNT_MISMATCH;
                         break;
                     }
                     if (!(f.callback)(ctxt)) {
+                        _rpn_debug_callback(ctxt, "callback error");
                         // Method should set rpn_error
                         break;
                     }
+                    _rpn_debug_callback(ctxt, "callback ok");
                     found = true;
                     break;
                 }
             }
-            if (RPN_ERROR_OK != rpn_error) break;
-            if (found) continue;
-        }
-
-        // Is token a variable?
-        {
-            if (token[0] == '$') {
-                float value = 0;
-                bool exists = rpn_variable_get(ctxt, &token[1], value);
-                if (exists || !variable_must_exist) {
-                ctxt.stack.push_back(value);
-                continue;
-                }
-            }
+            if (RPN_ERROR_OK != rpn_error) return false;
+            if (found) return true;
         }
 
         // Don't know the token
+        _rpn_debug_callback(ctxt, "idk?");
         rpn_error = RPN_ERROR_UNKNOWN_TOKEN;
-        break;
+        return false;
 
-    }
+    });
+
+    // clean-up temporaries
+    std::remove_if(ctxt.variables.begin(), ctxt.variables.end(), [](const rpn_variable& var) {
+        return (var.value.type == rpn_value::unknown);
+    });
     
-    free(base);
     return (RPN_ERROR_OK == rpn_error);
 
 }
