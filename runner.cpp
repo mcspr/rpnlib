@@ -14,7 +14,7 @@ auto end (reversion_wrapper<T> w) { return std::rend(w.iterable); }
 template <typename T>
 reversion_wrapper<T> reverse (T&& iterable) { return { iterable }; }
 
-void dump_value(const rpn_value& val) {
+void dump_value(rpn_value& val) {
     switch (val.type) {
         case rpn_value::s32:
             std::cout << "s32 -> " << val.as_s32 << std::endl;
@@ -28,20 +28,21 @@ void dump_value(const rpn_value& val) {
         case rpn_value::charptr:
             std::cout << "charptr -> \"" << val.as_charptr << "\"" << std::endl;
             break;
-        case rpn_value::unknown:
-            std::cout << "undefined" << std::endl;
+        case rpn_value::null:
+            std::cout << "null" << std::endl;
             break;
     }
 }
 
-void dump_variable(const rpn_variable& var) {
-    std::cout << var.name << " = ";
-    dump_value(var.value);
+template<typename T>
+void dump_variable(const T var) {
+    std::cout << var->name << " = ";
+    dump_value(*var->value.get());
 }
 
 void dump_variables(rpn_context & ctxt) {
     std::cout << "variables: " << ctxt.variables.size() << std::endl;
-    for (auto& variable : ctxt.variables) {
+    for (auto variable : ctxt.variables) {
         dump_variable(variable);
     }
 }
@@ -49,9 +50,9 @@ void dump_variables(rpn_context & ctxt) {
 void dump_stack(rpn_context & ctxt) {
     std::cout << "stack: " << ctxt.stack.size() << std::endl;
     auto index = ctxt.stack.size();
-    for (auto& stack_val : reverse(ctxt.stack)) {
+    for (auto stack_val : ctxt.stack) {
         std::cout << --index << ": ";
-        dump_value(stack_val.value);
+        dump_value(*(stack_val.value.get()));
     }
 }
 

@@ -512,7 +512,7 @@ bool _rpn_depth(rpn_context & ctxt) {
 }
 
 bool _rpn_exists(rpn_context & ctxt) {
-    return (ctxt.stack.back().value.type != rpn_value::unknown);
+    return (ctxt.stack.back().value->type != rpn_value::null);
 }
 
 #include <cstdio>
@@ -520,9 +520,9 @@ bool _rpn_exists(rpn_context & ctxt) {
 bool _rpn_assign(rpn_context & ctxt) {
     auto& stack_variable = *(ctxt.stack.end() - 1);
     auto& stack_value = *(ctxt.stack.end() - 2);
-    printf("= $%s %s\n", stack_variable.variable->name.c_str(), stack_value.value.as_charptr);
+    printf("= $%s %s\n", stack_variable.variable->name.c_str(), stack_value.value->as_charptr);
     if (stack_variable.variable) {
-        auto* var = stack_variable.variable;
+        auto var = stack_variable.variable;
         stack_variable.variable->value = stack_value.value;
         ctxt.stack.erase(ctxt.stack.end() - 2);
         return true;

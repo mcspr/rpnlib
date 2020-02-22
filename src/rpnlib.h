@@ -26,13 +26,14 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <string>
 #include <vector>
+#include <memory>
 #include <cstdint>
 
 // ----------------------------------------------------------------------------
 
 struct rpn_value {
     enum value_t {
-        unknown,
+        null,
         s32,
         u32,
         f64,
@@ -70,25 +71,42 @@ struct rpn_value {
 
 struct rpn_variable {
     std::string name;
-    rpn_value value; // TODO: track value with shared_ptr to allow to share it with stack-value
+    std::shared_ptr<rpn_value> value;
 };
 
 struct rpn_stack_value {
-    rpn_stack_value(const rpn_value&, rpn_variable* variable);
-    rpn_stack_value(const rpn_value&);
-    rpn_stack_value(rpn_stack_value&& other) {
-        variable = other.variable;
-        value = other.value;
-        other.variable = nullptr;
-    }
-    rpn_stack_value& operator=(const rpn_stack_value& other) {
-        variable = other.variable;
-        value = other.value;
-        return *this;
-    }
-    rpn_stack_value(rpn_variable*);
-    rpn_variable* variable; // TODO: track variable with shared_ptr to avoid outdated ptr
-    rpn_value value; // TODO: track value with shared_ptr to allow to share it with variable
+    rpn_stack_value(double value) :
+        variable(nullptr),
+        value(std::make_shared<rpn_value>(value))
+    {}
+
+    rpn_stack_value(int32_t value) :
+        variable(nullptr),
+        value(std::make_shared<rpn_value>(value))
+    {}
+
+    rpn_stack_value(uint32_t value) :
+        variable(nullptr),
+        value(std::make_shared<rpn_value>(value))
+    {}
+
+    rpn_stack_value(char* value) :
+        variable(nullptr),
+        value(std::make_shared<rpn_value>(value))
+    {}
+
+    rpn_stack_value(std::shared_ptr<rpn_variable> variable) :
+        variable(variable),
+        value(variable->value)
+    {}
+
+    rpn_stack_value(std::shared_ptr<rpn_value> value) :
+        variable(nullptr),
+        value(value)
+    {}
+
+    std::shared_ptr<rpn_variable> variable;
+    std::shared_ptr<rpn_value> value;
 };
 
 struct rpn_context;
@@ -100,9 +118,9 @@ struct rpn_operator {
 };
 
 struct rpn_context {
-    std::vector<rpn_stack_value> stack;
-    std::vector<rpn_variable> variables;
+    std::vector<std::shared_ptr<rpn_variable>> variables;
     std::vector<rpn_operator> operators;
+    std::vector<rpn_stack_value> stack;
 };
 
 enum rpn_errors {
