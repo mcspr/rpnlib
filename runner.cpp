@@ -88,7 +88,10 @@ int main(int argc, char** argv) {
     while (true) {
         std::cout << "> ";
         std::string input;
-        std::getline(std::cin, input);
+        if (!std::getline(std::cin, input)) {
+            std::cout << std::endl;
+            break;
+        }
         rpn_process(ctxt, input.c_str());
         std::cout << std::endl;
     }
