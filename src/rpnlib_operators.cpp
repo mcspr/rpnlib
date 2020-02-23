@@ -507,7 +507,7 @@ bool _rpn_drop(rpn_context & ctxt) {
 }
 
 bool _rpn_depth(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, rpn_stack_size(ctxt));
+    rpn_stack_push(ctxt, uint32_t(rpn_stack_size(ctxt)));
     return true;
 }
 

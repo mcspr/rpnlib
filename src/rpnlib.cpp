@@ -244,7 +244,7 @@ rpn_value::operator char*() const {
     return nullptr;
 }
 
-unsigned char rpn_stack_size(rpn_context & ctxt) {
+size_t rpn_stack_size(rpn_context & ctxt) {
     return ctxt.stack.size();
 }
 
@@ -422,7 +422,7 @@ bool rpn_variable_del(rpn_context & ctxt, const char * name) {
     return false;
 }
 
-unsigned char rpn_variables_size(rpn_context & ctxt) {
+size_t rpn_variables_size(rpn_context & ctxt) {
     return ctxt.variables.size();
 }
 
@@ -470,12 +470,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             val->as_charptr = (char*)malloc(strlen(token) - 2 + 1);
             memcpy(val->as_charptr, token + 1, strlen(token) - 2);
             val->as_charptr[strlen(token) - 2] = '\0';
-            _rpn_debug_callback(ctxt, "string without quotes:");
-            _rpn_debug_callback(ctxt, val->as_charptr);
             ctxt.stack.emplace_back(val);
-            char buffer[64];
-            sprintf(buffer, "stack has %u values\n", ctxt.stack.size());
-            _rpn_debug_callback(ctxt, buffer);
             return true;
         }
 
@@ -530,7 +525,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                     _rpn_debug_callback(ctxt, "is operator");
                     if (rpn_stack_size(ctxt) < f.argc) {
                         char buffer[64];
-                        sprintf(buffer, "%s: %u vs %u mismatch", f.name, rpn_stack_size(ctxt), f.argc);
+                        sprintf(buffer, "%s: func %u vs stack %u argc mismatch", f.name, rpn_stack_size(ctxt), f.argc);
                         _rpn_debug_callback(ctxt, buffer);
                         rpn_error = RPN_ERROR_ARGUMENT_COUNT_MISMATCH;
                         break;

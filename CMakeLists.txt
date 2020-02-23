@@ -1,3 +1,9 @@
+# $ mkdir build
+# $ cd build
+# $ cmake ../
+# $ cmake --build .
+# $ ./runner
+
 cmake_minimum_required(VERSION 3.5)
 project(runner VERSION 1 LANGUAGES CXX)
 
