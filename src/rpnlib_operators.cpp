@@ -29,6 +29,9 @@ extern "C" {
 #define RPN_CONST_PI    3.141593
 #define RPN_CONST_E     2.178282
 
+#include <algorithm>
+#include <cmath>
+#include <utility>
 #include <cstdio>
 
 // ----------------------------------------------------------------------------
@@ -143,99 +146,6 @@ bool _rpn_abs(rpn_context & ctxt) {
 }
 
 // ----------------------------------------------------------------------------
-// Advanced math
-// ----------------------------------------------------------------------------
-
-#ifdef RPNLIB_ADVANCED_MATH
-
-bool _rpn_sqrt(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, fs_sqrt(a));
-    return true;
-}
-
-bool _rpn_log(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    if (0 >= a) {
-        rpn_error = RPN_ERROR_UNVALID_ARGUMENT;
-        return false;
-    }
-    rpn_stack_push(ctxt, fs_log(a));
-    return true;
-}
-
-bool _rpn_log10(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    if (0 >= a) {
-        rpn_error = RPN_ERROR_UNVALID_ARGUMENT;
-        return false;
-    }
-    rpn_stack_push(ctxt, fs_log10(a));
-    return true;
-}
-
-bool _rpn_exp(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, fs_exp(a));
-    return true;
-}
-
-bool _rpn_fmod(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    if (0 == b) {
-        rpn_error = RPN_ERROR_DIVIDE_BY_ZERO;
-        return false;
-    }
-    rpn_stack_push(ctxt, fs_fmod(a, b));
-    return true;
-}
-
-bool _rpn_pow(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, fs_pow(a, b));
-    return true;
-}
-
-bool _rpn_cos(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, fs_cos(a));
-    return true;
-}
-
-bool _rpn_sin(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    float cos = fs_cos(a);
-    float sin = fs_sqrt(1 - cos * cos);
-    rpn_stack_push(ctxt, sin);
-    return true;
-}
-
-bool _rpn_tan(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    float cos = fs_cos(a);
-    if (0 == cos) {
-        rpn_error = RPN_ERROR_UNVALID_ARGUMENT;
-        return false;
-    }
-    float sin = fs_sqrt(1 - cos * cos);
-    rpn_stack_push(ctxt, sin / cos);
-    return true;
-}
-
-#endif
-
-// ----------------------------------------------------------------------------
 // Logic
 // ----------------------------------------------------------------------------
 
@@ -325,34 +235,41 @@ bool _rpn_index(rpn_context & ctxt) {
 
 bool _rpn_map(rpn_context & ctxt) {
     
-    float value, from_low, from_high, to_low, to_high;
-    rpn_stack_pop(ctxt, to_high);
-    rpn_stack_pop(ctxt, to_low);
-    rpn_stack_pop(ctxt, from_high);
-    rpn_stack_pop(ctxt, from_low);
-    rpn_stack_pop(ctxt, value);
+    auto value = _rpn_stack_peek(ctxt, 1);
+    _rpn_stack_eat(ctxt, 1);
+
+    auto& from_low = _rpn_stack_peek(ctxt, 1);
+    auto& from_high = _rpn_stack_peek(ctxt, 2);
+    auto& to_low = _rpn_stack_peek(ctxt, 3);
+    auto& to_high = _rpn_stack_peek(ctxt, 4);
 
     if (from_high == from_low) return false;
     if (value < from_low) value = from_low;
     if (value > from_high) value = from_high;
     value = to_low + (value - from_low) * (to_high - to_low) / (from_high - from_low);
+
+    _rpn_stack_eat(ctxt, 4);
     rpn_stack_push(ctxt, value);
+
     return true;
 
 };
 
 bool _rpn_constrain(rpn_context & ctxt) {
-    float a, b, c;
-    rpn_stack_pop(ctxt, c); // upper threshold
-    rpn_stack_pop(ctxt, b); // lower threshold
-    rpn_stack_pop(ctxt, a); // value
-    if (a < b) {
-        rpn_stack_push(ctxt, b);
-    } else if (a > c) {
-        rpn_stack_push(ctxt, c);
+
+    const auto upper = _rpn_stack_peek(ctxt, 1);
+    const auto lower = _rpn_stack_peek(ctxt, 2);
+    const auto value = _rpn_stack_peek(ctxt, 3);
+    _rpn_stack_eat(ctxt, 3);
+
+    if (value < lower) {
+        rpn_stack_push(ctxt, lower);
+    } else if (value > upper) {
+        rpn_stack_push(ctxt, upper);
     } else {
-        rpn_stack_push(ctxt, a);
+        rpn_stack_push(ctxt, value);
     }
+
     return true;
 };    
 
@@ -361,33 +278,52 @@ bool _rpn_constrain(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 bool _rpn_and(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, ((a!=0) & (b!=0)) ? 1 : 0);
+    const auto& top = _rpn_stack_peek(ctxt, 1);
+    const auto& prev = _rpn_stack_peek(ctxt, 2);
+    if (!top.is_number() || !prev.is_number()) {
+        return false;
+    }
+
+    const bool result = (!top.is_number_zero() && !prev.is_number_zero());
+    _rpn_stack_eat(ctxt, 2);
+
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_or(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, ((a!=0) | (b!=0)) ? 1 : 0);
+    const auto& top = _rpn_stack_peek(ctxt, 1);
+    const auto& prev = _rpn_stack_peek(ctxt, 2);
+    if (!top.is_number() || !prev.is_number()) {
+        return false;
+    }
+
+    const bool result = (!top.is_number_zero() || !prev.is_number_zero());
+    _rpn_stack_eat(ctxt, 2);
+
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_xor(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, ((a!=0) ^ (b!=0)) ? 1 : 0);
+    const auto& top = _rpn_stack_peek(ctxt, 1);
+    const auto& prev = _rpn_stack_peek(ctxt, 2);
+    if (!top.is_number() || !prev.is_number()) {
+        return false;
+    }
+
+    const bool result = (!top.is_number_zero() ^ !prev.is_number_zero());
+    _rpn_stack_eat(ctxt, 2);
+
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_not(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a == 0 ? 1 : 0);
+    const auto& top = _rpn_stack_peek(ctxt, 1);
+    const bool result = top.is_number_zero();
+    _rpn_stack_eat(ctxt, 1);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
@@ -397,33 +333,41 @@ bool _rpn_not(rpn_context & ctxt) {
 
 bool _rpn_round(rpn_context & ctxt) {
     
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
+    const auto& decimals = _rpn_stack_peek(ctxt, 1);
+    const auto& value = _rpn_stack_peek(ctxt, 2);
+
+    if ((decimals.type != rpn_value::f64) || (value.type != rpn_value::f64)) {
+        return false;
+    }
     
-    unsigned char decimals = (int) b;
-    unsigned long multiplier = 1;
-    for (unsigned char i=0; i<decimals; i++) {
+    int multiplier = 1;
+    for (int i = 0; i < round(decimals.as_f64); ++i) {
         multiplier *= 10;
     }
-    a = (float) (int(a * multiplier + 0.5)) / multiplier;
 
-    rpn_stack_push(ctxt, a);
+    rpn_stack_push(ctxt, double(round(value.as_f64 * multiplier + 0.5L) / multiplier));
+
     return true;
 
 }
 
 bool _rpn_ceil(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, int(a) + (a == int(a) ? 0 : 1));
+    auto& value = _rpn_stack_peek(ctxt, 1);
+    if (value.type != rpn_value::f64) {
+        return false;
+    }
+
+    value.as_f64 = ceil(value);
     return true;
 }
 
 bool _rpn_floor(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, int(a));
+    auto& value = _rpn_stack_peek(ctxt, 1);
+    if (value.type != rpn_value::f64) {
+        return false;
+    }
+
+    value.as_f64 = floor(value);
     return true;
 }
 
@@ -432,88 +376,80 @@ bool _rpn_floor(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 bool _rpn_ifn(rpn_context & ctxt) {
-    float a, b, c;
-    rpn_stack_pop(ctxt, c);
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, (a!=0) ? b : c);
+    const auto c = _rpn_stack_peek(ctxt, 1);
+    const auto b = _rpn_stack_peek(ctxt, 2);
+    const auto a = _rpn_stack_peek(ctxt, 3);
+
+    _rpn_stack_eat(ctxt, 3);
+    rpn_stack_push(ctxt, !a.is_number_zero() ? b : c);
+
     return true;
 }
 
 bool _rpn_end(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    if (a != 0) return false;
-    return true;
-};    
+    const auto value = _rpn_stack_peek(ctxt, 1);
+    _rpn_stack_eat(ctxt, 1);
+    return value.is_number_zero();
+}
 
 // ----------------------------------------------------------------------------
 // Stack
 // ----------------------------------------------------------------------------
 
+// [a] -> [a a]
 bool _rpn_dup(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a);
-    rpn_stack_push(ctxt, a);
+    rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 1));
     return true;
 }
 
+// [a b] -> [a b a b]
 bool _rpn_dup2(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a);
-    rpn_stack_push(ctxt, b);
-    rpn_stack_push(ctxt, a);
-    rpn_stack_push(ctxt, b);
+    rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 1));
+    rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 3));
     return true;
 }
 
+// [a b] -> [a b a]
 bool _rpn_over(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a);
-    rpn_stack_push(ctxt, b);
-    rpn_stack_push(ctxt, a);
+    rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 2));
     return true;
 }
 
+// [a b] -> [b a]
 bool _rpn_swap(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, b);
-    rpn_stack_push(ctxt, a);
+    auto& top = _rpn_stack_peek(ctxt, 1);
+    auto& prev = _rpn_stack_peek(ctxt, 2);
+    std::swap(top, prev);
     return true;
 }
 
+// [a b c] -> [c a b]
 bool _rpn_unrot(rpn_context & ctxt) {
-    float a, b, c;
-    rpn_stack_pop(ctxt, c);
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
+    const auto c = _rpn_stack_peek(ctxt, 1);
+    const auto b = _rpn_stack_peek(ctxt, 1);
+    const auto a = _rpn_stack_peek(ctxt, 1);
+
     rpn_stack_push(ctxt, c);
     rpn_stack_push(ctxt, a);
     rpn_stack_push(ctxt, b);
+
     return true;
 }
 
 bool _rpn_rot(rpn_context & ctxt) {
-    float a, b, c;
-    rpn_stack_pop(ctxt, c);
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
+    const auto c = _rpn_stack_peek(ctxt, 1);
+    const auto b = _rpn_stack_peek(ctxt, 1);
+    const auto a = _rpn_stack_peek(ctxt, 1);
+
     rpn_stack_push(ctxt, b); 
     rpn_stack_push(ctxt, c);
     rpn_stack_push(ctxt, a);
+
     return true;
 }
 
 bool _rpn_drop(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
+    _rpn_stack_eat(ctxt, 1);
     return true;
 }
 

@@ -108,7 +108,8 @@ enum rpn_errors {
     RPN_ERROR_ARGUMENT_COUNT_MISMATCH,
     RPN_ERROR_DIVIDE_BY_ZERO,
     RPN_ERROR_UNVALID_ARGUMENT,
-    RPN_ERROR_VARIABLE_DOES_NOT_EXIST
+    RPN_ERROR_VARIABLE_DOES_NOT_EXIST,
+    RPN_ERROR_TYPE_MISMATCH
 };
 
 using rpn_debug_callback_f = void(*)(rpn_context &, const char *);

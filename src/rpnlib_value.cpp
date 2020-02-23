@@ -153,7 +153,7 @@ rpn_value::operator char*() const {
     return nullptr;
 }
 
-bool rpn_value::operator <(const rpn_value& other) {
+bool rpn_value::operator <(const rpn_value& other) const {
 
     if ((type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
         return false;
@@ -179,7 +179,7 @@ bool rpn_value::operator <(const rpn_value& other) {
     }
 }
 
-bool rpn_value::operator >(const rpn_value& other) {
+bool rpn_value::operator >(const rpn_value& other) const {
 
     if ((type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
         return false;
@@ -205,7 +205,7 @@ bool rpn_value::operator >(const rpn_value& other) {
     }
 }
 
-bool rpn_value::operator ==(const rpn_value& other) {
+bool rpn_value::operator ==(const rpn_value& other) const {
 
     if ((type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
         return (strcmp(as_charptr, other.as_charptr) == 0);
@@ -229,15 +229,15 @@ bool rpn_value::operator ==(const rpn_value& other) {
     }
 }
 
-bool rpn_value::operator !=(const rpn_value& other) {
+bool rpn_value::operator !=(const rpn_value& other) const {
     return not (*this == other);
 }
 
-bool rpn_value::operator >=(const rpn_value& other) {
+bool rpn_value::operator >=(const rpn_value& other) const {
     return (*this == other) || (*this > other);
 }
 
-bool rpn_value::operator <=(const rpn_value& other) {
+bool rpn_value::operator <=(const rpn_value& other) const {
     return (*this == other) || (*this < other);
 }
 
@@ -417,3 +417,26 @@ bool rpn_value::numeric_abs() {
     return result;
 }
 
+bool rpn_value::is_number() const {
+    switch (type) {
+        case rpn_value::i32:
+        case rpn_value::u32:
+        case rpn_value::f64:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool rpn_value::is_number_zero() const {
+    switch (type) {
+        case rpn_value::u32:
+            return true;
+        case rpn_value::i32:
+            return (as_i32 == 0);
+        case rpn_value::f64:
+            return (as_f64 == 0.0L);
+        default:
+            return false;
+    }
+}

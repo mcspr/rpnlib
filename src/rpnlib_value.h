@@ -47,13 +47,13 @@ struct rpn_value {
 
     rpn_value& operator=(const rpn_value&) = default;
 
-    bool operator>(const rpn_value&);
-    bool operator<(const rpn_value&);
-    bool operator==(const rpn_value&);
-    bool operator!=(const rpn_value&);
+    bool operator>(const rpn_value&) const;
+    bool operator<(const rpn_value&) const;
+    bool operator==(const rpn_value&) const;
+    bool operator!=(const rpn_value&) const;
 
-    bool operator>=(const rpn_value&);
-    bool operator<=(const rpn_value&);
+    bool operator>=(const rpn_value&) const;
+    bool operator<=(const rpn_value&) const;
 
     rpn_value operator+(const rpn_value&);
     rpn_value operator-(const rpn_value&);
@@ -62,6 +62,8 @@ struct rpn_value {
     rpn_value operator%(const rpn_value&);
 
     bool numeric_abs();
+    bool is_number() const;
+    bool is_number_zero() const;
 
     operator bool() const;
     operator int32_t() const;
