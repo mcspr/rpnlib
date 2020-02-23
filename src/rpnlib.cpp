@@ -99,7 +99,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
 
             if (c == '"') {
                 state = IN_STRING;
-                start_of_word = p; 
+                start_of_word = p;
                 break;
             }
             state = IN_WORD;
@@ -271,12 +271,105 @@ rpn_value::operator char*() const {
     return nullptr;
 }
 
+bool rpn_value::operator <(const rpn_value& other) {
+
+    if ((type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+        return false;
+    }
+
+    if ((type == rpn_value::boolean) || (other.type == rpn_value::boolean)) {
+        return false;
+    }
+
+    if (type != other.type) {
+        return false;
+    }
+
+    switch (type) {
+        case rpn_value::i32:
+            return (as_i32 < other.as_i32);
+        case rpn_value::u32:
+            return (as_u32 < other.as_u32);
+        case rpn_value::f64:
+            return (as_f64 < other.as_f64);
+        default:
+            return false;
+    }
+}
+
+bool rpn_value::operator >(const rpn_value& other) {
+
+    if ((type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+        return false;
+    }
+
+    if ((type == rpn_value::boolean) || (other.type == rpn_value::boolean)) {
+        return false;
+    }
+
+    if (type != other.type) {
+        return false;
+    }
+
+    switch (type) {
+        case rpn_value::i32:
+            return (as_i32 > other.as_i32);
+        case rpn_value::u32:
+            return (as_u32 > other.as_u32);
+        case rpn_value::f64:
+            return (as_f64 > other.as_f64);
+        default:
+            return false;
+    }
+}
+
+bool rpn_value::operator ==(const rpn_value& other) {
+
+    if ((type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+        return (strcmp(as_charptr, other.as_charptr) == 0);
+    }
+
+    if (type != other.type) {
+        return false;
+    }
+
+    switch (type) {
+        case rpn_value::boolean:
+            return (as_boolean == other.as_boolean);
+        case rpn_value::i32:
+            return (as_i32 == other.as_i32);
+        case rpn_value::u32:
+            return (as_u32 == other.as_u32);
+        case rpn_value::f64:
+            return (as_f64 == other.as_f64);
+        default:
+            return false;
+    }
+}
+
+bool rpn_value::operator !=(const rpn_value& other) {
+    return not (*this == other);
+}
+
+bool rpn_value::operator >=(const rpn_value& other) {
+    return (*this == other) || (*this > other);
+}
+
+bool rpn_value::operator <=(const rpn_value& other) {
+    return (*this == other) || (*this < other);
+}
+
 size_t rpn_stack_size(rpn_context & ctxt) {
     return ctxt.stack.size();
 }
 
 bool rpn_stack_clear(rpn_context & ctxt) {
     ctxt.stack.clear();
+    return true;
+}
+
+bool rpn_stack_push(rpn_context & ctxt, bool value) {
+    ctxt.stack.emplace_back(value);
     return true;
 }
 
@@ -476,7 +569,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
     std::unique_ptr<char[]> _input_copy(strdup(input));
 
     _rpn_tokenize(_input_copy.get(), [&ctxt, variable_must_exist](const char* token) {
-        
+
         // Debug callback
         if (_rpn_debug_callback) {
             _rpn_debug_callback(ctxt, token);
@@ -582,7 +675,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
     std::remove_if(ctxt.variables.begin(), ctxt.variables.end(), [](std::shared_ptr<rpn_variable>& var) {
         return (var->value->type == rpn_value::null);
     });
-    
+
     return (RPN_ERROR_OK == rpn_error);
 
 }

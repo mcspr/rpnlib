@@ -29,6 +29,61 @@ extern "C" {
 #define RPN_CONST_PI    3.141593
 #define RPN_CONST_E     2.178282
 
+#include <cstdio>
+
+// ----------------------------------------------------------------------------
+// Utility
+// ----------------------------------------------------------------------------
+
+// TODO: move to core?
+
+static rpn_value& _rpn_stack_peek(rpn_context & ctxt, size_t offset = 1) {
+    return *((ctxt.stack.end() - offset)->value.get());
+}
+
+static void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
+    ctxt.stack.erase(ctxt.stack.end() - size, ctxt.stack.end());
+}
+
+// libc cmp interface, will only work with the same types
+
+static int _rpn_stack_compare(rpn_context & ctxt) {
+    auto& top = _rpn_stack_peek(ctxt, 1);
+    auto& prev = _rpn_stack_peek(ctxt, 2);
+    if (top < prev) {
+        return -1;
+    } else if (top > prev) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+static int _rpn_stack_compare_or_eq(rpn_context & ctxt) {
+    auto& top = _rpn_stack_peek(ctxt, 1);
+    auto& prev = _rpn_stack_peek(ctxt, 2);
+    if (top <= prev) {
+        return -1;
+    } else if (top >= prev) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+static int _rpn_stack_compare3(rpn_context & ctxt) {
+    auto& upper = _rpn_stack_peek(ctxt, 1);
+    auto& lower = _rpn_stack_peek(ctxt, 2);
+    auto& value = _rpn_stack_peek(ctxt, 3);
+    if (value < lower) {
+        return -1;
+    } else if (value > upper) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 // ----------------------------------------------------------------------------
 // Constants
 // ----------------------------------------------------------------------------
@@ -204,50 +259,44 @@ bool _rpn_tan(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 bool _rpn_eq(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a == b ? 1 : 0);
+    const bool result = _rpn_stack_peek(ctxt, 1) == _rpn_stack_peek(ctxt, 2);
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_ne(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a != b ? 1 : 0);
+    const bool result = _rpn_stack_peek(ctxt, 1) != _rpn_stack_peek(ctxt, 2);
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_gt(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a > b ? 1 : 0);
+    const bool result = _rpn_stack_compare(ctxt) == 1;
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_ge(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a >= b ? 1 : 0);
+    const bool result = _rpn_stack_compare_or_eq(ctxt) == 1;
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_lt(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a < b ? 1 : 0);
+    const bool result = _rpn_stack_compare(ctxt) == -1;
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_le(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a <= b ? 1 : 0);
+    const bool result = _rpn_stack_compare_or_eq(ctxt) == -1;
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
@@ -256,31 +305,12 @@ bool _rpn_le(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 bool _rpn_cmp(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b); // compare to this
-    rpn_stack_pop(ctxt, a); // value
-    if (a < b) {
-        rpn_stack_push(ctxt, -1);
-    } else if (a > b) {
-        rpn_stack_push(ctxt, 1);
-    } else {
-        rpn_stack_push(ctxt, 0);
-    }
+    rpn_stack_push(ctxt, _rpn_stack_compare(ctxt));
     return true;
 };    
 
 bool _rpn_cmp3(rpn_context & ctxt) {
-    float a, b, c;
-    rpn_stack_pop(ctxt, c); // upper threshold
-    rpn_stack_pop(ctxt, b); // lower threshold
-    rpn_stack_pop(ctxt, a); // value
-    if (a < b) {
-        rpn_stack_push(ctxt, -1);
-    } else if (a > c) {
-        rpn_stack_push(ctxt, 1);
-    } else {
-        rpn_stack_push(ctxt, 0);
-    }
+    rpn_stack_push(ctxt, _rpn_stack_compare3(ctxt));
     return true;
 };    
 

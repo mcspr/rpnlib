@@ -22,6 +22,8 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef rpnlib_h
 #define rpnlib_h
 
+#include "rpnlib_value.h"
+
 // ----------------------------------------------------------------------------
 
 #include <string>
@@ -30,49 +32,6 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 
 // ----------------------------------------------------------------------------
-
-struct rpn_value {
-    enum value_t {
-        null,
-        boolean,
-        i32,
-        u32,
-        f64,
-        charptr
-    };
-
-    rpn_value();
-    rpn_value(bool);
-    rpn_value(int32_t);
-    rpn_value(uint32_t);
-    rpn_value(double);
-    rpn_value(char*);
-
-    rpn_value(rpn_value&&);
-    rpn_value(const rpn_value&);
-    ~rpn_value();
-
-    rpn_value& operator=(const rpn_value&) = default;
-
-    operator bool() const;
-    operator int32_t() const;
-    operator uint32_t() const;
-    operator double() const;
-    operator char*() const;
-
-    // TODO: generic variant struct to manage String / std::string / custom string obj member
-    // TODO: if not, sso?
-    union {
-        bool as_boolean;
-        int32_t as_i32;
-        uint32_t as_u32;
-        double as_f64;
-        char* as_charptr;
-    };
-
-    value_t type;
-
-};
 
 struct rpn_variable {
     std::string name;
@@ -187,6 +146,7 @@ bool rpn_stack_push(rpn_context &, int32_t);
 bool rpn_stack_push(rpn_context &, uint32_t);
 bool rpn_stack_push(rpn_context &, char*);
 
+bool rpn_stack_pop(rpn_context &, rpn_value &);
 bool rpn_stack_pop(rpn_context &, float &);
 
 size_t rpn_stack_size(rpn_context &);
