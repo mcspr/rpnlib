@@ -149,8 +149,19 @@ rpn_value::rpn_value(const rpn_value& other) {
     if (type == rpn_value::charptr) {
         free(as_charptr);
     }
-    if (other.type == rpn_value::charptr) {
-        as_charptr = strdup(other.as_charptr);
+    switch (other.type) {
+        case rpn_value::charptr:
+            as_charptr = strdup(other.as_charptr);
+            break;
+        case rpn_value::s32:
+            as_s32 = other.as_s32;
+            break;
+        case rpn_value::u32:
+            as_u32 = other.as_u32;
+            break;
+        case rpn_value::f64:
+            as_f64 = other.as_f64;
+            break;
     }
     type = other.type;
 }
@@ -159,12 +170,24 @@ rpn_value::rpn_value(rpn_value&& other) {
     if (type == rpn_value::charptr) {
         free(as_charptr);
     }
-    if (other.type == rpn_value::charptr) {
-        as_charptr = other.as_charptr;
-        other.as_charptr = nullptr;
+    switch (other.type) {
+        case rpn_value::charptr:
+            as_charptr = other.as_charptr;
+            other.as_charptr = nullptr;
+            break;
+        case rpn_value::s32:
+            as_s32 = other.as_s32;
+            break;
+        case rpn_value::u32:
+            as_u32 = other.as_u32;
+            break;
+        case rpn_value::f64:
+            as_f64 = other.as_f64;
+            break;
     }
     type = other.type;
     other.type = rpn_value::null;
+    other.as_s32 = 0;
 }
 
 rpn_value::rpn_value(int32_t value) :
@@ -181,27 +204,6 @@ rpn_value::rpn_value(double value) :
     as_f64(value),
     type(rpn_value::f64)
 {}
-
-rpn_value& rpn_value::operator=(const rpn_value& other) {
-    type = other.type;
-
-    switch (other.type) {
-        case rpn_value::s32:
-            as_s32 = other.as_s32;
-            break;
-        case rpn_value::u32:
-            as_u32 = other.as_u32;
-            break;
-        case rpn_value::f64:
-            as_f64 = other.as_f64;
-            break;
-        case rpn_value::charptr:
-            as_charptr = strdup(other.as_charptr);
-            break;
-    }
-            
-    return *this;
-}
 
 rpn_value::rpn_value(char* value) :
     as_charptr(strdup(value)),
