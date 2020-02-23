@@ -1,25 +1,19 @@
+// check if arduino type works with ours
+typedef bool boolean;
+
 #include "src/rpnlib.h"
 
 #include <cctype>
 #include <string>
 #include <iostream>
 
-template <typename T>
-struct reversion_wrapper { T& iterable; };
-
-template <typename T>
-auto begin (reversion_wrapper<T> w) { return std::rbegin(w.iterable); }
-
-template <typename T>
-auto end (reversion_wrapper<T> w) { return std::rend(w.iterable); }
-
-template <typename T>
-reversion_wrapper<T> reverse (T&& iterable) { return { iterable }; }
-
 void dump_value(rpn_value& val) {
     switch (val.type) {
-        case rpn_value::s32:
-            std::cout << "s32 -> " << val.as_s32 << std::endl;
+        case rpn_value::boolean:
+            std::cout << "boolean -> " << val.as_boolean << std::endl;
+            break;
+        case rpn_value::i32:
+            std::cout << "i32 -> " << val.as_i32 << std::endl;
             break;
         case rpn_value::u32:
             std::cout << "u32 -> " << val.as_u32 << std::endl;

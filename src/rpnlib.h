@@ -34,13 +34,15 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 struct rpn_value {
     enum value_t {
         null,
-        s32,
+        boolean,
+        i32,
         u32,
         f64,
         charptr
     };
 
     rpn_value();
+    rpn_value(bool);
     rpn_value(int32_t);
     rpn_value(uint32_t);
     rpn_value(double);
@@ -52,6 +54,7 @@ struct rpn_value {
 
     rpn_value& operator=(const rpn_value&);
 
+    operator bool() const;
     operator int32_t() const;
     operator uint32_t() const;
     operator double() const;
@@ -60,7 +63,8 @@ struct rpn_value {
     // TODO: generic variant struct to manage String / std::string / custom string obj member
     // TODO: if not, sso?
     union {
-        int32_t as_s32;
+        bool as_boolean;
+        int32_t as_i32;
         uint32_t as_u32;
         double as_f64;
         char* as_charptr;
@@ -76,6 +80,11 @@ struct rpn_variable {
 };
 
 struct rpn_stack_value {
+    rpn_stack_value(bool value) :
+        variable(nullptr),
+        value(std::make_shared<rpn_value>(value))
+    {}
+
     rpn_stack_value(double value) :
         variable(nullptr),
         value(std::make_shared<rpn_value>(value))

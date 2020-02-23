@@ -533,15 +533,26 @@ bool _rpn_assign(rpn_context & ctxt) {
 
 bool _rpn_print(rpn_context & ctxt) {
     auto top = ctxt.stack.back();
-    ctxt.stack.pop_back();
+
+    if (!_rpn_debug_callback) {
+        return false;
+    }
+
+    auto& val = *(top.value.get());
 
     char buffer[128];
-    auto& val = *(top.value.get());
-    int offset = sprintf(buffer, "%s", "`p`: ");
+    int offset = 0;
+
+    if (top.variable) {
+        offset = sprintf(buffer, "$%s = ", top.variable->name.c_str());
+    }
 
     switch (val.type) {
-        case rpn_value::s32:
-            sprintf(buffer + offset, "%d", val.as_s32);
+        case rpn_value::boolean:
+            sprintf(buffer + offset, "%s", val.as_boolean ? "true" : "false");
+            break;
+        case rpn_value::i32:
+            sprintf(buffer + offset, "%d", val.as_i32);
             break;
         case rpn_value::u32:
             sprintf(buffer + offset, "%u", val.as_u32);
@@ -558,9 +569,7 @@ bool _rpn_print(rpn_context & ctxt) {
             break;
     }
 
-    if (_rpn_debug_callback) {
-        _rpn_debug_callback(ctxt, buffer);
-    }
+    _rpn_debug_callback(ctxt, buffer);
 
     return true;
 }

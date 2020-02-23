@@ -153,8 +153,11 @@ rpn_value::rpn_value(const rpn_value& other) {
         case rpn_value::charptr:
             as_charptr = strdup(other.as_charptr);
             break;
-        case rpn_value::s32:
-            as_s32 = other.as_s32;
+        case rpn_value::boolean:
+            as_boolean = other.as_boolean;
+            break;
+        case rpn_value::i32:
+            as_i32 = other.as_i32;
             break;
         case rpn_value::u32:
             as_u32 = other.as_u32;
@@ -175,8 +178,11 @@ rpn_value::rpn_value(rpn_value&& other) {
             as_charptr = other.as_charptr;
             other.as_charptr = nullptr;
             break;
-        case rpn_value::s32:
-            as_s32 = other.as_s32;
+        case rpn_value::boolean:
+            as_boolean = other.as_boolean;
+            break;
+        case rpn_value::i32:
+            as_i32 = other.as_i32;
             break;
         case rpn_value::u32:
             as_u32 = other.as_u32;
@@ -187,12 +193,17 @@ rpn_value::rpn_value(rpn_value&& other) {
     }
     type = other.type;
     other.type = rpn_value::null;
-    other.as_s32 = 0;
+    other.as_i32 = 0;
 }
 
+rpn_value::rpn_value(bool value) :
+    as_boolean(value),
+    type(rpn_value::boolean)
+{}
+
 rpn_value::rpn_value(int32_t value) :
-    as_s32(value),
-    type(rpn_value::s32)
+    as_i32(value),
+    type(rpn_value::i32)
 {}
 
 rpn_value::rpn_value(uint32_t value) :
@@ -216,9 +227,25 @@ rpn_value::~rpn_value() {
     }
 }
 
+rpn_value::operator bool() const {
+    switch (type) {
+        case rpn_value::boolean:
+            return as_boolean;
+        case rpn_value::i32:
+            return as_i32 > 0;
+        case rpn_value::u32:
+            return as_u32 > 0;
+        case rpn_value::f64:
+            return as_f64 > 0.0L;
+        case rpn_value::charptr:
+        default:
+            return true;
+    }
+}
+
 rpn_value::operator int32_t() const {
-    if (type == rpn_value::s32) {
-        return as_s32;
+    if (type == rpn_value::i32) {
+        return as_i32;
     }
     return 0;
 }
