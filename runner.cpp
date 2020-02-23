@@ -1,5 +1,7 @@
 #include "src/rpnlib.h"
 
+#include <cctype>
+#include <string>
 #include <iostream>
 
 template <typename T>
@@ -72,7 +74,6 @@ void test_assign() {
     std::cout << __PRETTY_FUNCTION__ << std::endl;
     rpn_context ctxt;
     rpn_init(ctxt);
-    rpn_operators_init(ctxt);
     rpn_debug([](rpn_context&, const char* message) {
         std::cout << "dbg: " << message << std::endl;
     });
@@ -83,6 +84,18 @@ void test_assign() {
 }
 
 int main(int argc, char** argv) {
-    test_string();
-    test_assign();
+    rpn_context ctxt;
+    rpn_init(ctxt);
+
+    rpn_debug([](rpn_context&, const char* message) {
+        std::cout << message << std::endl;
+    });
+
+    while (true) {
+        std::cout << "> ";
+        std::string input;
+        std::getline(std::cin, input);
+        rpn_process(ctxt, input.c_str());
+        std::cout << std::endl;
+    }
 }
