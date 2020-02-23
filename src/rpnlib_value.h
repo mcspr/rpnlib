@@ -55,6 +55,9 @@ struct rpn_value {
     bool operator>=(const rpn_value&);
     bool operator<=(const rpn_value&);
 
+    rpn_value operator+(const rpn_value&);
+    rpn_value operator-(const rpn_value&);
+
     operator bool() const;
     operator int32_t() const;
     operator uint32_t() const;

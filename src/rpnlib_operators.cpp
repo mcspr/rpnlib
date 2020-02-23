@@ -103,18 +103,16 @@ bool _rpn_e(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 bool _rpn_sum(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a+b);
+    const auto result =_rpn_stack_peek(ctxt, 1) + _rpn_stack_peek(ctxt, 2);
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_substract(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a-b);
+    const auto result =_rpn_stack_peek(ctxt, 1) - _rpn_stack_peek(ctxt, 2);
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 

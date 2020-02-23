@@ -74,6 +74,16 @@ struct rpn_stack_value {
         value(value)
     {}
 
+    rpn_stack_value(const rpn_value& value) :
+        variable(nullptr),
+        value(std::make_shared<rpn_value>(value))
+    {}
+
+    rpn_stack_value(rpn_value&& value) :
+        variable(nullptr),
+        value(std::make_shared<rpn_value>(std::move(value)))
+    {}
+
     std::shared_ptr<rpn_variable> variable;
     std::shared_ptr<rpn_value> value;
 };
@@ -146,7 +156,10 @@ bool rpn_stack_push(rpn_context &, int32_t);
 bool rpn_stack_push(rpn_context &, uint32_t);
 bool rpn_stack_push(rpn_context &, char*);
 
+bool rpn_stack_push(rpn_context &, const rpn_value &);
+bool rpn_stack_push(rpn_context &, rpn_value &&);
 bool rpn_stack_pop(rpn_context &, rpn_value &);
+
 bool rpn_stack_pop(rpn_context &, float &);
 
 size_t rpn_stack_size(rpn_context &);
