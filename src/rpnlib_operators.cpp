@@ -537,7 +537,7 @@ bool _rpn_print(rpn_context & ctxt) {
 
     char buffer[128];
     auto& val = *(top.value.get());
-    int offset = sprintf(buffer, "%s", "hello from operator `p`: ");
+    int offset = sprintf(buffer, "%s", "`p`: ");
 
     switch (val.type) {
         case rpn_value::s32:
