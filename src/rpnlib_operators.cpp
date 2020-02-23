@@ -515,20 +515,12 @@ bool _rpn_exists(rpn_context & ctxt) {
     return (ctxt.stack.back().value->type != rpn_value::null);
 }
 
-#include <cstdio>
-
 bool _rpn_assign(rpn_context & ctxt) {
-    auto& stack_variable = *(ctxt.stack.end() - 1);
-    auto& stack_value = *(ctxt.stack.end() - 2);
-    if (stack_variable.variable) {
-        auto var = stack_variable.variable;
-        stack_variable.variable->value = stack_value.value;
-        ctxt.stack.erase(ctxt.stack.end() - 2);
-        return true;
-    }
-    ctxt.stack.pop_back();
-    ctxt.stack.pop_back();
-    return false;
+    auto stack_first = *(ctxt.stack.end() - 1);
+    auto stack_second = *(ctxt.stack.end() - 2);
+    *stack_first.value.get() = *stack_second.value.get();
+    ctxt.stack.erase(ctxt.stack.end() - 2);
+    return true;
 }
 
 bool _rpn_print(rpn_context & ctxt) {
@@ -544,7 +536,7 @@ bool _rpn_print(rpn_context & ctxt) {
     int offset = 0;
 
     if (top.variable) {
-        offset = sprintf(buffer, "$%s = ", top.variable->name.c_str());
+        offset = snprintf(buffer, 128, "$%s = ", top.variable->name.c_str());
     }
 
     switch (val.type) {

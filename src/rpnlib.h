@@ -52,7 +52,7 @@ struct rpn_value {
     rpn_value(const rpn_value&);
     ~rpn_value();
 
-    rpn_value& operator=(const rpn_value&);
+    rpn_value& operator=(const rpn_value&) = default;
 
     operator bool() const;
     operator int32_t() const;
@@ -158,6 +158,9 @@ bool rpn_operators_clear(rpn_context &);
 bool rpn_variable_set(rpn_context &, const char *, float);
 bool rpn_variable_get(rpn_context &, const char *, float &);
 
+bool rpn_variable_set(rpn_context &, const char *, bool);
+bool rpn_variable_get(rpn_context &, const char *, bool &);
+
 bool rpn_variable_set(rpn_context &, const char *, double);
 bool rpn_variable_get(rpn_context &, const char *, double &);
 
@@ -178,6 +181,7 @@ bool rpn_variables_clear(rpn_context &);
 bool rpn_stack_clear(rpn_context &);
 
 bool rpn_stack_push(rpn_context &, float);
+bool rpn_stack_push(rpn_context &, bool);
 bool rpn_stack_push(rpn_context &, double);
 bool rpn_stack_push(rpn_context &, int32_t);
 bool rpn_stack_push(rpn_context &, uint32_t);
