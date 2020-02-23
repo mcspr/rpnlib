@@ -31,9 +31,6 @@ rpn_value::rpn_value() :
 {}
 
 rpn_value::rpn_value(const rpn_value& other) {
-    if (type == rpn_value::charptr) {
-        free(as_charptr);
-    }
     switch (other.type) {
         case rpn_value::charptr:
             as_charptr = strdup(other.as_charptr);
@@ -55,9 +52,6 @@ rpn_value::rpn_value(const rpn_value& other) {
 }
 
 rpn_value::rpn_value(rpn_value&& other) {
-    if (type == rpn_value::charptr) {
-        free(as_charptr);
-    }
     switch (other.type) {
         case rpn_value::charptr:
             as_charptr = other.as_charptr;
