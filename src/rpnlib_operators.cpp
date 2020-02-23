@@ -117,46 +117,29 @@ bool _rpn_substract(rpn_context & ctxt) {
 }
 
 bool _rpn_times(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, a*b);
+    const auto result =_rpn_stack_peek(ctxt, 1) * _rpn_stack_peek(ctxt, 2);
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_divide(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    if (0 == b) {
-        rpn_error = RPN_ERROR_DIVIDE_BY_ZERO;
-        return false;
-    }
-    rpn_stack_push(ctxt, a/b);
+    const auto result =_rpn_stack_peek(ctxt, 1) / _rpn_stack_peek(ctxt, 2);
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_mod(rpn_context & ctxt) {
-    float a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    a = (int) a;
-    b = (int) b;
-    if (0 == b) {
-        rpn_error = RPN_ERROR_DIVIDE_BY_ZERO;
-        return false;
-    }
-    float mod = a - (int) (a / b) * b;
-    rpn_stack_push(ctxt, mod);
+    const auto result =_rpn_stack_peek(ctxt, 1) % _rpn_stack_peek(ctxt, 2);
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_abs(rpn_context & ctxt) {
-    float a;
-    rpn_stack_pop(ctxt, a);
-    if (a < 0) a = -a;
-    rpn_stack_push(ctxt, a);
-    return true;
+    auto& top = _rpn_stack_peek(ctxt, 1);
+    return top.numeric_abs();
 }
 
 // ----------------------------------------------------------------------------
@@ -312,33 +295,33 @@ bool _rpn_cmp3(rpn_context & ctxt) {
     return true;
 };    
 
+// Allow indexed access for N+1 stack array
+// - top of the stack is array size
+// - N next elements are members of the array
+// - N+1'th stack value is array index to push onto the stack
+// We eat all of the stack and push N'th element. When either index or array size is wrong, do nothing
 bool _rpn_index(rpn_context & ctxt) {
+    const auto stack_size = rpn_stack_size(ctxt);
 
-    float tmp;
-
-    // Number of values to map
-    rpn_stack_pop(ctxt, tmp);
-    unsigned char num = int(tmp);
-    if (0 == num) return false;
-    
-    // Get mapped values from stack
-    if (rpn_stack_size(ctxt) < num + 1) return false;
-    float values[num];
-    for (unsigned char i=0; i<num; i++) {
-        rpn_stack_pop(ctxt, tmp);    
-        values[num-i-1] = tmp;
+    const auto& top = _rpn_stack_peek(ctxt, 1);
+    const auto size = double(top);
+    if (stack_size < size + 1) {
+        return false;
     }
 
-    // Get index
-    rpn_stack_pop(ctxt, tmp);
-    unsigned char index = int(tmp);
-    
-    // Return indexed value
-    if (index >= num) return false;
-    rpn_stack_push(ctxt, values[index]);
-    return true;
+    const auto& bottom = _rpn_stack_peek(ctxt, size + 2);
+    const auto index = double(bottom);
+    if ((index + 1) > size) {
+        return false;
+    }
 
-};    
+    const auto pick = _rpn_stack_peek(ctxt, size + 1 - index);
+    _rpn_stack_eat(ctxt, size + 2);
+
+    rpn_stack_push(ctxt, pick);
+
+    return false;
+}
 
 bool _rpn_map(rpn_context & ctxt) {
     

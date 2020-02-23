@@ -57,6 +57,11 @@ struct rpn_value {
 
     rpn_value operator+(const rpn_value&);
     rpn_value operator-(const rpn_value&);
+    rpn_value operator*(const rpn_value&);
+    rpn_value operator/(const rpn_value&);
+    rpn_value operator%(const rpn_value&);
+
+    bool numeric_abs();
 
     operator bool() const;
     operator int32_t() const;

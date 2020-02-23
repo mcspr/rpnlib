@@ -25,6 +25,9 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstring>
 #include <cstdlib>
+#include <cstdio>
+
+// TODO: implement fs_math operations
 
 rpn_value::rpn_value() :
     type(rpn_value::null)
@@ -264,16 +267,17 @@ rpn_value rpn_value::operator +(const rpn_value& other) {
         memcpy(ptr, other.as_charptr, other_size);
         ptr += other_size;
         *ptr = '\0';
+        printf("%s + %s = %s\n", as_charptr, other.as_charptr, val.as_charptr);
     // do generic math
     } else if (type == rpn_value::i32) {
         val.type = rpn_value::i32;
-        val.as_boolean = as_i32 + other.as_i32;
+        val.as_i32 = as_i32 + other.as_i32;
     } else if (type == rpn_value::u32) {
         val.type = rpn_value::u32;
-        val.as_boolean = as_u32 + other.as_u32;
+        val.as_u32 = as_u32 + other.as_u32;
     } else if (type == rpn_value::f64) {
         val.type = rpn_value::f64;
-        val.as_boolean = as_f64 + other.as_f64;
+        val.as_f64 = as_f64 + other.as_f64;
     }
 
     return val;
@@ -293,14 +297,123 @@ rpn_value rpn_value::operator -(const rpn_value& other) {
         val.as_boolean = as_boolean - other.as_boolean;
     } else if (type == rpn_value::i32) {
         val.type = rpn_value::i32;
-        val.as_boolean = as_i32 - other.as_i32;
+        val.as_i32 = as_i32 - other.as_i32;
     } else if (type == rpn_value::u32) {
         val.type = rpn_value::u32;
-        val.as_boolean = as_u32 - other.as_u32;
+        val.as_u32 = as_u32 - other.as_u32;
     } else if (type == rpn_value::f64) {
         val.type = rpn_value::f64;
-        val.as_boolean = as_f64 - other.as_f64;
+        val.as_f64 = as_f64 - other.as_f64;
     }
 
     return val;
 }
+
+rpn_value rpn_value::operator *(const rpn_value& other) {
+    rpn_value val;
+
+    // return null when can't do anything to compute the result
+    if ((type != other.type) || (type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+        return val;
+    }
+
+    // do generic math
+    if (type == rpn_value::boolean) {
+        val.type = rpn_value::boolean;
+        val.as_boolean = as_boolean * other.as_boolean;
+    } else if (type == rpn_value::i32) {
+        val.type = rpn_value::i32;
+        val.as_i32 = as_i32 * other.as_i32;
+    } else if (type == rpn_value::u32) {
+        val.type = rpn_value::u32;
+        val.as_u32 = as_u32 * other.as_u32;
+    } else if (type == rpn_value::f64) {
+        val.type = rpn_value::f64;
+        val.as_f64 = as_f64 * other.as_f64;
+    }
+
+    return val;
+}
+
+rpn_value rpn_value::operator /(const rpn_value& other) {
+    rpn_value val;
+
+    // return null when can't do anything to compute the result
+    if ((type != other.type) || (type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+        return val;
+    }
+
+    // avoid division by zero (previously, RPN_ERROR_DIVIDE_BY_ZERO)
+    if (
+        ((type == rpn_value::i32) && (other.as_i32 == 0))
+        || ((type == rpn_value::u32) && (other.as_u32 == 0))
+        || ((type == rpn_value::f64) && (other.as_f64 == 0))
+    ) {
+        return val;
+    }
+
+    // do generic math
+    if (type == rpn_value::boolean) {
+        val.type = rpn_value::boolean;
+        val.as_boolean = as_boolean / other.as_boolean;
+    } else if (type == rpn_value::i32) {
+        val.type = rpn_value::i32;
+        val.as_i32 = as_i32 / other.as_i32;
+    } else if (type == rpn_value::u32) {
+        val.type = rpn_value::u32;
+        val.as_u32 = as_u32 / other.as_u32;
+    } else if (type == rpn_value::f64) {
+        val.type = rpn_value::f64;
+        val.as_f64 = as_f64 / other.as_f64;
+    }
+
+    return val;
+}
+
+rpn_value rpn_value::operator %(const rpn_value& other) {
+    rpn_value val;
+
+    // return null when can't do anything to compute the result
+    if ((type != other.type) || (type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+        return val;
+    }
+
+    // avoid division by zero (previously, RPN_ERROR_DIVIDE_BY_ZERO)
+    if (
+        ((type == rpn_value::i32) && (other.as_i32 == 0))
+        || ((type == rpn_value::u32) && (other.as_u32 == 0))
+        || ((type == rpn_value::f64) && (other.as_f64 == 0))
+    ) {
+        return val;
+    }
+
+    // do generic math
+    if (type == rpn_value::boolean) {
+        val.type = rpn_value::boolean;
+        val.as_boolean = as_boolean % other.as_boolean;
+    } else if (type == rpn_value::i32) {
+        val.type = rpn_value::i32;
+        val.as_i32 = as_i32 % other.as_i32;
+    } else if (type == rpn_value::u32) {
+        val.type = rpn_value::u32;
+        val.as_u32 = as_u32 % other.as_u32;
+    } else if (type == rpn_value::f64) {
+        val.type = rpn_value::f64;
+        val.as_f64 = as_f64 - (as_f64 / other.as_f64) * other.as_f64;
+    }
+
+    return val;
+}
+
+bool rpn_value::numeric_abs() {
+    bool result = false;
+    if (type == rpn_value::i32) {
+        as_i32 = as_i32 * -1;
+        result = true;
+    } else if (type == rpn_value::f64) {
+        as_f64 = as_f64 * -1.0L;
+        result = true;
+    }
+    return result;
+}
+
