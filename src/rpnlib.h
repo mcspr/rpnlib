@@ -36,6 +36,32 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 struct rpn_variable {
     std::string name;
     std::shared_ptr<rpn_value> value;
+
+    rpn_variable(const std::string& name) :
+        name(name),
+        value(std::make_shared<rpn_value>())
+    {}
+
+    rpn_variable(const char* name) :
+        name(name),
+        value(std::make_shared<rpn_value>())
+    {}
+
+    rpn_variable(const char* name, const rpn_value& value) :
+        name(name),
+        value(std::make_shared<rpn_value>(value))
+    {}
+
+    rpn_variable(const char* name, rpn_value&& value) :
+        name(name),
+        value(std::make_shared<rpn_value>(std::move(value)))
+    {}
+
+    rpn_variable(const char* name, std::shared_ptr<rpn_value> value) :
+        name(name),
+        value(value)
+    {}
+
 };
 
 struct rpn_stack_value {
@@ -113,8 +139,11 @@ enum rpn_errors {
 };
 
 enum rpn_token_t {
+    RPN_TOKEN_UNKNOWN,
     RPN_TOKEN_WORD,
-    RPN_TOKEN_STRING
+    RPN_TOKEN_NUMBER,
+    RPN_TOKEN_STRING,
+    RPN_TOKEN_VARIABLE,
 };
 
 using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
@@ -129,9 +158,6 @@ extern rpn_debug_callback_f _rpn_debug_callback;
 bool rpn_operators_init(rpn_context &);
 bool rpn_operator_set(rpn_context &, const char *, unsigned char, bool (*)(rpn_context &));
 bool rpn_operators_clear(rpn_context &);
-
-bool rpn_variable_set(rpn_context &, const char *, float);
-bool rpn_variable_get(rpn_context &, const char *, float &);
 
 bool rpn_variable_set(rpn_context &, const char *, bool);
 bool rpn_variable_get(rpn_context &, const char *, bool &);

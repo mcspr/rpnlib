@@ -46,38 +46,13 @@ rpn_debug_callback_f _rpn_debug_callback = nullptr;
 
 using rpn_tokenizer_callback = std::function<bool(rpn_token_t, const char* ptr)>;
 
-bool _rpn_is_number(const char * s) {
-    unsigned char len = strlen(s);
-    if (0 == len) return false;
-    bool decimal = false;
-    bool digit = false;
-    for (unsigned char i=0; i<len; i++) {
-        if (('-' == s[i]) || ('+' == s[i])) {
-            if (i>0) return false;
-        } else if (s[i] == '.') {
-            if (!digit) return false;
-            if (decimal) return false;
-            decimal = true;
-        } else if (!isdigit(s[i])) {
-            return false;
-        } else {
-            digit = true;
-        }
-    }
-    return digit;
-}
-
-bool _rpn_is_string(const char * s) {
-    const auto len = strlen(s);
-    return (len && len > 2 && (s[0] == '"') && (s[len - 1] == '"'));
-}
-
 // something more useful than strtok
 // based on https://stackoverflow.com/questions/9659697/parse-string-into-array-based-on-spaces-or-double-quotes-strings
 // changes from the answer:
 // - rework inner loop to call external function with token arg
 // - keep quotes when parsing strings
 // same as strtok, this still needs modifiable string. perhaps there is a way to not do that and pass some string-like struct with length from start_of_word to nullptr
+
 void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
     char *p = buffer;
     char *start_of_word = nullptr;
@@ -85,46 +60,77 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
 	char c = '\0';
 	char tmp = '\0';
 
-    enum states { DULL, IN_WORD, IN_STRING } state = DULL;
+    enum states_t {
+        UNKNOWN,
+        IN_WORD,
+        IN_NUMBER,
+        IN_STRING,
+        IN_VARIABLE
+    };
+
+    rpn_token_t type = RPN_TOKEN_UNKNOWN;
+    states_t state = UNKNOWN;
 
 	while (true) {
 		if (*p == '\0') break;
 
         c = *p;
         switch (state) {
-        case DULL:
+        case UNKNOWN:
             if (isspace(c)) {
                 ++p;
                 continue;
             }
 
-            if (c == '"') {
+            // both STRING and VARIABLE can ignore the first char
+            if (c == '$') {
+                state = IN_VARIABLE;
+                type = RPN_TOKEN_VARIABLE;
+                ++p;
+            } else if (c == '"') {
                 state = IN_STRING;
-                start_of_word = ++p;
-                break;
+                type = RPN_TOKEN_STRING;
+                ++p;
+            } else if (isdigit(c) || (c == '-') || (c == '+')) {
+                state = IN_NUMBER;
+                type = RPN_TOKEN_NUMBER;
+            } else {
+                state = IN_WORD;
+                type = RPN_TOKEN_WORD;
             }
-            state = IN_WORD;
             start_of_word = p;
             break;
 
         case IN_STRING:
             if (c == '"') {
-                //++p;
                 tmp = *p;
                 *p = '\0';
-				if (!callback(RPN_TOKEN_STRING, start_of_word)) break;
+				if (!callback(type, start_of_word)) {
+                    state = UNKNOWN;
+                    break;
+                }
                 *p = tmp;
-                state = DULL;
+                state = UNKNOWN;
             }
             break;
 
+        case IN_NUMBER:
+            if (!isdigit(c) && (c != '.')) {
+                state = IN_WORD;
+                type = RPN_TOKEN_WORD;
+            }
+
+        case IN_VARIABLE:
         case IN_WORD:
             if (isspace(c)) {
                 tmp = *p;
                 *p = '\0';
-				if (!callback(RPN_TOKEN_WORD, start_of_word)) break;
+				if (!callback(type, start_of_word)) {
+                    state = UNKNOWN;
+                    break;
+                }
                 *p = tmp;
-                state = DULL;
+                state = UNKNOWN;
             }
             break;
         }
@@ -132,8 +138,8 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
 		++p;
     }
 
-    if (strlen(start_of_word) && (state != DULL)) {
-        callback(state == IN_STRING ? RPN_TOKEN_STRING : RPN_TOKEN_WORD, start_of_word);
+    if (strlen(start_of_word) && (state != UNKNOWN)) {
+        callback(type, start_of_word);
     }
 
 }
@@ -299,8 +305,9 @@ bool rpn_operators_init(rpn_context & ctxt) {
 // Variables methods
 // ----------------------------------------------------------------------------
 
-// TODO: handle charptr lifetime in rpn_value class
-bool rpn_variable_set(rpn_context & ctxt, const char * name, float value) {
+// TODO: handle assignment in rpn_value class method
+// TODO: avoid exposing rpn_value::as_... members
+bool rpn_variable_set(rpn_context & ctxt, const char * name, double value) {
     for (auto v : ctxt.variables) {
         if (v->name != name) continue;
         if (v->value->type != rpn_value::f64) break;
@@ -308,9 +315,9 @@ bool rpn_variable_set(rpn_context & ctxt, const char * name, float value) {
         return true;
     }
 
-    auto variable = std::make_shared<rpn_variable>();
-    variable->name = name;
-    variable->value = std::make_shared<rpn_value>(double(value));
+    auto variable = std::make_shared<rpn_variable>(
+        name, std::make_shared<rpn_value>(value)
+    );
     ctxt.variables.emplace_back(variable);
     return true;
 }
@@ -363,65 +370,56 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
     _rpn_tokenize(_input_copy.get(), [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
 
-        // Debug callback
+        // Debug callback is always called first
+        // TODO: pretty pointless on live device, error messages below should be improved instead
         if (_rpn_debug_callback) {
             _rpn_debug_callback(ctxt, token);
         }
 
-        // Multiple spaces
-        if (0 == strlen(token)) {
-            _rpn_debug_callback(ctxt, "is space");
-            return true;
-        }
-
-        // Is token a (quoted) string?
-        if (type == RPN_TOKEN_STRING) {
-            _rpn_debug_callback(ctxt, "is string");
-            ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
-            return true;
-        }
-
-        // Is token a number?
-        if (_rpn_is_number(token)) {
-            _rpn_debug_callback(ctxt, "is number");
-            ctxt.stack.emplace_back(std::make_shared<rpn_value>(atof(token)));
-            return true;
-        }
-
-        // Is token a variable?
-        if (token[0] == '$') {
-            _rpn_debug_callback(ctxt, "is variable");
-            const char* name = token + 1;
-            auto var = std::find_if(ctxt.variables.begin(), ctxt.variables.end(), [name](std::shared_ptr<rpn_variable>& var) {
-                return (var->name == name);
-            });
-
-            const bool found = (var != ctxt.variables.end());
-
-            if (found) {
-                _rpn_debug_callback(ctxt, "existing variable");
-                ctxt.stack.emplace_back(*var);
+        // Is token a word, string or variable?
+        switch (type) {
+            case RPN_TOKEN_STRING:
+                _rpn_debug_callback(ctxt, "is string");
+                ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
                 return true;
-            }
-
-            // no reason to continue
-            if (!found && variable_must_exist) {
-                _rpn_debug_callback(ctxt, "variable does not exist");
-                rpn_error = RPN_ERROR_VARIABLE_DOES_NOT_EXIST;
-                return false;
-            }
-
-            // since we don't have the variable yet, push uninitialized one
-            if (!found) {
-                _rpn_debug_callback(ctxt, "undefined variable");
-                auto var = std::make_shared<rpn_variable>();
-                auto val = std::make_shared<rpn_value>();
-                var->name = name;
-                var->value = val;
-                ctxt.variables.emplace_back(var);
-                ctxt.stack.emplace_back(var);
+            case RPN_TOKEN_NUMBER:
+                _rpn_debug_callback(ctxt, "is number");
+                ctxt.stack.emplace_back(std::make_shared<rpn_value>(atof(token)));
                 return true;
+            case RPN_TOKEN_VARIABLE: {
+                _rpn_debug_callback(ctxt, "is variable");
+                auto var = std::find_if(ctxt.variables.begin(), ctxt.variables.end(), [token](std::shared_ptr<rpn_variable>& var) {
+                    return (var->name == token);
+                });
+                const bool found = (var != ctxt.variables.end());
+
+                if (found) {
+                    _rpn_debug_callback(ctxt, "existing variable");
+                    ctxt.stack.push_back(*var);
+                    return true;
+                }
+
+                // no reason to continue
+                if (!found && variable_must_exist) {
+                    _rpn_debug_callback(ctxt, "variable does not exist");
+                    rpn_error = RPN_ERROR_VARIABLE_DOES_NOT_EXIST;
+                    return false;
+                }
+
+                // since we don't have the variable yet, push uninitialized one
+                if (!found) {
+                    _rpn_debug_callback(ctxt, "undefined variable");
+                    auto var = std::make_shared<rpn_variable>(token);
+                    ctxt.variables.emplace_back(var);
+                    ctxt.stack.emplace_back(var);
+                    return true;
+                }
             }
+
+            case RPN_TOKEN_WORD:
+            default:
+                 _rpn_debug_callback(ctxt, "is word");
+                 break;
         }
 
         // Is token an operator?
