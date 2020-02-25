@@ -499,12 +499,12 @@ bool _rpn_print(rpn_context & ctxt) {
         case rpn_value::f64:
             sprintf(buffer + offset, "%f", val.as_f64);
             break;
-        case rpn_value::charptr:
-            sprintf(buffer + offset, "\"%s\"", val.as_charptr);
+        case rpn_value::string:
+            sprintf(buffer + offset, "\"%s\"", val.as_string.c_str());
             break;
         case rpn_value::null:
         default:
-            sprintf(buffer + offset, "null", val.as_charptr);
+            sprintf(buffer + offset, "null");
             break;
     }
 

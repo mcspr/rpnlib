@@ -112,6 +112,11 @@ enum rpn_errors {
     RPN_ERROR_TYPE_MISMATCH
 };
 
+enum rpn_token_t {
+    RPN_TOKEN_WORD,
+    RPN_TOKEN_STRING
+};
+
 using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 
 // ----------------------------------------------------------------------------

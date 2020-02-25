@@ -35,8 +35,8 @@ rpn_value::rpn_value() :
 
 rpn_value::rpn_value(const rpn_value& other) {
     switch (other.type) {
-        case rpn_value::charptr:
-            as_charptr = strdup(other.as_charptr);
+        case rpn_value::string:
+            new (&as_string) std::string(other.as_string);
             break;
         case rpn_value::boolean:
             as_boolean = other.as_boolean;
@@ -56,10 +56,11 @@ rpn_value::rpn_value(const rpn_value& other) {
 
 rpn_value::rpn_value(rpn_value&& other) {
     switch (other.type) {
-        case rpn_value::charptr:
-            as_charptr = other.as_charptr;
-            other.as_charptr = nullptr;
+        case rpn_value::string: {
+            as_string = std::move(other.as_string);
+            other.as_string.~basic_string();
             break;
+        }
         case rpn_value::boolean:
             as_boolean = other.as_boolean;
             break;
@@ -75,7 +76,6 @@ rpn_value::rpn_value(rpn_value&& other) {
     }
     type = other.type;
     other.type = rpn_value::null;
-    other.as_i32 = 0;
 }
 
 rpn_value::rpn_value(bool value) :
@@ -98,14 +98,31 @@ rpn_value::rpn_value(double value) :
     type(rpn_value::f64)
 {}
 
-rpn_value::rpn_value(char* value) :
-    as_charptr(strdup(value)),
-    type(rpn_value::charptr)
-{}
+rpn_value::rpn_value(const char* value) :
+    type(rpn_value::string)
+{
+    printf("%s new() start\n", __PRETTY_FUNCTION__);
+    new (&as_string) std::string(value);
+    printf("%s new() done -> %s\n", __PRETTY_FUNCTION__, as_string.c_str());
+}
+
+rpn_value::rpn_value(const std::string& value) :
+    type(rpn_value::string)
+{
+    printf("%s new()\n", __PRETTY_FUNCTION__);
+    new (&as_string) std::string(value);
+}
+
+rpn_value::rpn_value(std::string&& value) :
+    type(rpn_value::string)
+{
+    printf("%s new()\n", __PRETTY_FUNCTION__);
+    new (&as_string) std::string(std::move(value));
+}
 
 rpn_value::~rpn_value() {
-    if (type == rpn_value::charptr) {
-        free(as_charptr);
+    if (type == rpn_value::string) {
+        as_string.~basic_string();
     }
 }
 
@@ -119,7 +136,7 @@ rpn_value::operator bool() const {
             return as_u32 > 0;
         case rpn_value::f64:
             return as_f64 > 0.0L;
-        case rpn_value::charptr:
+        case rpn_value::string:
         default:
             return true;
     }
@@ -146,16 +163,16 @@ rpn_value::operator double() const {
     return 0.0L;
 }
 
-rpn_value::operator char*() const {
-    if (type == rpn_value::charptr) {
-        return as_charptr;
+rpn_value::operator const char*() const {
+    if (type == rpn_value::string) {
+        return as_string.c_str();
     }
     return nullptr;
 }
 
 bool rpn_value::operator <(const rpn_value& other) const {
 
-    if ((type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+    if ((type == rpn_value::string) || (other.type == rpn_value::string)) {
         return false;
     }
 
@@ -181,7 +198,7 @@ bool rpn_value::operator <(const rpn_value& other) const {
 
 bool rpn_value::operator >(const rpn_value& other) const {
 
-    if ((type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+    if ((type == rpn_value::string) || (other.type == rpn_value::string)) {
         return false;
     }
 
@@ -207,8 +224,8 @@ bool rpn_value::operator >(const rpn_value& other) const {
 
 bool rpn_value::operator ==(const rpn_value& other) const {
 
-    if ((type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
-        return (strcmp(as_charptr, other.as_charptr) == 0);
+    if ((type == rpn_value::string) || (other.type == rpn_value::string)) {
+        return (as_string == other.as_string);
     }
 
     if (type != other.type) {
@@ -254,20 +271,16 @@ rpn_value rpn_value::operator +(const rpn_value& other) {
         val.type = rpn_value::boolean;
         val.as_boolean = as_boolean + other.as_boolean;
     // concat strings
-    } else if (type == rpn_value::charptr) {
-        val.type = rpn_value::charptr;
+    } else if (type == rpn_value::string) {
+        val.type = rpn_value::string;
 
-        const auto our_size = strlen(as_charptr);
-        const auto other_size = strlen(other.as_charptr);
+        const auto our_size = as_string.length();
+        const auto other_size = other.as_string.length();
 
-        val.as_charptr = (char*) malloc(our_size + other_size + 1);
-        char* ptr = val.as_charptr;
-        memcpy(ptr, as_charptr, our_size);
-        ptr += our_size;
-        memcpy(ptr, other.as_charptr, other_size);
-        ptr += other_size;
-        *ptr = '\0';
-        printf("%s + %s = %s\n", as_charptr, other.as_charptr, val.as_charptr);
+        new (&val.as_string) std::string();
+        val.as_string.reserve(our_size + other_size + 1);
+        val.as_string += as_string;
+        val.as_string += other.as_string;
     // do generic math
     } else if (type == rpn_value::i32) {
         val.type = rpn_value::i32;
@@ -287,7 +300,7 @@ rpn_value rpn_value::operator -(const rpn_value& other) {
     rpn_value val;
 
     // return null when can't do anything to compute the result
-    if ((type != other.type) || (type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+    if ((type != other.type) || (type == rpn_value::string) || (other.type == rpn_value::string)) {
         return val;
     }
 
@@ -313,7 +326,7 @@ rpn_value rpn_value::operator *(const rpn_value& other) {
     rpn_value val;
 
     // return null when can't do anything to compute the result
-    if ((type != other.type) || (type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+    if ((type != other.type) || (type == rpn_value::string) || (other.type == rpn_value::string)) {
         return val;
     }
 
@@ -339,7 +352,7 @@ rpn_value rpn_value::operator /(const rpn_value& other) {
     rpn_value val;
 
     // return null when can't do anything to compute the result
-    if ((type != other.type) || (type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+    if ((type != other.type) || (type == rpn_value::string) || (other.type == rpn_value::string)) {
         return val;
     }
 
@@ -374,7 +387,7 @@ rpn_value rpn_value::operator %(const rpn_value& other) {
     rpn_value val;
 
     // return null when can't do anything to compute the result
-    if ((type != other.type) || (type == rpn_value::charptr) || (other.type == rpn_value::charptr)) {
+    if ((type != other.type) || (type == rpn_value::string) || (other.type == rpn_value::string)) {
         return val;
     }
 
@@ -439,4 +452,30 @@ bool rpn_value::is_number_zero() const {
         default:
             return false;
     }
+}
+
+rpn_value& rpn_value::operator =(const rpn_value& other) {
+    switch (other.type) {
+        case rpn_value::string:
+            if (type == rpn_value::string) {
+                as_string = other.as_string;
+            } else {
+                new (&as_string) std::string(other.as_string);
+            }
+            break;
+        case rpn_value::boolean:
+            as_boolean = other.as_boolean;
+            break;
+        case rpn_value::i32:
+            as_i32 = other.as_i32;
+            break;
+        case rpn_value::u32:
+            as_u32 = other.as_u32;
+            break;
+        case rpn_value::f64:
+            as_f64 = other.as_f64;
+            break;
+    }
+    type = other.type;
+    return *this;
 }

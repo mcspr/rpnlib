@@ -44,7 +44,7 @@ rpn_debug_callback_f _rpn_debug_callback = nullptr;
 // Utils
 // ----------------------------------------------------------------------------
 
-using rpn_tokenizer_callback = std::function<bool(const char* ptr)>;
+using rpn_tokenizer_callback = std::function<bool(rpn_token_t, const char* ptr)>;
 
 bool _rpn_is_number(const char * s) {
     unsigned char len = strlen(s);
@@ -94,12 +94,13 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
         switch (state) {
         case DULL:
             if (isspace(c)) {
+                ++p;
                 continue;
             }
 
             if (c == '"') {
                 state = IN_STRING;
-                start_of_word = p;
+                start_of_word = ++p;
                 break;
             }
             state = IN_WORD;
@@ -108,10 +109,10 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
 
         case IN_STRING:
             if (c == '"') {
-                ++p;
+                //++p;
                 tmp = *p;
                 *p = '\0';
-				if (!callback(start_of_word)) break;
+				if (!callback(RPN_TOKEN_STRING, start_of_word)) break;
                 *p = tmp;
                 state = DULL;
             }
@@ -121,7 +122,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
             if (isspace(c)) {
                 tmp = *p;
                 *p = '\0';
-				if (!callback(start_of_word)) break;
+				if (!callback(RPN_TOKEN_WORD, start_of_word)) break;
                 *p = tmp;
                 state = DULL;
             }
@@ -132,7 +133,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
     }
 
     if (strlen(start_of_word) && (state != DULL)) {
-        callback(start_of_word);
+        callback(state == IN_STRING ? RPN_TOKEN_STRING : RPN_TOKEN_WORD, start_of_word);
     }
 
 }
@@ -360,7 +361,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
     std::unique_ptr<char[]> _input_copy(strdup(input));
 
-    _rpn_tokenize(_input_copy.get(), [&ctxt, variable_must_exist](const char* token) {
+    _rpn_tokenize(_input_copy.get(), [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
 
         // Debug callback
         if (_rpn_debug_callback) {
@@ -374,15 +375,9 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         }
 
         // Is token a (quoted) string?
-        if (_rpn_is_string(token)) {
+        if (type == RPN_TOKEN_STRING) {
             _rpn_debug_callback(ctxt, "is string");
-            // TODO: implement generic copy func
-            auto val = std::make_shared<rpn_value>();
-            val->type = rpn_value::charptr;
-            val->as_charptr = (char*)malloc(strlen(token) - 2 + 1);
-            memcpy(val->as_charptr, token + 1, strlen(token) - 2);
-            val->as_charptr[strlen(token) - 2] = '\0';
-            ctxt.stack.emplace_back(val);
+            ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
             return true;
         }
 

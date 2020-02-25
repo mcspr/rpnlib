@@ -21,8 +21,8 @@ void dump_value(rpn_value& val) {
         case rpn_value::f64:
             std::cout << "f64 -> " << val.as_f64 << std::endl;
             break;
-        case rpn_value::charptr:
-            std::cout << "charptr -> \"" << val.as_charptr << "\"" << std::endl;
+        case rpn_value::string:
+            std::cout << "string -> \"" << val.as_string.c_str() << "\"" << std::endl;
             break;
         case rpn_value::null:
             std::cout << "null" << std::endl;
@@ -52,38 +52,25 @@ void dump_stack(rpn_context & ctxt) {
     }
 }
 
-void test_string() {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-    rpn_context ctxt;
-    rpn_init(ctxt);
-    rpn_debug([](rpn_context&, const char* message) {
-        std::cout << "dbg: " << message << std::endl;
-    });
-    rpn_process(ctxt, "\"hello world\"");
-    dump_stack(ctxt);
-    rpn_clear(ctxt);
+void test_concat(rpn_context & ctxt) {
+    rpn_process(ctxt, "\"12345\" \"67890\" + p");
+    rpn_stack_clear(ctxt);
 }
 
-void test_assign() {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-    rpn_context ctxt;
-    rpn_init(ctxt);
-    rpn_debug([](rpn_context&, const char* message) {
-        std::cout << "dbg: " << message << std::endl;
-    });
-    rpn_process(ctxt, "\"hello world\" $var = $var p");
-    dump_stack(ctxt);
-    dump_variables(ctxt);
-    rpn_clear(ctxt);
-}
 
 int main(int argc, char** argv) {
+
+    std::cout << "rpn_value " << sizeof(rpn_value) << std::endl;
+    std::cout << "rpn_stack_value " << sizeof(rpn_stack_value) << std::endl;
+    std::cout << "rpn_variable " << sizeof(rpn_variable) << std::endl;
+
     rpn_context ctxt;
     rpn_init(ctxt);
-
     rpn_debug([](rpn_context&, const char* message) {
         std::cout << message << std::endl;
     });
+
+    test_concat(ctxt);
 
     while (true) {
         std::cout << "> ";

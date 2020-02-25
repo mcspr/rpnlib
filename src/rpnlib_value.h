@@ -23,6 +23,9 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <cstdint>
+#include <cstring>
+
+#include <string>
 
 struct rpn_value {
     enum value_t {
@@ -31,7 +34,7 @@ struct rpn_value {
         i32,
         u32,
         f64,
-        charptr
+        string
     };
 
     rpn_value();
@@ -39,13 +42,15 @@ struct rpn_value {
     rpn_value(int32_t);
     rpn_value(uint32_t);
     rpn_value(double);
-    rpn_value(char*);
+    rpn_value(const char*);
+    rpn_value(const std::string&);
+    rpn_value(std::string&&);
 
     rpn_value(rpn_value&&);
     rpn_value(const rpn_value&);
     ~rpn_value();
 
-    rpn_value& operator=(const rpn_value&) = default;
+    rpn_value& operator=(const rpn_value&);
 
     bool operator>(const rpn_value&) const;
     bool operator<(const rpn_value&) const;
@@ -69,7 +74,7 @@ struct rpn_value {
     operator int32_t() const;
     operator uint32_t() const;
     operator double() const;
-    operator char*() const;
+    operator const char*() const;
 
     // TODO: generic variant struct to manage String / std::string / custom string obj member
     // TODO: if not, sso?
@@ -78,7 +83,7 @@ struct rpn_value {
         int32_t as_i32;
         uint32_t as_u32;
         double as_f64;
-        char* as_charptr;
+        std::string as_string;
     };
 
     value_t type;
