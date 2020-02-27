@@ -20,6 +20,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "rpnlib.h"
+#include "rpnlib_stack.h"
 #include "rpnlib_operators.h"
 
 extern "C" {
@@ -482,8 +483,13 @@ bool _rpn_print(rpn_context & ctxt) {
     char buffer[128];
     int offset = 0;
 
-    if (top.variable) {
-        offset = snprintf(buffer, 128, "$%s = ", top.variable->name.c_str());
+    if (top.type == RPN_STACK_TYPE_VARIABLE) {
+        for (auto& v : ctxt.variables) {
+            if (v.value == top.value) {
+                offset = snprintf(buffer, sizeof(buffer) - 1, "$%s = ", v.name.c_str());
+                break;
+            }
+        }
     }
 
     switch (val.type) {

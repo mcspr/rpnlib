@@ -44,6 +44,14 @@ rpn_debug_callback_f _rpn_debug_callback = nullptr;
 // Utils
 // ----------------------------------------------------------------------------
 
+enum rpn_token_t {
+    RPN_TOKEN_UNKNOWN,
+    RPN_TOKEN_WORD,
+    RPN_TOKEN_NUMBER,
+    RPN_TOKEN_STRING,
+    RPN_TOKEN_VARIABLE,
+};
+
 using rpn_tokenizer_callback = std::function<bool(rpn_token_t, const char* ptr)>;
 
 // something more useful than strtok
@@ -145,83 +153,6 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
 }
 
 // ----------------------------------------------------------------------------
-// Stack methods
-// ----------------------------------------------------------------------------
-
-size_t rpn_stack_size(rpn_context & ctxt) {
-    return ctxt.stack.size();
-}
-
-bool rpn_stack_clear(rpn_context & ctxt) {
-    ctxt.stack.clear();
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, const rpn_value& value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value) {
-    ctxt.stack.emplace_back(std::move(value));
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, bool value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, float value) {
-    ctxt.stack.emplace_back(double(value));
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, double value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, int32_t value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, uint32_t value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, char* value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_pop(rpn_context & ctxt, float & value) {
-    if (0 == ctxt.stack.size()) return false;
-    auto& ref = ctxt.stack.back();
-    if (ref.value->type == rpn_value::f64) {
-        value = ref.value->as_f64;
-    } else {
-        value = 0;
-    }
-    ctxt.stack.pop_back();
-    return true;
-}
-
-bool rpn_stack_get(rpn_context & ctxt, unsigned char index, float & value) {
-    unsigned char size = ctxt.stack.size();
-    if (index >= size) return false;
-    auto& ref = ctxt.stack.at(size-index-1);
-    if (ref.value->type == rpn_value::f64) {
-        value = ref.value->as_f64;
-    } else {
-        value = 0.0;
-    }
-    return true;
-}
-
-// ----------------------------------------------------------------------------
 // Functions methods
 // ----------------------------------------------------------------------------
 
@@ -308,25 +239,22 @@ bool rpn_operators_init(rpn_context & ctxt) {
 // TODO: handle assignment in rpn_value class method
 // TODO: avoid exposing rpn_value::as_... members
 bool rpn_variable_set(rpn_context & ctxt, const char * name, double value) {
-    for (auto v : ctxt.variables) {
-        if (v->name != name) continue;
-        if (v->value->type != rpn_value::f64) break;
-        v->value->as_f64 = value;
+    for (auto& v : ctxt.variables) {
+        if (v.name != name) continue;
+        if (v.value->type != rpn_value::f64) break;
+        v.value->as_f64 = value;
         return true;
     }
 
-    auto variable = std::make_shared<rpn_variable>(
-        name, std::make_shared<rpn_value>(value)
-    );
-    ctxt.variables.emplace_back(variable);
+    ctxt.variables.emplace_back(name, std::make_shared<rpn_value>(value));
     return true;
 }
 
 bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
-    for (auto v : ctxt.variables) {
-        if (v->name != name) continue;
-        if (v->value->type != rpn_value::f64) break;
-        value = v->value->as_f64;
+    for (auto& v : ctxt.variables) {
+        if (v.name != name) continue;
+        if (v.value->type != rpn_value::f64) break;
+        value = v.value->as_f64;
         return true;
     }
     return false;
@@ -334,7 +262,7 @@ bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
 
 bool rpn_variable_del(rpn_context & ctxt, const char * name) {
     for (auto v = ctxt.variables.begin(); v != ctxt.variables.end(); v++) {
-        if ((*v)->name == name) {
+        if ((*v).name == name) {
             ctxt.variables.erase(v);
             return true;
         }
@@ -348,7 +276,7 @@ size_t rpn_variables_size(rpn_context & ctxt) {
 
 const char * rpn_variable_name(rpn_context & ctxt, unsigned char i) {
     if (i < ctxt.variables.size()) {
-        return ctxt.variables[i]->name.c_str();
+        return ctxt.variables[i].name.c_str();
     }
     return NULL;
 }
@@ -388,14 +316,14 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 return true;
             case RPN_TOKEN_VARIABLE: {
                 _rpn_debug_callback(ctxt, "is variable");
-                auto var = std::find_if(ctxt.variables.begin(), ctxt.variables.end(), [token](std::shared_ptr<rpn_variable>& var) {
-                    return (var->name == token);
+                auto var = std::find_if(ctxt.variables.begin(), ctxt.variables.end(), [token](const rpn_variable& v) {
+                    return (v.name == token);
                 });
                 const bool found = (var != ctxt.variables.end());
 
                 if (found) {
                     _rpn_debug_callback(ctxt, "existing variable");
-                    ctxt.stack.push_back(*var);
+                    ctxt.stack.emplace_back(RPN_STACK_TYPE_VARIABLE, (*var).value);
                     return true;
                 }
 
@@ -409,9 +337,9 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 // since we don't have the variable yet, push uninitialized one
                 if (!found) {
                     _rpn_debug_callback(ctxt, "undefined variable");
-                    auto var = std::make_shared<rpn_variable>(token);
-                    ctxt.variables.emplace_back(var);
-                    ctxt.stack.emplace_back(var);
+                    auto null = std::make_shared<rpn_value>();
+                    ctxt.variables.emplace_back(token, null);
+                    ctxt.stack.emplace_back(RPN_STACK_TYPE_VARIABLE, null);
                     return true;
                 }
             }
@@ -457,8 +385,8 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
     });
 
     // clean-up temporaries
-    std::remove_if(ctxt.variables.begin(), ctxt.variables.end(), [](std::shared_ptr<rpn_variable>& var) {
-        return (var->value->type == rpn_value::null);
+    std::remove_if(ctxt.variables.begin(), ctxt.variables.end(), [](const rpn_variable& var) {
+        return (var.value->type == rpn_value::null);
     });
 
     return (RPN_ERROR_OK == rpn_error);

@@ -23,6 +23,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #define rpnlib_h
 
 #include "rpnlib_value.h"
+#include "rpnlib_stack.h"
 
 // ----------------------------------------------------------------------------
 
@@ -64,58 +65,6 @@ struct rpn_variable {
 
 };
 
-struct rpn_stack_value {
-    rpn_stack_value(bool value) :
-        variable(nullptr),
-        value(std::make_shared<rpn_value>(value))
-    {}
-
-    rpn_stack_value(double value) :
-        variable(nullptr),
-        value(std::make_shared<rpn_value>(value))
-    {}
-
-    rpn_stack_value(int32_t value) :
-        variable(nullptr),
-        value(std::make_shared<rpn_value>(value))
-    {}
-
-    rpn_stack_value(uint32_t value) :
-        variable(nullptr),
-        value(std::make_shared<rpn_value>(value))
-    {}
-
-    rpn_stack_value(char* value) :
-        variable(nullptr),
-        value(std::make_shared<rpn_value>(value))
-    {}
-
-    rpn_stack_value(std::shared_ptr<rpn_variable> variable) :
-        variable(variable),
-        value(variable->value)
-    {}
-
-    rpn_stack_value(std::shared_ptr<rpn_value> value) :
-        variable(nullptr),
-        value(value)
-    {}
-
-    rpn_stack_value(const rpn_value& value) :
-        variable(nullptr),
-        value(std::make_shared<rpn_value>(value))
-    {}
-
-    rpn_stack_value(rpn_value&& value) :
-        variable(nullptr),
-        value(std::make_shared<rpn_value>(std::move(value)))
-    {}
-
-    std::shared_ptr<rpn_variable> variable;
-    std::shared_ptr<rpn_value> value;
-};
-
-struct rpn_context;
-
 struct rpn_operator {
     std::string name;
     unsigned char argc;
@@ -123,7 +72,7 @@ struct rpn_operator {
 };
 
 struct rpn_context {
-    std::vector<std::shared_ptr<rpn_variable>> variables;
+    std::vector<rpn_variable> variables;
     std::vector<rpn_operator> operators;
     std::vector<rpn_stack_value> stack;
 };
@@ -136,14 +85,6 @@ enum rpn_errors {
     RPN_ERROR_UNVALID_ARGUMENT,
     RPN_ERROR_VARIABLE_DOES_NOT_EXIST,
     RPN_ERROR_TYPE_MISMATCH
-};
-
-enum rpn_token_t {
-    RPN_TOKEN_UNKNOWN,
-    RPN_TOKEN_WORD,
-    RPN_TOKEN_NUMBER,
-    RPN_TOKEN_STRING,
-    RPN_TOKEN_VARIABLE,
 };
 
 using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
@@ -178,24 +119,6 @@ bool rpn_variable_del(rpn_context &, const char *);
 size_t rpn_variables_size(rpn_context &);
 const char * rpn_variable_name(rpn_context &, unsigned char);
 bool rpn_variables_clear(rpn_context &);
-
-bool rpn_stack_clear(rpn_context &);
-
-bool rpn_stack_push(rpn_context &, float);
-bool rpn_stack_push(rpn_context &, bool);
-bool rpn_stack_push(rpn_context &, double);
-bool rpn_stack_push(rpn_context &, int32_t);
-bool rpn_stack_push(rpn_context &, uint32_t);
-bool rpn_stack_push(rpn_context &, char*);
-
-bool rpn_stack_push(rpn_context &, const rpn_value &);
-bool rpn_stack_push(rpn_context &, rpn_value &&);
-bool rpn_stack_pop(rpn_context &, rpn_value &);
-
-bool rpn_stack_pop(rpn_context &, float &);
-
-size_t rpn_stack_size(rpn_context &);
-bool rpn_stack_get(rpn_context &, unsigned char, float &);
 
 bool rpn_process(rpn_context &, const char *, bool variable_must_exist = false);
 bool rpn_init(rpn_context &);

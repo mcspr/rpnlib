@@ -7,7 +7,7 @@ typedef bool boolean;
 #include <string>
 #include <iostream>
 
-void dump_value(rpn_value& val) {
+void dump_value(const rpn_value& val) {
     switch (val.type) {
         case rpn_value::boolean:
             std::cout << "boolean -> " << val.as_boolean << std::endl;
@@ -32,13 +32,13 @@ void dump_value(rpn_value& val) {
 
 template<typename T>
 void dump_variable(const T var) {
-    std::cout << var->name << " = ";
-    dump_value(*var->value.get());
+    std::cout << "$" << var.name << " = ";
+    dump_value(var.value.get());
 }
 
 void dump_variables(rpn_context & ctxt) {
     std::cout << "variables: " << ctxt.variables.size() << std::endl;
-    for (auto variable : ctxt.variables) {
+    for (const auto& variable : ctxt.variables) {
         dump_variable(variable);
     }
 }
