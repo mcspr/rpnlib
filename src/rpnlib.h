@@ -32,6 +32,9 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <cstdint>
 
+#define RPN_CONST_PI    3.141593
+#define RPN_CONST_E     2.178282
+
 // ----------------------------------------------------------------------------
 
 struct rpn_variable {
@@ -95,10 +98,6 @@ extern rpn_errors rpn_error;
 extern rpn_debug_callback_f _rpn_debug_callback;
 
 // ----------------------------------------------------------------------------
-
-bool rpn_operators_init(rpn_context &);
-bool rpn_operator_set(rpn_context &, const char *, unsigned char, bool (*)(rpn_context &));
-bool rpn_operators_clear(rpn_context &);
 
 bool rpn_variable_set(rpn_context &, const char *, bool);
 bool rpn_variable_get(rpn_context &, const char *, bool &);

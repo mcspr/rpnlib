@@ -35,23 +35,25 @@ extern "C" {
 #include <utility>
 #include <cstdio>
 
+namespace {
+
 // ----------------------------------------------------------------------------
 // Utility
 // ----------------------------------------------------------------------------
 
 // TODO: move to core?
 
-static rpn_value& _rpn_stack_peek(rpn_context & ctxt, size_t offset = 1) {
+rpn_value& _rpn_stack_peek(rpn_context & ctxt, size_t offset = 1) {
     return *((ctxt.stack.end() - offset)->value.get());
 }
 
-static void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
+void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
     ctxt.stack.erase(ctxt.stack.end() - size, ctxt.stack.end());
 }
 
 // libc cmp interface, will only work with the same types
 
-static int _rpn_stack_compare(rpn_context & ctxt) {
+int _rpn_stack_compare(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     if (top < prev) {
@@ -63,7 +65,7 @@ static int _rpn_stack_compare(rpn_context & ctxt) {
     }
 }
 
-static int _rpn_stack_compare_or_eq(rpn_context & ctxt) {
+int _rpn_stack_compare_or_eq(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     if (top <= prev) {
@@ -75,7 +77,7 @@ static int _rpn_stack_compare_or_eq(rpn_context & ctxt) {
     }
 }
 
-static int _rpn_stack_compare3(rpn_context & ctxt) {
+int _rpn_stack_compare3(rpn_context & ctxt) {
     auto& upper = _rpn_stack_peek(ctxt, 1);
     auto& lower = _rpn_stack_peek(ctxt, 2);
     auto& value = _rpn_stack_peek(ctxt, 3);
@@ -518,3 +520,86 @@ bool _rpn_print(rpn_context & ctxt) {
 
     return true;
 }
+
+} // namespace anonymous
+
+// ----------------------------------------------------------------------------
+// Functions methods
+// ----------------------------------------------------------------------------
+
+bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, bool (*callback)(rpn_context &)) {
+    ctxt.operators.emplace_back(rpn_operator{name, argc, callback});
+    return true;
+}
+
+bool rpn_operators_clear(rpn_context & ctxt) {
+    ctxt.operators.clear();
+    return true;
+}
+
+bool rpn_operators_init(rpn_context & ctxt) {
+
+    rpn_operator_set(ctxt, "pi", 0, _rpn_pi);
+    rpn_operator_set(ctxt, "e", 0, _rpn_e);
+
+    rpn_operator_set(ctxt, "+", 2, _rpn_sum);
+    rpn_operator_set(ctxt, "-", 2, _rpn_substract);
+    rpn_operator_set(ctxt, "*", 2, _rpn_times);
+    rpn_operator_set(ctxt, "/", 2, _rpn_divide);
+    rpn_operator_set(ctxt, "mod", 2, _rpn_mod);
+    rpn_operator_set(ctxt, "abs", 1, _rpn_abs);
+
+    rpn_operator_set(ctxt, "round", 2, _rpn_round);
+    rpn_operator_set(ctxt, "ceil", 1, _rpn_ceil);
+    rpn_operator_set(ctxt, "floor", 1, _rpn_floor);
+    rpn_operator_set(ctxt, "int", 1, _rpn_floor);
+
+    #ifdef RPNLIB_ADVANCED_MATH
+    rpn_operator_set(ctxt, "sqrt", 1, _rpn_sqrt);
+    rpn_operator_set(ctxt, "log", 1, _rpn_log);
+    rpn_operator_set(ctxt, "log10", 1, _rpn_log10);
+    rpn_operator_set(ctxt, "exp", 1, _rpn_exp);
+    rpn_operator_set(ctxt, "fmod", 2, _rpn_fmod);
+    rpn_operator_set(ctxt, "pow", 2, _rpn_pow);
+    rpn_operator_set(ctxt, "cos", 1, _rpn_cos);
+    rpn_operator_set(ctxt, "sin", 1, _rpn_sin);
+    rpn_operator_set(ctxt, "tan", 1, _rpn_tan);
+    #endif
+
+    rpn_operator_set(ctxt, "eq", 2, _rpn_eq);
+    rpn_operator_set(ctxt, "ne", 2, _rpn_ne);
+    rpn_operator_set(ctxt, "gt", 2, _rpn_gt);
+    rpn_operator_set(ctxt, "ge", 2, _rpn_ge);
+    rpn_operator_set(ctxt, "lt", 2, _rpn_lt);
+    rpn_operator_set(ctxt, "le", 2, _rpn_le);
+
+    rpn_operator_set(ctxt, "cmp", 2, _rpn_cmp);
+    rpn_operator_set(ctxt, "cmp3", 3, _rpn_cmp3);
+    rpn_operator_set(ctxt, "index", 1, _rpn_index);
+    rpn_operator_set(ctxt, "map", 5, _rpn_map);
+    rpn_operator_set(ctxt, "constrain", 3, _rpn_constrain);
+
+    rpn_operator_set(ctxt, "and", 2, _rpn_and);
+    rpn_operator_set(ctxt, "or", 2, _rpn_or);
+    rpn_operator_set(ctxt, "xor", 2, _rpn_xor);
+    rpn_operator_set(ctxt, "not", 1, _rpn_not);
+
+    rpn_operator_set(ctxt, "dup", 1, _rpn_dup);
+    rpn_operator_set(ctxt, "dup2", 2, _rpn_dup2);
+    rpn_operator_set(ctxt, "swap", 2, _rpn_swap);
+    rpn_operator_set(ctxt, "rot", 3, _rpn_rot);
+    rpn_operator_set(ctxt, "unrot", 3, _rpn_unrot);
+    rpn_operator_set(ctxt, "drop", 1, _rpn_drop);
+    rpn_operator_set(ctxt, "over", 2, _rpn_over);
+    rpn_operator_set(ctxt, "depth", 0, _rpn_depth);
+
+    rpn_operator_set(ctxt, "exists", 1, _rpn_exists);
+    rpn_operator_set(ctxt, "=", 2, _rpn_assign);
+    rpn_operator_set(ctxt, "p", 1, _rpn_print);
+
+    rpn_operator_set(ctxt, "ifn", 3, _rpn_ifn);
+    rpn_operator_set(ctxt, "end", 1, _rpn_end);
+
+    return true;
+}
+
