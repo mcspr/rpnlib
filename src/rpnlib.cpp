@@ -3,6 +3,7 @@
 RPNlib
 
 Copyright (C) 2018-2019 by Xose Pérez <xose dot perez at gmail dot com>
+Copyright (C) 2020 by Maxim Prokhorov <prokhorov dot max at outlook dot com>
 
 The rpnlib library is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +21,9 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "rpnlib.h"
+#include "rpnlib_stack.h"
+#include "rpnlib_value.h"
+#include "rpnlib_variable.h"
 #include "rpnlib_operators.h"
 
 #include <algorithm>
@@ -150,60 +154,6 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
         callback(type, start_of_word);
     }
 
-}
-
-// ----------------------------------------------------------------------------
-// Variables methods
-// ----------------------------------------------------------------------------
-
-// TODO: handle assignment in rpn_value class method
-// TODO: avoid exposing rpn_value::as_... members
-bool rpn_variable_set(rpn_context & ctxt, const char * name, double value) {
-    for (auto& v : ctxt.variables) {
-        if (v.name != name) continue;
-        if (v.value->type != rpn_value::f64) break;
-        v.value->as_f64 = value;
-        return true;
-    }
-
-    ctxt.variables.emplace_back(name, std::make_shared<rpn_value>(value));
-    return true;
-}
-
-bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
-    for (auto& v : ctxt.variables) {
-        if (v.name != name) continue;
-        if (v.value->type != rpn_value::f64) break;
-        value = v.value->as_f64;
-        return true;
-    }
-    return false;
-}
-
-bool rpn_variable_del(rpn_context & ctxt, const char * name) {
-    for (auto v = ctxt.variables.begin(); v != ctxt.variables.end(); v++) {
-        if ((*v).name == name) {
-            ctxt.variables.erase(v);
-            return true;
-        }
-    }
-    return false;
-}
-
-size_t rpn_variables_size(rpn_context & ctxt) {
-    return ctxt.variables.size();
-}
-
-const char * rpn_variable_name(rpn_context & ctxt, unsigned char i) {
-    if (i < ctxt.variables.size()) {
-        return ctxt.variables[i].name.c_str();
-    }
-    return NULL;
-}
-
-bool rpn_variables_clear(rpn_context & ctxt) {
-    ctxt.variables.clear();
-    return true;
 }
 
 // ----------------------------------------------------------------------------
