@@ -146,7 +146,11 @@ bool _rpn_mod(rpn_context & ctxt) {
 
 bool _rpn_abs(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
-    return top.numeric_abs();
+    if (!top.isNumber()) {
+        return false;
+    }
+    top.as_f64 = top.as_f64 * -1.0L;
+    return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -284,7 +288,7 @@ bool _rpn_constrain(rpn_context & ctxt) {
 bool _rpn_and(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
-    if (!top.is_number() || !prev.is_number()) {
+    if (!top.isNumber() || !prev.isNumber()) {
         return false;
     }
 
@@ -298,7 +302,7 @@ bool _rpn_and(rpn_context & ctxt) {
 bool _rpn_or(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
-    if (!top.is_number() || !prev.is_number()) {
+    if (!top.isNumber() || !prev.isNumber()) {
         return false;
     }
 
@@ -312,7 +316,7 @@ bool _rpn_or(rpn_context & ctxt) {
 bool _rpn_xor(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
-    if (!top.is_number() || !prev.is_number()) {
+    if (!top.isNumber() || !prev.isNumber()) {
         return false;
     }
 
@@ -340,7 +344,7 @@ bool _rpn_round(rpn_context & ctxt) {
     const auto& decimals = _rpn_stack_peek(ctxt, 1);
     const auto& value = _rpn_stack_peek(ctxt, 2);
 
-    if ((decimals.type != rpn_value::f64) || (value.type != rpn_value::f64)) {
+    if (!decimals.isNumber() || value.isNumber()) {
         return false;
     }
     
@@ -357,7 +361,7 @@ bool _rpn_round(rpn_context & ctxt) {
 
 bool _rpn_ceil(rpn_context & ctxt) {
     auto& value = _rpn_stack_peek(ctxt, 1);
-    if (value.type != rpn_value::f64) {
+    if (!value.isNumber()) {
         return false;
     }
 
@@ -367,7 +371,7 @@ bool _rpn_ceil(rpn_context & ctxt) {
 
 bool _rpn_floor(rpn_context & ctxt) {
     auto& value = _rpn_stack_peek(ctxt, 1);
-    if (value.type != rpn_value::f64) {
+    if (!value.isNumber()) {
         return false;
     }
 
@@ -463,7 +467,7 @@ bool _rpn_depth(rpn_context & ctxt) {
 }
 
 bool _rpn_exists(rpn_context & ctxt) {
-    return (ctxt.stack.back().value->type != rpn_value::null);
+    return !ctxt.stack.back().value->isNull();
 }
 
 bool _rpn_assign(rpn_context & ctxt) {
@@ -498,12 +502,6 @@ bool _rpn_print(rpn_context & ctxt) {
     switch (val.type) {
         case rpn_value::boolean:
             sprintf(buffer + offset, "%s", val.as_boolean ? "true" : "false");
-            break;
-        case rpn_value::i32:
-            sprintf(buffer + offset, "%d", val.as_i32);
-            break;
-        case rpn_value::u32:
-            sprintf(buffer + offset, "%u", val.as_u32);
             break;
         case rpn_value::f64:
             sprintf(buffer + offset, "%f", val.as_f64);

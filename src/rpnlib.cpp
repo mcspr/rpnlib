@@ -51,6 +51,7 @@ rpn_debug_callback_f _rpn_debug_callback = nullptr;
 enum rpn_token_t {
     RPN_TOKEN_UNKNOWN,
     RPN_TOKEN_WORD,
+    RPN_TOKEN_BOOLEAN,
     RPN_TOKEN_NUMBER,
     RPN_TOKEN_STRING,
     RPN_TOKEN_VARIABLE,
@@ -67,6 +68,17 @@ using rpn_tokenizer_callback = std::function<bool(rpn_token_t, const char* ptr)>
 
 namespace {
 
+// convert raw word to bool. we only need to match one of `true` or `false`, since we expect tokenizer to deduce the correct string
+
+bool _rpn_token_as_bool(const char* token) {
+    if (strcmp(token, "true") == 0) {
+        return true;
+    }
+    return false;
+}
+
+// after initial match, check if token still matches the originally deduced type
+
 bool _rpn_token_is_number(char c) {
     switch (c) {
         case '.':
@@ -80,6 +92,19 @@ bool _rpn_token_is_number(char c) {
     }
 }
 
+bool _rpn_token_is_bool(char c) {
+    switch (c) {
+        case 'r':
+        case 'u':
+        case 'e':
+        case 'a':
+        case 'l':
+        case 's':
+            return true;
+        default:
+            return false;
+    }
+}
 void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
     char *p = buffer;
     char *start_of_word = nullptr;
@@ -91,6 +116,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
         UNKNOWN,
         IN_WORD,
         IN_NUMBER,
+        IN_BOOLEAN,
         IN_STRING,
         IN_VARIABLE
     };
@@ -119,9 +145,11 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
                 type = RPN_TOKEN_STRING;
                 ++p;
             } else if (isdigit(c) || (c == '-') || (c == '+')) {
-                printf("%c is number\n", c);
                 state = IN_NUMBER;
                 type = RPN_TOKEN_NUMBER;
+            } else if ((c == 't') || (c == 'f')) {
+                state = IN_BOOLEAN;
+                type = RPN_TOKEN_BOOLEAN;
             } else {
                 state = IN_WORD;
                 type = RPN_TOKEN_WORD;
@@ -144,6 +172,12 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
 
         case IN_NUMBER:
             if (!isspace(c) && !_rpn_token_is_number(c)) {
+                state = IN_WORD;
+                type = RPN_TOKEN_WORD;
+            }
+
+        case IN_BOOLEAN:
+            if (!_rpn_token_is_bool(c)) {
                 state = IN_WORD;
                 type = RPN_TOKEN_WORD;
             }
@@ -198,6 +232,9 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 _rpn_debug_callback(ctxt, "is string");
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
                 return true;
+            case RPN_TOKEN_BOOLEAN:
+                _rpn_debug_callback(ctxt, "is boolean");
+                ctxt.stack.emplace_back(std::make_shared<rpn_value>(_rpn_token_as_bool(token)));
             case RPN_TOKEN_NUMBER:
                 _rpn_debug_callback(ctxt, "is number");
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(atof(token)));
@@ -274,7 +311,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
     // clean-up temporaries
     std::remove_if(ctxt.variables.begin(), ctxt.variables.end(), [](const rpn_variable& var) {
-        return (var.value->type == rpn_value::null);
+        return var.value->isNull();
     });
 
     return (RPN_ERROR_OK == rpn_error);

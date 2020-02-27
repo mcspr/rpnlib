@@ -31,10 +31,8 @@ struct rpn_value {
     enum value_t {
         null,
         boolean,
-        i32,
-        u32,
-        f64,
-        string
+        string,
+        f64
     };
 
     rpn_value();
@@ -66,22 +64,18 @@ struct rpn_value {
     rpn_value operator /(const rpn_value&);
     rpn_value operator %(const rpn_value&);
 
-    bool numeric_abs();
-    bool is_number() const;
-    bool is_number_zero() const;
-
     operator bool() const;
-    operator int32_t() const;
-    operator uint32_t() const;
     operator double() const;
-    operator const char*() const;
+    operator std::string() const;
 
-    // TODO: generic variant struct to manage String / std::string / custom string obj member
-    // TODO: if not, sso?
+    bool is(value_t) const;
+    bool isNull() const;
+    bool isBoolean() const;
+    bool isString() const;
+    bool isNumber() const;
+
     union {
         bool as_boolean;
-        int32_t as_i32;
-        uint32_t as_u32;
         double as_f64;
         std::string as_string;
     };

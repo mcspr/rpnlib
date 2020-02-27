@@ -26,6 +26,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
+#include <cmath>
 
 // TODO: implement fs_math operations
 
@@ -40,12 +41,6 @@ rpn_value::rpn_value(const rpn_value& other) {
             break;
         case rpn_value::boolean:
             as_boolean = other.as_boolean;
-            break;
-        case rpn_value::i32:
-            as_i32 = other.as_i32;
-            break;
-        case rpn_value::u32:
-            as_u32 = other.as_u32;
             break;
         case rpn_value::f64:
             as_f64 = other.as_f64;
@@ -64,12 +59,6 @@ rpn_value::rpn_value(rpn_value&& other) {
         case rpn_value::boolean:
             as_boolean = other.as_boolean;
             break;
-        case rpn_value::i32:
-            as_i32 = other.as_i32;
-            break;
-        case rpn_value::u32:
-            as_u32 = other.as_u32;
-            break;
         case rpn_value::f64:
             as_f64 = other.as_f64;
             break;
@@ -84,13 +73,13 @@ rpn_value::rpn_value(bool value) :
 {}
 
 rpn_value::rpn_value(int32_t value) :
-    as_i32(value),
-    type(rpn_value::i32)
+    as_f64(double(value)),
+    type(rpn_value::f64)
 {}
 
 rpn_value::rpn_value(uint32_t value) :
-    as_u32(value),
-    type(rpn_value::u32)
+    as_f64(double(value)),
+    type(rpn_value::f64)
 {}
 
 rpn_value::rpn_value(double value) :
@@ -101,22 +90,18 @@ rpn_value::rpn_value(double value) :
 rpn_value::rpn_value(const char* value) :
     type(rpn_value::string)
 {
-    printf("%s new() start\n", __PRETTY_FUNCTION__);
     new (&as_string) std::string(value);
-    printf("%s new() done -> %s\n", __PRETTY_FUNCTION__, as_string.c_str());
 }
 
 rpn_value::rpn_value(const std::string& value) :
     type(rpn_value::string)
 {
-    printf("%s new()\n", __PRETTY_FUNCTION__);
     new (&as_string) std::string(value);
 }
 
 rpn_value::rpn_value(std::string&& value) :
     type(rpn_value::string)
 {
-    printf("%s new()\n", __PRETTY_FUNCTION__);
     new (&as_string) std::string(std::move(value));
 }
 
@@ -130,30 +115,12 @@ rpn_value::operator bool() const {
     switch (type) {
         case rpn_value::boolean:
             return as_boolean;
-        case rpn_value::i32:
-            return as_i32 != 0;
-        case rpn_value::u32:
-            return as_u32 > 0;
         case rpn_value::f64:
-            return as_f64 != 0.0L;
+            return (as_f64 != 0.0L) && !std::isnan(as_f64) && !std::isinf(as_f64);
         case rpn_value::string:
         default:
             return true;
     }
-}
-
-rpn_value::operator int32_t() const {
-    if (type == rpn_value::i32) {
-        return as_i32;
-    }
-    return 0;
-}
-
-rpn_value::operator uint32_t() const {
-    if (type == rpn_value::u32) {
-        return as_u32;
-    }
-    return 0;
 }
 
 rpn_value::operator double() const {
@@ -163,82 +130,44 @@ rpn_value::operator double() const {
     return 0.0L;
 }
 
-rpn_value::operator const char*() const {
-    if (type == rpn_value::string) {
-        return as_string.c_str();
+rpn_value::operator std::string() const {
+    switch (type) {
+        case rpn_value::string:
+            return as_string;
+        case rpn_value::f64: {
+            char buffer[64] = {0};
+            snprintf(buffer, sizeof(buffer) - 1, "%f", as_f64);
+            return std::string(buffer);
+         }
+        default:
+            return "";
     }
-    return nullptr;
 }
 
 bool rpn_value::operator <(const rpn_value& other) const {
-
-    if ((type == rpn_value::string) || (other.type == rpn_value::string)) {
-        return false;
+    if ((type == other.type) && (type == rpn_value::f64)) {
+        return (as_f64 < other.as_f64);
     }
-
-    if ((type == rpn_value::boolean) || (other.type == rpn_value::boolean)) {
-        return false;
-    }
-
-    if (type != other.type) {
-        return false;
-    }
-
-    switch (type) {
-        case rpn_value::i32:
-            return (as_i32 < other.as_i32);
-        case rpn_value::u32:
-            return (as_u32 < other.as_u32);
-        case rpn_value::f64:
-            return (as_f64 < other.as_f64);
-        default:
-            return false;
-    }
+    return false;
 }
 
 bool rpn_value::operator >(const rpn_value& other) const {
-
-    if ((type == rpn_value::string) || (other.type == rpn_value::string)) {
-        return false;
+    if ((type == other.type) && (type == rpn_value::f64)) {
+        return (as_f64 > other.as_f64);
     }
-
-    if ((type == rpn_value::boolean) || (other.type == rpn_value::boolean)) {
-        return false;
-    }
-
-    if (type != other.type) {
-        return false;
-    }
-
-    switch (type) {
-        case rpn_value::i32:
-            return (as_i32 > other.as_i32);
-        case rpn_value::u32:
-            return (as_u32 > other.as_u32);
-        case rpn_value::f64:
-            return (as_f64 > other.as_f64);
-        default:
-            return false;
-    }
+    return false;
 }
 
 bool rpn_value::operator ==(const rpn_value& other) const {
-
-    if ((type == rpn_value::string) || (other.type == rpn_value::string)) {
-        return (as_string == other.as_string);
-    }
-
     if (type != other.type) {
         return false;
     }
 
     switch (type) {
+        case rpn_value::string:
+            return (as_string == other.as_string);
         case rpn_value::boolean:
             return (as_boolean == other.as_boolean);
-        case rpn_value::i32:
-            return (as_i32 == other.as_i32);
-        case rpn_value::u32:
-            return (as_u32 == other.as_u32);
         case rpn_value::f64:
             return (as_f64 == other.as_f64);
         default:
@@ -282,12 +211,6 @@ rpn_value rpn_value::operator +(const rpn_value& other) {
         val.as_string += as_string;
         val.as_string += other.as_string;
     // do generic math
-    } else if (type == rpn_value::i32) {
-        val.type = rpn_value::i32;
-        val.as_i32 = as_i32 + other.as_i32;
-    } else if (type == rpn_value::u32) {
-        val.type = rpn_value::u32;
-        val.as_u32 = as_u32 + other.as_u32;
     } else if (type == rpn_value::f64) {
         val.type = rpn_value::f64;
         val.as_f64 = as_f64 + other.as_f64;
@@ -308,12 +231,6 @@ rpn_value rpn_value::operator -(const rpn_value& other) {
     if (type == rpn_value::boolean) {
         val.type = rpn_value::boolean;
         val.as_boolean = as_boolean - other.as_boolean;
-    } else if (type == rpn_value::i32) {
-        val.type = rpn_value::i32;
-        val.as_i32 = as_i32 - other.as_i32;
-    } else if (type == rpn_value::u32) {
-        val.type = rpn_value::u32;
-        val.as_u32 = as_u32 - other.as_u32;
     } else if (type == rpn_value::f64) {
         val.type = rpn_value::f64;
         val.as_f64 = as_f64 - other.as_f64;
@@ -334,12 +251,6 @@ rpn_value rpn_value::operator *(const rpn_value& other) {
     if (type == rpn_value::boolean) {
         val.type = rpn_value::boolean;
         val.as_boolean = as_boolean * other.as_boolean;
-    } else if (type == rpn_value::i32) {
-        val.type = rpn_value::i32;
-        val.as_i32 = as_i32 * other.as_i32;
-    } else if (type == rpn_value::u32) {
-        val.type = rpn_value::u32;
-        val.as_u32 = as_u32 * other.as_u32;
     } else if (type == rpn_value::f64) {
         val.type = rpn_value::f64;
         val.as_f64 = as_f64 * other.as_f64;
@@ -357,11 +268,8 @@ rpn_value rpn_value::operator /(const rpn_value& other) {
     }
 
     // avoid division by zero (previously, RPN_ERROR_DIVIDE_BY_ZERO)
-    if (
-        ((type == rpn_value::i32) && (other.as_i32 == 0))
-        || ((type == rpn_value::u32) && (other.as_u32 == 0))
-        || ((type == rpn_value::f64) && (other.as_f64 == 0))
-    ) {
+    // technically, we will get either inf or nan with floating point math, but we need operator to do the conversion for this `val` to make sense to the user
+    if ((type == rpn_value::f64) && (other.as_f64 == 0)) {
         return val;
     }
 
@@ -369,12 +277,6 @@ rpn_value rpn_value::operator /(const rpn_value& other) {
     if (type == rpn_value::boolean) {
         val.type = rpn_value::boolean;
         val.as_boolean = as_boolean / other.as_boolean;
-    } else if (type == rpn_value::i32) {
-        val.type = rpn_value::i32;
-        val.as_i32 = as_i32 / other.as_i32;
-    } else if (type == rpn_value::u32) {
-        val.type = rpn_value::u32;
-        val.as_u32 = as_u32 / other.as_u32;
     } else if (type == rpn_value::f64) {
         val.type = rpn_value::f64;
         val.as_f64 = as_f64 / other.as_f64;
@@ -392,11 +294,8 @@ rpn_value rpn_value::operator %(const rpn_value& other) {
     }
 
     // avoid division by zero (previously, RPN_ERROR_DIVIDE_BY_ZERO)
-    if (
-        ((type == rpn_value::i32) && (other.as_i32 == 0))
-        || ((type == rpn_value::u32) && (other.as_u32 == 0))
-        || ((type == rpn_value::f64) && (other.as_f64 == 0))
-    ) {
+    // technically, we will get either inf or nan with floating point math, but we need operator to do the conversion for this `val` to make sense to the user
+    if ((type == rpn_value::f64) && (other.as_f64 == 0)) {
         return val;
     }
 
@@ -404,41 +303,12 @@ rpn_value rpn_value::operator %(const rpn_value& other) {
     if (type == rpn_value::boolean) {
         val.type = rpn_value::boolean;
         val.as_boolean = as_boolean % other.as_boolean;
-    } else if (type == rpn_value::i32) {
-        val.type = rpn_value::i32;
-        val.as_i32 = as_i32 % other.as_i32;
-    } else if (type == rpn_value::u32) {
-        val.type = rpn_value::u32;
-        val.as_u32 = as_u32 % other.as_u32;
     } else if (type == rpn_value::f64) {
         val.type = rpn_value::f64;
         val.as_f64 = as_f64 - (as_f64 / other.as_f64) * other.as_f64;
     }
 
     return val;
-}
-
-bool rpn_value::numeric_abs() {
-    bool result = false;
-    if (type == rpn_value::i32) {
-        as_i32 = as_i32 * -1;
-        result = true;
-    } else if (type == rpn_value::f64) {
-        as_f64 = as_f64 * -1.0L;
-        result = true;
-    }
-    return result;
-}
-
-bool rpn_value::is_number() const {
-    switch (type) {
-        case rpn_value::i32:
-        case rpn_value::u32:
-        case rpn_value::f64:
-            return true;
-        default:
-            return false;
-    }
 }
 
 rpn_value& rpn_value::operator =(const rpn_value& other) {
@@ -453,12 +323,6 @@ rpn_value& rpn_value::operator =(const rpn_value& other) {
         case rpn_value::boolean:
             as_boolean = other.as_boolean;
             break;
-        case rpn_value::i32:
-            as_i32 = other.as_i32;
-            break;
-        case rpn_value::u32:
-            as_u32 = other.as_u32;
-            break;
         case rpn_value::f64:
             as_f64 = other.as_f64;
             break;
@@ -466,3 +330,24 @@ rpn_value& rpn_value::operator =(const rpn_value& other) {
     type = other.type;
     return *this;
 }
+
+bool rpn_value::is(value_t value) const {
+    return (type == value);
+}
+
+bool rpn_value::isNull() const {
+    return is(rpn_value::null);
+}
+
+bool rpn_value::isBoolean() const {
+    return is(rpn_value::boolean);
+}
+
+bool rpn_value::isString() const {
+    return is(rpn_value::string);
+}
+
+bool rpn_value::isNumber() const {
+    return is(rpn_value::f64);
+}
+

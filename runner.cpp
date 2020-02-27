@@ -12,12 +12,6 @@ void dump_value(const rpn_value& val) {
         case rpn_value::boolean:
             std::cout << "boolean -> " << val.as_boolean << std::endl;
             break;
-        case rpn_value::i32:
-            std::cout << "i32 -> " << val.as_i32 << std::endl;
-            break;
-        case rpn_value::u32:
-            std::cout << "u32 -> " << val.as_u32 << std::endl;
-            break;
         case rpn_value::f64:
             std::cout << "f64 -> " << val.as_f64 << std::endl;
             break;
