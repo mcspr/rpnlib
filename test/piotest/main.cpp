@@ -25,23 +25,63 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <rpnlib.h>
 #include <unity.h>
 
+#include <cstdio>
+#include <vector>
+
 // -----------------------------------------------------------------------------
 // Helper methods
 // -----------------------------------------------------------------------------
 
-void run_and_compare(const char * command, unsigned char depth, double * expected) {
+void highlight_stack_index(rpn_context& ctxt, unsigned char match, double match_value) {
+    char buffer[128] = {0};
+
+    snprintf(buffer, sizeof(buffer) - 1, "Stack size = %u", ctxt.stack.size());
+    TEST_MESSAGE(buffer);
+
+    snprintf(buffer, sizeof(buffer) - 1, "Expected stack[%u] == %f, but it is %f instead", match, match_value, double(*ctxt.stack[match].value.get()));
+    TEST_MESSAGE(buffer);
+
+    size_t index = ctxt.stack.size() - 1;
+    for (auto& stack_value : ctxt.stack) {
+        char highlight = (index == match) ? '*' : ' ';
+        switch (stack_value.value->type) {
+            case rpn_value::f64:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: %f", highlight, index, stack_value.value->as_f64);
+                break;
+            case rpn_value::string:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: \"%s\"", highlight, index, stack_value.value->as_string.c_str());
+                break;
+            case rpn_value::boolean:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: %s", highlight, index, stack_value.value->as_boolean ? "true" : "false");
+                break;
+            case rpn_value::null:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: null", highlight, index);
+                break;
+        }
+        --index;
+        TEST_MESSAGE(buffer);
+    }
+}
+
+void run_and_compare(const char * command, std::vector<double> expected) {
 
     double value;
     rpn_context ctxt;
 
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, command));
-    TEST_ASSERT_EQUAL_INT8(RPN_ERROR_OK, rpn_error);
+    TEST_ASSERT_TRUE_MESSAGE(rpn_init(ctxt), "rpn_init() should return true");
+    TEST_ASSERT_TRUE_MESSAGE(rpn_process(ctxt, command), "rpn_process() should return true");
+    TEST_ASSERT_EQUAL_INT8_MESSAGE(RPN_ERROR_OK, rpn_error, "There should be no rpn_error set");
 
-    TEST_ASSERT_EQUAL(depth, rpn_stack_size(ctxt));
-    for (unsigned char i=0; i<depth; i++) {
-        TEST_ASSERT_TRUE(rpn_stack_get(ctxt, i, value));
-        TEST_ASSERT_EQUAL_FLOAT(expected[i], value);
+    TEST_ASSERT_EQUAL_MESSAGE(expected.size(), rpn_stack_size(ctxt), "Stack size does not match the expected value");
+    for (unsigned char i=0; i<expected.size(); i++) {
+        if (!rpn_stack_get(ctxt, i, value)) {
+            highlight_stack_index(ctxt, i, expected[i]);
+            TEST_FAIL_MESSAGE("Can't get stack value at specified index");
+        }
+        if (expected[i] != value) {
+            highlight_stack_index(ctxt, i, expected[i]);
+            TEST_FAIL_MESSAGE("Stack value does not match the expected value");
+        }
     }
 
 }
@@ -61,68 +101,63 @@ void run_and_error(const char * command, unsigned char error_code) {
 // -----------------------------------------------------------------------------
 
 void test_math(void) {
-    double expected[] = {3};
-    run_and_compare("5 2 * 3 + 5 mod", sizeof(expected)/sizeof(expected[0]), expected);
+    run_and_compare("5 2 * 3 + 5 mod", {3.0L});
 }
 
 void test_math_advanced(void) {
-    double expected[] = {1};
-    run_and_compare("10 2 pow sqrt log10", sizeof(expected)/sizeof(double), expected);
+#ifdef RPNLIB_ADVANCED_MATH
+    run_and_compare("10 2 pow sqrt log10", {1.0L});
+#else
+    TEST_IGNORE_MESSAGE("fmath is disabled");
+#endif
 }
 
 void test_trig(void) {
-    double expected[] = {1};
-    run_and_compare("pi 4 / cos 2 sqrt *", sizeof(expected)/sizeof(double), expected);
+#ifdef RPNLIB_ADVANCED_MATH
+    run_and_compare("pi 4 / cos 2 sqrt *", {1.0L});
+#else
+    TEST_IGNORE_MESSAGE("fmath is disabled");
+#endif
 }
 
 void test_cast(void) {
-    double expected[] = {2, 1, 3.1416, 3.14};
-    run_and_compare("pi 2 round pi 4 round 1.1 floor 1.1 ceil", sizeof(expected)/sizeof(double), expected);
+    run_and_compare("pi 2 round pi 4 round 1.1 floor 1.1 ceil", {2.0L, 1.0L, 3.1416L, 3.14L});
 }
 
 void test_map(void) {
-    double expected[] = {25};
-    run_and_compare("256 0 1024 0 100 map", sizeof(expected)/sizeof(double), expected);
+    run_and_compare("256 0 1024 0 100 map", {25.0L});
 }
 
 void test_index(void) {
-    double expected[] = {30};
-    run_and_compare("2 10 20 30 40 50 5 index", sizeof(expected)/sizeof(double), expected);
+    run_and_compare("2 10 20 30 40 50 5 index", {30.0L});
 }
 
 void test_cmp3_below(void) {
-    double expected[] = {-1};
-    run_and_compare("13 18 24 cmp3", sizeof(expected)/sizeof(double), expected);
+    run_and_compare("13 18 24 cmp3", {-1.0L});
 }
 
 void test_cmp3_between(void) {
-    double expected[] = {0};
-    run_and_compare("18 18 24 cmp3", sizeof(expected)/sizeof(double), expected);
+    run_and_compare("18 18 24 cmp3", {0.0L});
 }
 
 void test_cmp3_above(void) {
-    double expected[] = {1};
-    run_and_compare("25 18 24 cmp3", sizeof(expected)/sizeof(double), expected);
+    run_and_compare("25 18 24 cmp3", {1.0L});
 }
 
 void test_conditional(void) {
-    double expected[] = {2};
-    run_and_compare("1 2 3 ifn", sizeof(expected)/sizeof(double), expected);
+    run_and_compare("1 2 3 ifn", {2.0L});
 }
 
 void test_stack(void) {
-    double expected[] = {6};
-    run_and_compare("1 3 dup unrot swap - *", sizeof(expected)/sizeof(double), expected);
+    run_and_compare("1 3 dup unrot swap - *", {6.0L});
 }
 
 void test_logic(void) {
-    double expected[] = {0, 1, 0, 1};
-    run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt", sizeof(expected)/sizeof(double), expected);
+    run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt", {0.0L, 1.0L, 0.0L, 1.0L});
 }
 
 void test_boolean(void) {
-    double expected[] = {0, 1, 1, 0};
-    run_and_compare("2 0 and 2 0 or 2 0 xor 1 not", sizeof(expected)/sizeof(double), expected);
+    run_and_compare("2 0 and 2 0 or 2 0 xor 1 not", {0.0L, 1.0L, 1.0L, 0.0L});
 }
 
 
@@ -163,7 +198,8 @@ void test_custom_operator(void) {
 }
 
 void test_error_divide_by_zero(void) {
-    run_and_error("5 0 /", RPN_ERROR_DIVIDE_BY_ZERO);
+    //run_and_error("5 0 /", RPN_ERROR_DIVIDE_BY_ZERO);
+    TEST_IGNORE_MESSAGE("division by zero, inf and nan are handled internally, operator will not set anything");
 }
 
 void test_error_argument_count_mismatch(void) {
@@ -192,7 +228,7 @@ void test_memory(void) {
 }
 #else
 void test_memory(void) {
-
+    TEST_IGNORE_MESSAGE("running on host");
 }
 #endif
 
@@ -201,7 +237,7 @@ void test_memory(void) {
 // -----------------------------------------------------------------------------
 
 void setup() {
-    delay(2000);
+    //delay(2000);
     UNITY_BEGIN();
     RUN_TEST(test_math);
     RUN_TEST(test_math_advanced);

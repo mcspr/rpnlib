@@ -57,9 +57,9 @@ void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
 int32_t _rpn_stack_compare(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
-    if (top < prev) {
+    if (prev < top) {
         return -1;
-    } else if (top > prev) {
+    } else if (prev > top) {
         return 1;
     } else {
         return 0;
@@ -69,9 +69,9 @@ int32_t _rpn_stack_compare(rpn_context & ctxt) {
 int32_t _rpn_stack_compare_or_eq(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
-    if (top <= prev) {
+    if (prev <= top) {
         return -1;
-    } else if (top >= prev) {
+    } else if (prev >= top) {
         return 1;
     } else {
         return 0;
@@ -110,35 +110,35 @@ bool _rpn_e(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 bool _rpn_sum(rpn_context & ctxt) {
-    const auto result = _rpn_stack_peek(ctxt, 1) + _rpn_stack_peek(ctxt, 2);
+    const auto result = _rpn_stack_peek(ctxt, 2) + _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_substract(rpn_context & ctxt) {
-    const auto result =_rpn_stack_peek(ctxt, 1) - _rpn_stack_peek(ctxt, 2);
+    const auto result = _rpn_stack_peek(ctxt, 2) - _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_times(rpn_context & ctxt) {
-    const auto result =_rpn_stack_peek(ctxt, 1) * _rpn_stack_peek(ctxt, 2);
+    const auto result = _rpn_stack_peek(ctxt, 2) * _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_divide(rpn_context & ctxt) {
-    const auto result =_rpn_stack_peek(ctxt, 1) / _rpn_stack_peek(ctxt, 2);
+    const auto result = _rpn_stack_peek(ctxt, 2) / _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_mod(rpn_context & ctxt) {
-    const auto result =_rpn_stack_peek(ctxt, 1) % _rpn_stack_peek(ctxt, 2);
+    const auto result = _rpn_stack_peek(ctxt, 2) % _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
@@ -160,14 +160,14 @@ bool _rpn_abs(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 bool _rpn_eq(rpn_context & ctxt) {
-    const bool result = _rpn_stack_peek(ctxt, 1) == _rpn_stack_peek(ctxt, 2);
+    const bool result = _rpn_stack_peek(ctxt, 2) == _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_ne(rpn_context & ctxt) {
-    const bool result = _rpn_stack_peek(ctxt, 1) != _rpn_stack_peek(ctxt, 2);
+    const bool result = _rpn_stack_peek(ctxt, 2) != _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
@@ -206,12 +206,16 @@ bool _rpn_le(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 bool _rpn_cmp(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, double(_rpn_stack_compare(ctxt)));
+    const auto result = double(_rpn_stack_compare(ctxt));
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
     return true;
 };    
 
 bool _rpn_cmp3(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, double(_rpn_stack_compare3(ctxt)));
+    const auto result = double(_rpn_stack_compare3(ctxt));
+    _rpn_stack_eat(ctxt, 3);
+    rpn_stack_push(ctxt, result);
     return true;
 };    
 
@@ -225,6 +229,9 @@ bool _rpn_index(rpn_context & ctxt) {
 
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto size = double(top);
+    if (size < 0) {
+        return false;
+    }
     if (stack_size < size + 1) {
         return false;
     }
@@ -240,7 +247,7 @@ bool _rpn_index(rpn_context & ctxt) {
 
     rpn_stack_push(ctxt, pick);
 
-    return false;
+    return true;
 }
 
 bool _rpn_map(rpn_context & ctxt) {
@@ -331,7 +338,7 @@ bool _rpn_xor(rpn_context & ctxt) {
 
 bool _rpn_not(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
-    const bool result = bool(top);
+    const bool result = !bool(top);
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -346,16 +353,19 @@ bool _rpn_round(rpn_context & ctxt) {
     const auto& decimals = _rpn_stack_peek(ctxt, 1);
     const auto& value = _rpn_stack_peek(ctxt, 2);
 
-    if (!decimals.isNumber() || value.isNumber()) {
+    if (!decimals.isNumber() || !value.isNumber()) {
         return false;
     }
     
-    int multiplier = 1;
+    double multiplier = 1.0L;
     for (int i = 0; i < round(decimals.as_f64); ++i) {
-        multiplier *= 10;
+        multiplier *= 10.0L;
     }
+    
+    const auto result = double(int(value.as_f64 * multiplier + 0.5L) / multiplier);
 
-    rpn_stack_push(ctxt, double(round(value.as_f64 * multiplier + 0.5L) / multiplier));
+    _rpn_stack_eat(ctxt, 2);
+    rpn_stack_push(ctxt, result);
 
     return true;
 
@@ -440,8 +450,10 @@ bool _rpn_swap(rpn_context & ctxt) {
 // [a b c] -> [c a b]
 bool _rpn_unrot(rpn_context & ctxt) {
     const auto c = _rpn_stack_peek(ctxt, 1);
-    const auto b = _rpn_stack_peek(ctxt, 1);
-    const auto a = _rpn_stack_peek(ctxt, 1);
+    const auto b = _rpn_stack_peek(ctxt, 2);
+    const auto a = _rpn_stack_peek(ctxt, 3);
+
+    _rpn_stack_eat(ctxt, 3);
 
     rpn_stack_push(ctxt, c);
     rpn_stack_push(ctxt, a);
@@ -452,8 +464,10 @@ bool _rpn_unrot(rpn_context & ctxt) {
 
 bool _rpn_rot(rpn_context & ctxt) {
     const auto c = _rpn_stack_peek(ctxt, 1);
-    const auto b = _rpn_stack_peek(ctxt, 1);
-    const auto a = _rpn_stack_peek(ctxt, 1);
+    const auto b = _rpn_stack_peek(ctxt, 2);
+    const auto a = _rpn_stack_peek(ctxt, 3);
+
+    _rpn_stack_eat(ctxt, 3);
 
     rpn_stack_push(ctxt, b); 
     rpn_stack_push(ctxt, c);

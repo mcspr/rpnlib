@@ -80,6 +80,8 @@ int main(int argc, char** argv) {
     rpn_context ctxt;
     rpn_init(ctxt);
     rpn_operator_set(ctxt, "dump", 0, [](rpn_context& c) { dump_stack(c); return true; });
+    rpn_operator_set(ctxt, "clear", 0, [](rpn_context& c) { rpn_stack_clear(c); return true; });
+    rpn_operator_set(ctxt, "cast", 1, [](rpn_context& c) { auto val = c.stack.back(); c.stack.pop_back(); auto upd = rpn_value(double(*val.value.get())); c.stack.push_back(upd); return true; });
     rpn_debug([](rpn_context&, const char* message) {
         std::cout << message << std::endl;
     });

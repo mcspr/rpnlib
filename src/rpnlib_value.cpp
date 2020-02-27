@@ -26,7 +26,6 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
-#include <cstdio>
 
 // TODO: implement fs_math operations
 
@@ -137,10 +136,14 @@ rpn_value::operator bool() const {
 }
 
 rpn_value::operator double() const {
-    if (type == rpn_value::f64) {
-        return as_f64;
+    switch (type) {
+        case rpn_value::f64:
+            return as_f64;
+        case rpn_value::boolean:
+            return as_boolean ? 1.0L : 0.0L;
+        default:
+            return 0.0L;
     }
-    return 0.0L;
 }
 
 rpn_value::operator String() const {
@@ -201,8 +204,6 @@ bool rpn_value::operator <=(const rpn_value& other) const {
 rpn_value rpn_value::operator +(const rpn_value& other) {
     rpn_value val;
 
-    ::printf("-----> math %f + %f = %f\n", as_f64, other.as_f64, val.as_f64);
-
     // return null when can't do anything to compute the result
     if (type != other.type) {
         return val;
@@ -227,7 +228,6 @@ rpn_value rpn_value::operator +(const rpn_value& other) {
     } else if (type == rpn_value::f64) {
         val.type = rpn_value::f64;
         val.as_f64 = as_f64 + other.as_f64;
-        printf("math %f + %f = %f\n", as_f64, other.as_f64, val.as_f64);
     }
 
     return val;
@@ -302,8 +302,6 @@ rpn_value rpn_value::operator /(const rpn_value& other) {
 rpn_value rpn_value::operator %(const rpn_value& other) {
     rpn_value val;
 
-    ::printf("-----> math %f %% %f = %f\n", as_f64, other.as_f64, val.as_f64);
-
     // return null when can't do anything to compute the result
     if ((type != other.type) || (type == rpn_value::string) || (other.type == rpn_value::string)) {
         return val;
@@ -321,11 +319,7 @@ rpn_value rpn_value::operator %(const rpn_value& other) {
         val.as_boolean = as_boolean % other.as_boolean;
     } else if (type == rpn_value::f64) {
         val.type = rpn_value::f64;
-        val.as_f64 = as_f64 - (as_f64 / other.as_f64) * other.as_f64;
-        ::printf("math / %f\n", as_f64 / other.as_f64);
-        ::printf("math * %f\n", (as_f64 / other.as_f64) * other.as_f64);
-        ::printf("math - %f\n", as_f64 - (as_f64 / other.as_f64) * other.as_f64);
-        ::printf("math %f %% %f = %f\n", as_f64, other.as_f64, val.as_f64);
+        val.as_f64 = as_f64 - (floor(as_f64 / other.as_f64) * other.as_f64);
     }
 
     return val;

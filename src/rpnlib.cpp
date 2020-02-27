@@ -177,7 +177,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
             }
 
         case IN_BOOLEAN:
-            if ((state == IN_BOOLEAN) && !_rpn_token_is_bool(c)) {
+            if ((state == IN_BOOLEAN) && !isspace(c) && !_rpn_token_is_bool(c)) {
                 state = IN_WORD;
                 type = RPN_TOKEN_WORD;
             }
@@ -230,14 +230,24 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         switch (type) {
             case RPN_TOKEN_STRING:
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
+                if (_rpn_debug_callback) {
+                    _rpn_debug_callback(ctxt, "string");
+                }
                 return true;
             case RPN_TOKEN_BOOLEAN:
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(_rpn_token_as_bool(token)));
+                if (_rpn_debug_callback) {
+                    _rpn_debug_callback(ctxt, "boolean");
+                }
+                return true;
             case RPN_TOKEN_NUMBER: {
                 char* endptr = nullptr;
                 double value = strtod(token, &endptr);
                 if (endptr == token || endptr[0] != '\0') { 
                     break;
+                }
+                if (_rpn_debug_callback) {
+                    _rpn_debug_callback(ctxt, "number");
                 }
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(value));
                 return true;
@@ -270,7 +280,10 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
             case RPN_TOKEN_WORD:
             default:
-                 break;
+                if (_rpn_debug_callback) {
+                    _rpn_debug_callback(ctxt, "word");
+                }
+                break;
         }
 
         // Is token an operator?
@@ -289,6 +302,9 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                     }
                     if (!(f.callback)(ctxt)) {
                         // Method should set rpn_error
+                        if (_rpn_debug_callback) {
+                            _rpn_debug_callback(ctxt, "callback failed?");
+                        }
                         break;
                     }
                     found = true;
@@ -309,6 +325,10 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
     std::remove_if(ctxt.variables.begin(), ctxt.variables.end(), [](const rpn_variable& var) {
         return var.value->isNull();
     });
+
+    if (_rpn_debug_callback) {
+        _rpn_debug_callback(ctxt, "idk?");
+    }
 
     return (RPN_ERROR_OK == rpn_error);
 

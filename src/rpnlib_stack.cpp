@@ -111,7 +111,6 @@ bool rpn_stack_get(rpn_context & ctxt, unsigned char index, double & value) {
 
     const auto& ref = ctxt.stack.at(size - index - 1);
     if (!ref.value) return false;
-    if (!ref.value->isNumber()) return false;
 
     value = double(*ref.value.get());
 
@@ -123,7 +122,6 @@ bool rpn_stack_pop(rpn_context & ctxt, double & value) {
 
     const auto& ref = ctxt.stack.back();
     if (!ref.value) return false;
-    if (!ref.value->isNumber()) return false;
 
     value = double(*ref.value.get());
 
