@@ -149,7 +149,9 @@ bool _rpn_abs(rpn_context & ctxt) {
     if (!top.isNumber()) {
         return false;
     }
-    top.as_f64 = top.as_f64 * -1.0L;
+    double result = top.as_f64 * -1.0L;
+    _rpn_stack_eat(ctxt, 1);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
@@ -365,7 +367,9 @@ bool _rpn_ceil(rpn_context & ctxt) {
         return false;
     }
 
-    value.as_f64 = ceil(value);
+    double result = ceil(value);
+    _rpn_stack_eat(ctxt, 1);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
@@ -375,7 +379,9 @@ bool _rpn_floor(rpn_context & ctxt) {
         return false;
     }
 
-    value.as_f64 = floor(value);
+    double result = floor(value);
+    _rpn_stack_eat(ctxt, 1);
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
