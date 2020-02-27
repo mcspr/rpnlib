@@ -50,21 +50,26 @@ struct rpn_stack_value {
 
 };
 
+size_t rpn_stack_size(rpn_context &);
 bool rpn_stack_clear(rpn_context &);
 
 bool rpn_stack_push(rpn_context &, float);
 bool rpn_stack_push(rpn_context &, bool);
 bool rpn_stack_push(rpn_context &, double);
-bool rpn_stack_push(rpn_context &, int32_t);
-bool rpn_stack_push(rpn_context &, uint32_t);
-bool rpn_stack_push(rpn_context &, char*);
+bool rpn_stack_push(rpn_context &, const char*);
+bool rpn_stack_push(rpn_context &, const String&);
 
 bool rpn_stack_push(rpn_context &, const rpn_value &);
 bool rpn_stack_push(rpn_context &, rpn_value &&);
 bool rpn_stack_pop(rpn_context &, rpn_value &);
 
 bool rpn_stack_pop(rpn_context &, float &);
+bool rpn_stack_pop(rpn_context &, double &);
+bool rpn_stack_pop(rpn_context &, bool &);
+bool rpn_stack_pop(rpn_context &, String &);
 
-size_t rpn_stack_size(rpn_context &);
 bool rpn_stack_get(rpn_context &, unsigned char, float &);
+bool rpn_stack_get(rpn_context &, unsigned char, double &);
+bool rpn_stack_get(rpn_context &, unsigned char, bool &);
+bool rpn_stack_get(rpn_context &, unsigned char, String &);
 

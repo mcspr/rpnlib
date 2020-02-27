@@ -171,13 +171,13 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
             break;
 
         case IN_NUMBER:
-            if (!isspace(c) && !_rpn_token_is_number(c)) {
+            if ((state == IN_NUMBER) && !isspace(c) && !_rpn_token_is_number(c)) {
                 state = IN_WORD;
                 type = RPN_TOKEN_WORD;
             }
 
         case IN_BOOLEAN:
-            if (!_rpn_token_is_bool(c)) {
+            if ((state == IN_BOOLEAN) && !_rpn_token_is_bool(c)) {
                 state = IN_WORD;
                 type = RPN_TOKEN_WORD;
             }
@@ -241,7 +241,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 return true;
             case RPN_TOKEN_VARIABLE: {
                 _rpn_debug_callback(ctxt, "is variable");
-                auto var = std::find_if(ctxt.variables.begin(), ctxt.variables.end(), [token](const rpn_variable& v) {
+                auto var = std::find_if(ctxt.variables.cbegin(), ctxt.variables.cend(), [token](const rpn_variable& v) {
                     return (v.name == token);
                 });
                 const bool found = (var != ctxt.variables.end());
@@ -283,7 +283,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                     _rpn_debug_callback(ctxt, "is operator");
                     if (rpn_stack_size(ctxt) < f.argc) {
                         char buffer[64];
-                        sprintf(buffer, "%s: func %u vs stack %u argc mismatch", f.name, rpn_stack_size(ctxt), f.argc);
+                        sprintf(buffer, "%s: func %u vs stack %u argc mismatch", f.name.c_str(), rpn_stack_size(ctxt), f.argc);
                         _rpn_debug_callback(ctxt, buffer);
                         rpn_error = RPN_ERROR_ARGUMENT_COUNT_MISMATCH;
                         break;

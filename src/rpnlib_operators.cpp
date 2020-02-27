@@ -54,7 +54,7 @@ void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
 
 // libc cmp interface, will only work with the same types
 
-int _rpn_stack_compare(rpn_context & ctxt) {
+int32_t _rpn_stack_compare(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     if (top < prev) {
@@ -66,7 +66,7 @@ int _rpn_stack_compare(rpn_context & ctxt) {
     }
 }
 
-int _rpn_stack_compare_or_eq(rpn_context & ctxt) {
+int32_t _rpn_stack_compare_or_eq(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     if (top <= prev) {
@@ -78,7 +78,7 @@ int _rpn_stack_compare_or_eq(rpn_context & ctxt) {
     }
 }
 
-int _rpn_stack_compare3(rpn_context & ctxt) {
+int32_t _rpn_stack_compare3(rpn_context & ctxt) {
     auto& upper = _rpn_stack_peek(ctxt, 1);
     auto& lower = _rpn_stack_peek(ctxt, 2);
     auto& value = _rpn_stack_peek(ctxt, 3);
@@ -206,12 +206,12 @@ bool _rpn_le(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 bool _rpn_cmp(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, _rpn_stack_compare(ctxt));
+    rpn_stack_push(ctxt, double(_rpn_stack_compare(ctxt)));
     return true;
 };    
 
 bool _rpn_cmp3(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, _rpn_stack_compare3(ctxt));
+    rpn_stack_push(ctxt, double(_rpn_stack_compare3(ctxt)));
     return true;
 };    
 
@@ -468,7 +468,7 @@ bool _rpn_drop(rpn_context & ctxt) {
 }
 
 bool _rpn_depth(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, uint32_t(rpn_stack_size(ctxt)));
+    rpn_stack_push(ctxt, double(rpn_stack_size(ctxt)));
     return true;
 }
 
@@ -539,6 +539,7 @@ rpn_operator::rpn_operator(const char* name, unsigned char argc, rpn_operator_ca
 {}
 
 bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, rpn_operator_callback_f callback) {
+    printf("operator set name=%s argc=%u cb=%p\n", name, argc, callback);
     ctxt.operators.emplace_back(name, argc, callback);
     return true;
 }

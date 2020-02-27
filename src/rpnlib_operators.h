@@ -31,8 +31,11 @@ struct rpn_operator {
     rpn_operator() = delete;
     rpn_operator(const char*, unsigned char, rpn_operator_callback_f);
 
-    std::string name;
-    unsigned char argc;
+    rpn_operator(const rpn_operator&) = default;
+    rpn_operator(rpn_operator&&) = default;
+
+    const String name;
+    const unsigned char argc;
     rpn_operator_callback_f callback;
 };
 

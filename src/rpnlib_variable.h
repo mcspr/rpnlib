@@ -29,18 +29,23 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 
 struct rpn_variable {
-    std::string name;
-    std::shared_ptr<rpn_value> value;
+    rpn_variable(const rpn_variable& other);
+    rpn_variable(rpn_variable&& other);
 
-    rpn_variable(const std::string& name);
+    rpn_variable(const String& name);
     rpn_variable(const char* name);
 
-    rpn_variable(const std::string& name, std::shared_ptr<rpn_value> value);
+    rpn_variable(const String& name, std::shared_ptr<rpn_value> value);
     rpn_variable(const char* name, std::shared_ptr<rpn_value> value);
 
     rpn_variable(const char* name, const rpn_value& value);
     rpn_variable(const char* name, rpn_value&& value);
 
+    rpn_variable& operator =(const rpn_variable& other);
+    rpn_variable& operator =(rpn_variable&& other);
+
+    String name;
+    std::shared_ptr<rpn_value> value;
 };
 
 bool rpn_variable_set(rpn_context &, const char *, bool);
@@ -51,9 +56,6 @@ bool rpn_variable_get(rpn_context &, const char *, double &);
 
 bool rpn_variable_set(rpn_context &, const char *, int32_t);
 bool rpn_variable_get(rpn_context &, const char *, int32_t &);
-
-bool rpn_variable_set(rpn_context &, const char *, uint32_t);
-bool rpn_variable_get(rpn_context &, const char *, uint32_t &);
 
 bool rpn_variable_set(rpn_context &, const char *, char *);
 bool rpn_variable_get(rpn_context &, const char *, char **);

@@ -25,6 +25,14 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 struct rpn_context;
 
+using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
+
+#include <Arduino.h>
+
+#include <vector>
+#include <memory>
+#include <cstdint>
+
 #include "rpnlib_value.h"
 #include "rpnlib_operators.h"
 #include "rpnlib_variable.h"
@@ -32,17 +40,10 @@ struct rpn_context;
 
 // ----------------------------------------------------------------------------
 
-#include <string>
-#include <vector>
-#include <memory>
-#include <cstdint>
-
 #define RPN_CONST_PI    3.141593
 #define RPN_CONST_E     2.178282
 
 // ----------------------------------------------------------------------------
-
-using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 
 struct rpn_context {
     std::vector<rpn_variable> variables;

@@ -25,8 +25,6 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 #include <cstring>
 
-#include <string>
-
 struct rpn_value {
     enum value_t {
         null,
@@ -41,8 +39,8 @@ struct rpn_value {
     rpn_value(uint32_t);
     rpn_value(double);
     rpn_value(const char*);
-    rpn_value(const std::string&);
-    rpn_value(std::string&&);
+    rpn_value(const String&);
+    rpn_value(String&&);
 
     rpn_value(rpn_value&&);
     rpn_value(const rpn_value&);
@@ -66,7 +64,7 @@ struct rpn_value {
 
     operator bool() const;
     operator double() const;
-    operator std::string() const;
+    operator String() const;
 
     bool is(value_t) const;
     bool isNull() const;
@@ -77,7 +75,7 @@ struct rpn_value {
     union {
         bool as_boolean;
         double as_f64;
-        std::string as_string;
+        String as_string;
     };
 
     value_t type;

@@ -23,11 +23,35 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include "rpnlib.h"
 #include "rpnlib_variable.h"
 
+#include <memory>
+
 // ----------------------------------------------------------------------------
 // Internal struct implementation
 // ----------------------------------------------------------------------------
 
-rpn_variable::rpn_variable(const std::string& name, std::shared_ptr<rpn_value> value) :
+rpn_variable::rpn_variable(const rpn_variable& other) :
+    name(other.name),
+    value(value)
+{}
+
+rpn_variable::rpn_variable(rpn_variable&& other) :
+    name(std::move(other.name)),
+    value(value)
+{}
+
+rpn_variable& rpn_variable::operator =(const rpn_variable& other) {
+    name = other.name;
+    value = other.value;
+    return *this;
+}
+
+rpn_variable& rpn_variable::operator =(rpn_variable&& other) {
+    name = std::move(other.name);
+    value = std::move(other.value);
+    return *this;
+}
+
+rpn_variable::rpn_variable(const String& name, std::shared_ptr<rpn_value> value) :
     name(name),
     value(value)
 {}
@@ -37,7 +61,7 @@ rpn_variable::rpn_variable(const char* name, std::shared_ptr<rpn_value> value) :
     value(value)
 {}
 
-rpn_variable::rpn_variable(const std::string& name) :
+rpn_variable::rpn_variable(const String& name) :
     rpn_variable(name, std::make_shared<rpn_value>())
 {}
 
@@ -82,7 +106,7 @@ bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
 }
 
 bool rpn_variable_del(rpn_context & ctxt, const char * name) {
-    for (auto v = ctxt.variables.begin(); v != ctxt.variables.end(); v++) {
+    for (auto v = ctxt.variables.cbegin(); v != ctxt.variables.cend(); ++v) {
         if ((*v).name == name) {
             ctxt.variables.erase(v);
             return true;

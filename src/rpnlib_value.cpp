@@ -25,7 +25,6 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstring>
 #include <cstdlib>
-#include <cstdio>
 #include <cmath>
 
 // TODO: implement fs_math operations
@@ -37,7 +36,7 @@ rpn_value::rpn_value() :
 rpn_value::rpn_value(const rpn_value& other) {
     switch (other.type) {
         case rpn_value::string:
-            new (&as_string) std::string(other.as_string);
+            new (&as_string) String(other.as_string);
             break;
         case rpn_value::boolean:
             as_boolean = other.as_boolean;
@@ -45,15 +44,22 @@ rpn_value::rpn_value(const rpn_value& other) {
         case rpn_value::f64:
             as_f64 = other.as_f64;
             break;
+        case rpn_value::null:
+        default:
+            break;
     }
     type = other.type;
 }
 
+// TODO: global flag RPNLIB_STRING_IMPLEMENTATION, default String
+//       implement `template <T> _rpn_value_destroy_string(rpn_value&) { ... }`
+//       - ~basic_string() for std::string to test on host
+//       - ~String() for Arduino String
 rpn_value::rpn_value(rpn_value&& other) {
     switch (other.type) {
         case rpn_value::string: {
-            as_string = std::move(other.as_string);
-            other.as_string.~basic_string();
+            new (&as_string) String(std::move(other.as_string));
+            other.as_string.~String();
             break;
         }
         case rpn_value::boolean:
@@ -61,6 +67,12 @@ rpn_value::rpn_value(rpn_value&& other) {
             break;
         case rpn_value::f64:
             as_f64 = other.as_f64;
+            break;
+        case rpn_value::null:
+        default:
+            if (type == rpn_value::string) {
+                as_string.~String();
+            }
             break;
     }
     type = other.type;
@@ -90,24 +102,24 @@ rpn_value::rpn_value(double value) :
 rpn_value::rpn_value(const char* value) :
     type(rpn_value::string)
 {
-    new (&as_string) std::string(value);
+    new (&as_string) String(value);
 }
 
-rpn_value::rpn_value(const std::string& value) :
+rpn_value::rpn_value(const String& value) :
     type(rpn_value::string)
 {
-    new (&as_string) std::string(value);
+    new (&as_string) String(value);
 }
 
-rpn_value::rpn_value(std::string&& value) :
+rpn_value::rpn_value(String&& value) :
     type(rpn_value::string)
 {
-    new (&as_string) std::string(std::move(value));
+    new (&as_string) String(std::move(value));
 }
 
 rpn_value::~rpn_value() {
     if (type == rpn_value::string) {
-        as_string.~basic_string();
+        as_string.~String();
     }
 }
 
@@ -130,14 +142,12 @@ rpn_value::operator double() const {
     return 0.0L;
 }
 
-rpn_value::operator std::string() const {
+rpn_value::operator String() const {
     switch (type) {
         case rpn_value::string:
             return as_string;
         case rpn_value::f64: {
-            char buffer[64] = {0};
-            snprintf(buffer, sizeof(buffer) - 1, "%f", as_f64);
-            return std::string(buffer);
+            return String(as_f64);
          }
         default:
             return "";
@@ -206,7 +216,7 @@ rpn_value rpn_value::operator +(const rpn_value& other) {
         const auto our_size = as_string.length();
         const auto other_size = other.as_string.length();
 
-        new (&val.as_string) std::string();
+        new (&val.as_string) String();
         val.as_string.reserve(our_size + other_size + 1);
         val.as_string += as_string;
         val.as_string += other.as_string;
@@ -317,7 +327,7 @@ rpn_value& rpn_value::operator =(const rpn_value& other) {
             if (type == rpn_value::string) {
                 as_string = other.as_string;
             } else {
-                new (&as_string) std::string(other.as_string);
+                new (&as_string) String(other.as_string);
             }
             break;
         case rpn_value::boolean:
