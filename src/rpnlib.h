@@ -26,6 +26,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 struct rpn_context;
 
 #include "rpnlib_value.h"
+#include "rpnlib_operators.h"
 #include "rpnlib_variable.h"
 #include "rpnlib_stack.h"
 
@@ -42,12 +43,6 @@ struct rpn_context;
 // ----------------------------------------------------------------------------
 
 using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
-
-struct rpn_operator {
-    std::string name;
-    unsigned char argc;
-    bool (*callback)(rpn_context &);
-};
 
 struct rpn_context {
     std::vector<rpn_variable> variables;

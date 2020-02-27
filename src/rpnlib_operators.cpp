@@ -532,8 +532,14 @@ bool _rpn_print(rpn_context & ctxt) {
 // Functions methods
 // ----------------------------------------------------------------------------
 
-bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, bool (*callback)(rpn_context &)) {
-    ctxt.operators.emplace_back(rpn_operator{name, argc, callback});
+rpn_operator::rpn_operator(const char* name, unsigned char argc, rpn_operator_callback_f callback) :
+    name(name),
+    argc(argc),
+    callback(callback)
+{}
+
+bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, rpn_operator_callback_f callback) {
+    ctxt.operators.emplace_back(name, argc, callback);
     return true;
 }
 

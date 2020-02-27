@@ -22,6 +22,21 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include "rpnlib.h"
+
+using rpn_operator_callback_f = bool(*)(rpn_context &);
+
+struct rpn_operator {
+
+    rpn_operator() = delete;
+    rpn_operator(const char*, unsigned char, rpn_operator_callback_f);
+
+    std::string name;
+    unsigned char argc;
+    rpn_operator_callback_f callback;
+};
+
+
 bool rpn_operators_init(rpn_context &);
-bool rpn_operator_set(rpn_context &, const char *, unsigned char, bool (*)(rpn_context &));
+bool rpn_operator_set(rpn_context &, const char *, unsigned char, rpn_operator_callback_f);
 bool rpn_operators_clear(rpn_context &);
