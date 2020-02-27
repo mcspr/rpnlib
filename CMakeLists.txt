@@ -4,24 +4,60 @@
 # $ cmake --build .
 # $ ./runner
 
+
 cmake_minimum_required(VERSION 3.5)
-project(runner VERSION 1 LANGUAGES CXX)
+project(runner VERSION 1 LANGUAGES C CXX)
 
-add_library(unixduino STATIC
-    ${UNIXHOSTDUINO}/Arduino.cpp
-    ${UNIXHOSTDUINO}/Print.cpp
-    ${UNIXHOSTDUINO}/StdioSerial.cpp
-    ${UNIXHOSTDUINO}/Stream.cpp
-    ${UNIXHOSTDUINO}/WString.cpp
-    ${UNIXHOSTDUINO}/Wire.cpp
-    ${UNIXHOSTDUINO}/avr_stdlib.cpp
-    ${UNIXHOSTDUINO}/main.cpp
+set(COMMON_FLAGS
+    -DHOST_MOCK=1
+    -DLWIP_IPV6=0
 )
 
-target_include_directories(unixduino PUBLIC
-    ${UNIXHOSTDUINO}
+# base for test/piotest
+add_library(unity STATIC
+    ${UNITY}/unity_fixture_stubs.c
+    ${UNITY}/unity.c
+)
+target_include_directories(unity PUBLIC
+    ${UNITY}
 )
 
+# try to hack esp8266 host test layer
+# - we need to specify bunch of things that the original Makefile does
+# - there are a lot of cross-dependencies, we need to include a lot of .cpp files here
+add_library(esp8266 STATIC
+    ${ESP8266}/tests/host/common/Arduino.cpp
+    ${ESP8266}/tests/host/common/ArduinoMain.cpp
+    ${ESP8266}/tests/host/common/ArduinoMainUdp.cpp
+    ${ESP8266}/tests/host/common/MockUART.cpp
+    ${ESP8266}/tests/host/common/MockTools.cpp
+    ${ESP8266}/tests/host/common/UdpContextSocket.cpp
+    ${ESP8266}/tests/host/common/user_interface.cpp
+    ${ESP8266}/tests/host/common/noniso.c
+    ${ESP8266}/cores/esp8266/core_esp8266_noniso.cpp
+    ${ESP8266}/cores/esp8266/WString.cpp
+)
+target_include_directories(esp8266 PUBLIC
+    ${ESP8266}/tests/host/common/
+    ${ESP8266}/tests/host
+    ${ESP8266}/tools/sdk/lwip2/include
+    ${ESP8266}/tools/sdk/include
+    ${ESP8266}/cores/esp8266/
+)
+target_compile_options(esp8266 BEFORE PRIVATE
+    "SHELL:-include ${ESP8266}/tests/host/common/mock.h"
+    "SHELL:-include ${ESP8266}/tests/host/common/c_types.h"
+)
+target_compile_options(esp8266 PRIVATE
+    ${COMMON_FLAGS}
+    -Wl,--defsym,_FS_start=0x40300000
+    -Wl,--defsym,_FS_end=0x411FA000
+    -Wl,--defsym,_FS_page=0x100
+    -Wl,--defsym,_FS_block=0x2000
+    -Wl,--defsym,_EEPROM_start=0x411fb000
+)
+
+# our library source (can probably add as *.cpp)
 add_library(rpnlib STATIC
     src/rpnlib_variable.cpp
     src/rpnlib_stack.cpp
@@ -29,10 +65,23 @@ add_library(rpnlib STATIC
     src/rpnlib_value.cpp
     src/rpnlib.cpp
 )
+target_include_directories(rpnlib PUBLIC
+    src/
+)
+
+# small repl test
 add_executable(runner runner.cpp)
 
 set_target_properties(runner PROPERTIES COMPILE_FLAGS -g)
 set_target_properties(rpnlib PROPERTIES COMPILE_FLAGS -g)
 
-target_link_libraries(rpnlib unixduino)
+target_link_libraries(rpnlib esp8266)
 target_link_libraries(runner rpnlib)
+
+# like `pio test`, but without `pio`
+add_executable(piotest test/piotest/main.cpp)
+target_link_libraries(piotest unity rpnlib)
+target_compile_options(piotest PRIVATE
+    ${COMMON_FLAGS}
+)
+set_target_properties(piotest PROPERTIES COMPILE_FLAGS -g)

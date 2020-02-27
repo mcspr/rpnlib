@@ -54,8 +54,11 @@ bool rpn_variable_get(rpn_context &, const char *, bool &);
 bool rpn_variable_set(rpn_context &, const char *, double);
 bool rpn_variable_get(rpn_context &, const char *, double &);
 
-bool rpn_variable_set(rpn_context &, const char *, int32_t);
-bool rpn_variable_get(rpn_context &, const char *, int32_t &);
+bool rpn_variable_set(rpn_context &, const char *, int);
+bool rpn_variable_get(rpn_context &, const char *, int &);
+
+bool rpn_variable_set(rpn_context &, const char *, long);
+bool rpn_variable_get(rpn_context &, const char *, long &);
 
 bool rpn_variable_set(rpn_context &, const char *, char *);
 bool rpn_variable_get(rpn_context &, const char *, char **);

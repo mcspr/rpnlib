@@ -110,7 +110,7 @@ bool _rpn_e(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 bool _rpn_sum(rpn_context & ctxt) {
-    const auto result =_rpn_stack_peek(ctxt, 1) + _rpn_stack_peek(ctxt, 2);
+    const auto result = _rpn_stack_peek(ctxt, 1) + _rpn_stack_peek(ctxt, 2);
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
@@ -367,7 +367,7 @@ bool _rpn_ceil(rpn_context & ctxt) {
         return false;
     }
 
-    double result = ceil(value);
+    double result = ceil(value.as_f64);
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -379,7 +379,7 @@ bool _rpn_floor(rpn_context & ctxt) {
         return false;
     }
 
-    double result = floor(value);
+    double result = floor(value.as_f64);
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -539,7 +539,6 @@ rpn_operator::rpn_operator(const char* name, unsigned char argc, rpn_operator_ca
 {}
 
 bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, rpn_operator_callback_f callback) {
-    printf("operator set name=%s argc=%u cb=%p\n", name, argc, callback);
     ctxt.operators.emplace_back(name, argc, callback);
     return true;
 }

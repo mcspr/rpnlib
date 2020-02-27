@@ -229,39 +229,38 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         // Is token a word, string or variable?
         switch (type) {
             case RPN_TOKEN_STRING:
-                _rpn_debug_callback(ctxt, "is string");
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
                 return true;
             case RPN_TOKEN_BOOLEAN:
-                _rpn_debug_callback(ctxt, "is boolean");
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(_rpn_token_as_bool(token)));
-            case RPN_TOKEN_NUMBER:
-                _rpn_debug_callback(ctxt, "is number");
-                ctxt.stack.emplace_back(std::make_shared<rpn_value>(atof(token)));
+            case RPN_TOKEN_NUMBER: {
+                char* endptr = nullptr;
+                double value = strtod(token, &endptr);
+                if (endptr == token || endptr[0] != '\0') { 
+                    break;
+                }
+                ctxt.stack.emplace_back(std::make_shared<rpn_value>(value));
                 return true;
+            }
             case RPN_TOKEN_VARIABLE: {
-                _rpn_debug_callback(ctxt, "is variable");
                 auto var = std::find_if(ctxt.variables.cbegin(), ctxt.variables.cend(), [token](const rpn_variable& v) {
                     return (v.name == token);
                 });
                 const bool found = (var != ctxt.variables.end());
 
                 if (found) {
-                    _rpn_debug_callback(ctxt, "existing variable");
                     ctxt.stack.emplace_back(RPN_STACK_TYPE_VARIABLE, (*var).value);
                     return true;
                 }
 
                 // no reason to continue
                 if (!found && variable_must_exist) {
-                    _rpn_debug_callback(ctxt, "variable does not exist");
                     rpn_error = RPN_ERROR_VARIABLE_DOES_NOT_EXIST;
                     return false;
                 }
 
                 // since we don't have the variable yet, push uninitialized one
                 if (!found) {
-                    _rpn_debug_callback(ctxt, "undefined variable");
                     auto null = std::make_shared<rpn_value>();
                     ctxt.variables.emplace_back(token, null);
                     ctxt.stack.emplace_back(RPN_STACK_TYPE_VARIABLE, null);
@@ -271,7 +270,6 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
             case RPN_TOKEN_WORD:
             default:
-                 _rpn_debug_callback(ctxt, "is word");
                  break;
         }
 
@@ -280,20 +278,19 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             bool found = false;
             for (auto & f : ctxt.operators) {
                 if (f.name == token) {
-                    _rpn_debug_callback(ctxt, "is operator");
                     if (rpn_stack_size(ctxt) < f.argc) {
-                        char buffer[64];
-                        sprintf(buffer, "%s: func %u vs stack %u argc mismatch", f.name.c_str(), rpn_stack_size(ctxt), f.argc);
-                        _rpn_debug_callback(ctxt, buffer);
+                        if (_rpn_debug_callback) {
+                            char buffer[64];
+                            sprintf(buffer, "%s: func %u vs stack %u argc mismatch", f.name.c_str(), rpn_stack_size(ctxt), f.argc);
+                            _rpn_debug_callback(ctxt, buffer);
+                        }
                         rpn_error = RPN_ERROR_ARGUMENT_COUNT_MISMATCH;
                         break;
                     }
                     if (!(f.callback)(ctxt)) {
-                        _rpn_debug_callback(ctxt, "callback error");
                         // Method should set rpn_error
                         break;
                     }
-                    _rpn_debug_callback(ctxt, "callback ok");
                     found = true;
                     break;
                 }
@@ -303,7 +300,6 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         }
 
         // Don't know the token
-        _rpn_debug_callback(ctxt, "idk?");
         rpn_error = RPN_ERROR_UNKNOWN_TOKEN;
         return false;
 

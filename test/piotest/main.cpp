@@ -22,23 +22,23 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <Arduino.h>
-#include "rpnlib.h"
+#include <rpnlib.h>
 #include <unity.h>
 
 // -----------------------------------------------------------------------------
 // Helper methods
 // -----------------------------------------------------------------------------
 
-void run_and_compare(const char * command, unsigned char depth, float * expected) {
+void run_and_compare(const char * command, unsigned char depth, double * expected) {
 
-    float value;
+    double value;
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_TRUE(rpn_process(ctxt, command));
     TEST_ASSERT_EQUAL_INT8(RPN_ERROR_OK, rpn_error);
 
-    TEST_ASSERT_EQUAL_INT8(depth, rpn_stack_size(ctxt));
+    TEST_ASSERT_EQUAL(depth, rpn_stack_size(ctxt));
     for (unsigned char i=0; i<depth; i++) {
         TEST_ASSERT_TRUE(rpn_stack_get(ctxt, i, value));
         TEST_ASSERT_EQUAL_FLOAT(expected[i], value);
@@ -61,78 +61,78 @@ void run_and_error(const char * command, unsigned char error_code) {
 // -----------------------------------------------------------------------------
 
 void test_math(void) {
-    float expected[] = {3};
-    run_and_compare("5 2 * 3 + 5 mod", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {3};
+    run_and_compare("5 2 * 3 + 5 mod", sizeof(expected)/sizeof(expected[0]), expected);
 }
 
 void test_math_advanced(void) {
-    float expected[] = {1};
-    run_and_compare("10 2 pow sqrt log10", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {1};
+    run_and_compare("10 2 pow sqrt log10", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_trig(void) {
-    float expected[] = {1};
-    run_and_compare("pi 4 / cos 2 sqrt *", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {1};
+    run_and_compare("pi 4 / cos 2 sqrt *", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_cast(void) {
-    float expected[] = {2, 1, 3.1416, 3.14};
-    run_and_compare("pi 2 round pi 4 round 1.1 floor 1.1 ceil", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {2, 1, 3.1416, 3.14};
+    run_and_compare("pi 2 round pi 4 round 1.1 floor 1.1 ceil", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_map(void) {
-    float expected[] = {25};
-    run_and_compare("256 0 1024 0 100 map", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {25};
+    run_and_compare("256 0 1024 0 100 map", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_index(void) {
-    float expected[] = {30};
-    run_and_compare("2 10 20 30 40 50 5 index", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {30};
+    run_and_compare("2 10 20 30 40 50 5 index", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_cmp3_below(void) {
-    float expected[] = {-1};
-    run_and_compare("13 18 24 cmp3", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {-1};
+    run_and_compare("13 18 24 cmp3", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_cmp3_between(void) {
-    float expected[] = {0};
-    run_and_compare("18 18 24 cmp3", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {0};
+    run_and_compare("18 18 24 cmp3", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_cmp3_above(void) {
-    float expected[] = {1};
-    run_and_compare("25 18 24 cmp3", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {1};
+    run_and_compare("25 18 24 cmp3", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_conditional(void) {
-    float expected[] = {2};
-    run_and_compare("1 2 3 ifn", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {2};
+    run_and_compare("1 2 3 ifn", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_stack(void) {
-    float expected[] = {6};
-    run_and_compare("1 3 dup unrot swap - *", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {6};
+    run_and_compare("1 3 dup unrot swap - *", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_logic(void) {
-    float expected[] = {0, 1, 0, 1};
-    run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {0, 1, 0, 1};
+    run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt", sizeof(expected)/sizeof(double), expected);
 }
 
 void test_boolean(void) {
-    float expected[] = {0, 1, 1, 0};
-    run_and_compare("2 0 and 2 0 or 2 0 xor 1 not", sizeof(expected)/sizeof(float), expected);
+    double expected[] = {0, 1, 1, 0};
+    run_and_compare("2 0 and 2 0 or 2 0 xor 1 not", sizeof(expected)/sizeof(double), expected);
 }
 
 
 void test_variable(void) {
 
-    float value;
+    double value;
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", 25));
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", double(25)));
     TEST_ASSERT_TRUE(rpn_process(ctxt, "$tmp 5 /"));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
     TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
@@ -145,12 +145,12 @@ void test_variable(void) {
 
 void test_custom_operator(void) {
 
-    float value;
+    double value;
     rpn_context ctxt;
     
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_TRUE(rpn_operator_set(ctxt, "cube", 1, [](rpn_context & ctxt) {
-        float a;
+        double a;
         rpn_stack_pop(ctxt, a);
         rpn_stack_push(ctxt, a*a*a);
         return true;
@@ -174,6 +174,7 @@ void test_error_unknown_token(void) {
     run_and_error("1 2 sum", RPN_ERROR_UNKNOWN_TOKEN);
 }
 
+#if not HOST_MOCK
 void test_memory(void) {
 
     unsigned long start = ESP.getFreeHeap();
@@ -181,7 +182,7 @@ void test_memory(void) {
     {
         rpn_context ctxt;
         TEST_ASSERT_TRUE(rpn_init(ctxt));
-        TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", 5));
+        TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", double(5)));
         TEST_ASSERT_TRUE(rpn_process(ctxt, "$value dup 1 - dup 1 - dup 1 - dup 1 -"));
         TEST_ASSERT_TRUE(rpn_clear(ctxt));
     }
@@ -189,6 +190,11 @@ void test_memory(void) {
     TEST_ASSERT_EQUAL_INT32(start, ESP.getFreeHeap());
 
 }
+#else
+void test_memory(void) {
+
+}
+#endif
 
 // -----------------------------------------------------------------------------
 // Main

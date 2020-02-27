@@ -1,5 +1,4 @@
 // check if arduino type works with ours
-typedef bool boolean;
 
 #include "src/rpnlib.h"
 
@@ -63,6 +62,15 @@ void test_or(rpn_context & ctxt) {
     rpn_stack_clear(ctxt);
 }
 
+void test_sum(rpn_context & ctxt) {
+    rpn_process(ctxt, "2 2 +");
+    dump_stack(ctxt);
+    rpn_stack_clear(ctxt);
+    rpn_process(ctxt, "5 2 * 3 + 5 mod");
+    dump_stack(ctxt);
+    rpn_stack_clear(ctxt);
+}
+
 int main(int argc, char** argv) {
 
     std::cout << "rpn_value " << sizeof(rpn_value) << std::endl;
@@ -71,6 +79,7 @@ int main(int argc, char** argv) {
 
     rpn_context ctxt;
     rpn_init(ctxt);
+    rpn_operator_set(ctxt, "dump", 0, [](rpn_context& c) { dump_stack(c); return true; });
     rpn_debug([](rpn_context&, const char* message) {
         std::cout << message << std::endl;
     });
@@ -78,6 +87,7 @@ int main(int argc, char** argv) {
     test_concat(ctxt);
     test_and(ctxt);
     test_or(ctxt);
+    test_sum(ctxt);
 
     while (true) {
         std::cout << "> ";

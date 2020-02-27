@@ -105,27 +105,29 @@ bool rpn_stack_push(rpn_context & ctxt, char* value) {
     return true;
 }
 
-bool rpn_stack_pop(rpn_context & ctxt, float & value) {
-    if (0 == ctxt.stack.size()) return false;
-    auto& ref = ctxt.stack.back();
-    if (ref.value->type == rpn_value::f64) {
-        value = ref.value->as_f64;
-    } else {
-        value = 0;
-    }
-    ctxt.stack.pop_back();
+bool rpn_stack_get(rpn_context & ctxt, unsigned char index, double & value) {
+    const auto size = ctxt.stack.size();
+    if (index >= size) return false;
+
+    const auto& ref = ctxt.stack.at(size - index - 1);
+    if (!ref.value) return false;
+    if (!ref.value->isNumber()) return false;
+
+    value = double(*ref.value.get());
+
     return true;
 }
 
-bool rpn_stack_get(rpn_context & ctxt, unsigned char index, float & value) {
-    unsigned char size = ctxt.stack.size();
-    if (index >= size) return false;
-    auto& ref = ctxt.stack.at(size-index-1);
-    if (ref.value->type == rpn_value::f64) {
-        value = ref.value->as_f64;
-    } else {
-        value = 0.0;
-    }
+bool rpn_stack_pop(rpn_context & ctxt, double & value) {
+    if (!ctxt.stack.size()) return false;
+
+    const auto& ref = ctxt.stack.back();
+    if (!ref.value) return false;
+    if (!ref.value->isNumber()) return false;
+
+    value = double(*ref.value.get());
+
+    ctxt.stack.pop_back();
     return true;
 }
 

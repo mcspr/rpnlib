@@ -31,12 +31,12 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 rpn_variable::rpn_variable(const rpn_variable& other) :
     name(other.name),
-    value(value)
+    value(other.value)
 {}
 
 rpn_variable::rpn_variable(rpn_variable&& other) :
     name(std::move(other.name)),
-    value(value)
+    value(other.value)
 {}
 
 rpn_variable& rpn_variable::operator =(const rpn_variable& other) {
@@ -95,6 +95,14 @@ bool rpn_variable_set(rpn_context & ctxt, const char * name, double value) {
     return true;
 }
 
+bool rpn_variable_set(rpn_context & ctxt, const char * name, int value) {
+    return rpn_variable_set(ctxt, name, double(value));
+}
+
+bool rpn_variable_set(rpn_context & ctxt, const char * name, long value) {
+    return rpn_variable_set(ctxt, name, double(value));
+}
+
 bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
     for (auto& v : ctxt.variables) {
         if (v.name != name) continue;
@@ -106,7 +114,7 @@ bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
 }
 
 bool rpn_variable_del(rpn_context & ctxt, const char * name) {
-    for (auto v = ctxt.variables.cbegin(); v != ctxt.variables.cend(); ++v) {
+    for (auto v = ctxt.variables.begin(); v != ctxt.variables.end(); ++v) {
         if ((*v).name == name) {
             ctxt.variables.erase(v);
             return true;
