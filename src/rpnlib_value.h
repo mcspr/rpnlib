@@ -52,19 +52,19 @@ struct rpn_value {
 
     rpn_value& operator=(const rpn_value&);
 
-    bool operator>(const rpn_value&) const;
-    bool operator<(const rpn_value&) const;
-    bool operator==(const rpn_value&) const;
-    bool operator!=(const rpn_value&) const;
+    bool operator >(const rpn_value&) const;
+    bool operator <(const rpn_value&) const;
+    bool operator ==(const rpn_value&) const;
+    bool operator !=(const rpn_value&) const;
 
-    bool operator>=(const rpn_value&) const;
-    bool operator<=(const rpn_value&) const;
+    bool operator >=(const rpn_value&) const;
+    bool operator <=(const rpn_value&) const;
 
-    rpn_value operator+(const rpn_value&);
-    rpn_value operator-(const rpn_value&);
-    rpn_value operator*(const rpn_value&);
-    rpn_value operator/(const rpn_value&);
-    rpn_value operator%(const rpn_value&);
+    rpn_value operator +(const rpn_value&);
+    rpn_value operator -(const rpn_value&);
+    rpn_value operator *(const rpn_value&);
+    rpn_value operator /(const rpn_value&);
+    rpn_value operator %(const rpn_value&);
 
     bool numeric_abs();
     bool is_number() const;

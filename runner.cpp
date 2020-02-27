@@ -57,6 +57,17 @@ void test_concat(rpn_context & ctxt) {
     rpn_stack_clear(ctxt);
 }
 
+void test_and(rpn_context & ctxt) {
+    rpn_process(ctxt, "0 1 and");
+    dump_stack(ctxt);
+    rpn_stack_clear(ctxt);
+}
+
+void test_or(rpn_context & ctxt) {
+    rpn_process(ctxt, "0 1 or");
+    dump_stack(ctxt);
+    rpn_stack_clear(ctxt);
+}
 
 int main(int argc, char** argv) {
 
@@ -71,6 +82,8 @@ int main(int argc, char** argv) {
     });
 
     test_concat(ctxt);
+    test_and(ctxt);
+    test_or(ctxt);
 
     while (true) {
         std::cout << "> ";

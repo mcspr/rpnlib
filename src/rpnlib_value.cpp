@@ -131,11 +131,11 @@ rpn_value::operator bool() const {
         case rpn_value::boolean:
             return as_boolean;
         case rpn_value::i32:
-            return as_i32 > 0;
+            return as_i32 != 0;
         case rpn_value::u32:
             return as_u32 > 0;
         case rpn_value::f64:
-            return as_f64 > 0.0L;
+            return as_f64 != 0.0L;
         case rpn_value::string:
         default:
             return true;
@@ -436,19 +436,6 @@ bool rpn_value::is_number() const {
         case rpn_value::u32:
         case rpn_value::f64:
             return true;
-        default:
-            return false;
-    }
-}
-
-bool rpn_value::is_number_zero() const {
-    switch (type) {
-        case rpn_value::u32:
-            return true;
-        case rpn_value::i32:
-            return (as_i32 == 0);
-        case rpn_value::f64:
-            return (as_f64 == 0.0L);
         default:
             return false;
     }

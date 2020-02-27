@@ -288,7 +288,7 @@ bool _rpn_and(rpn_context & ctxt) {
         return false;
     }
 
-    const bool result = (!top.is_number_zero() && !prev.is_number_zero());
+    const bool result = (bool(top) && bool(prev));
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
@@ -302,7 +302,7 @@ bool _rpn_or(rpn_context & ctxt) {
         return false;
     }
 
-    const bool result = (!top.is_number_zero() || !prev.is_number_zero());
+    const bool result = (bool(top) || bool(prev));
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
@@ -316,7 +316,7 @@ bool _rpn_xor(rpn_context & ctxt) {
         return false;
     }
 
-    const bool result = (!top.is_number_zero() ^ !prev.is_number_zero());
+    const bool result = (bool(top) ^ bool(prev));
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
@@ -325,7 +325,7 @@ bool _rpn_xor(rpn_context & ctxt) {
 
 bool _rpn_not(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
-    const bool result = top.is_number_zero();
+    const bool result = bool(top);
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -385,7 +385,7 @@ bool _rpn_ifn(rpn_context & ctxt) {
     const auto a = _rpn_stack_peek(ctxt, 3);
 
     _rpn_stack_eat(ctxt, 3);
-    rpn_stack_push(ctxt, !a.is_number_zero() ? b : c);
+    rpn_stack_push(ctxt, bool(a) ? b : c);
 
     return true;
 }
@@ -393,7 +393,7 @@ bool _rpn_ifn(rpn_context & ctxt) {
 bool _rpn_end(rpn_context & ctxt) {
     const auto value = _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 1);
-    return value.is_number_zero();
+    return bool(value);
 }
 
 // ----------------------------------------------------------------------------

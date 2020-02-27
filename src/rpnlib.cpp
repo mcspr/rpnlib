@@ -62,8 +62,23 @@ using rpn_tokenizer_callback = std::function<bool(rpn_token_t, const char* ptr)>
 // based on https://stackoverflow.com/questions/9659697/parse-string-into-array-based-on-spaces-or-double-quotes-strings
 // changes from the answer:
 // - rework inner loop to call external function with token arg
-// - keep quotes when parsing strings
+// - rework interal types to known about numbers and variables
 // same as strtok, this still needs modifiable string. perhaps there is a way to not do that and pass some string-like struct with length from start_of_word to nullptr
+
+namespace {
+
+bool _rpn_token_is_number(char c) {
+    switch (c) {
+        case '.':
+        case 'e':
+        case 'E':
+        case '-':
+        case '+':
+            return true;
+        default:
+            return isdigit(c);
+    }
+}
 
 void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
     char *p = buffer;
@@ -104,6 +119,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
                 type = RPN_TOKEN_STRING;
                 ++p;
             } else if (isdigit(c) || (c == '-') || (c == '+')) {
+                printf("%c is number\n", c);
                 state = IN_NUMBER;
                 type = RPN_TOKEN_NUMBER;
             } else {
@@ -127,7 +143,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
             break;
 
         case IN_NUMBER:
-            if (!isdigit(c) && (c != '.')) {
+            if (!isspace(c) && !_rpn_token_is_number(c)) {
                 state = IN_WORD;
                 type = RPN_TOKEN_WORD;
             }
@@ -155,6 +171,8 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
     }
 
 }
+
+} // namespace anonymous
 
 // ----------------------------------------------------------------------------
 // Main methods
