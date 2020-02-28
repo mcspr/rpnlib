@@ -23,26 +23,27 @@ void dump_value(const rpn_value& val) {
     }
 }
 
-template<typename T>
-void dump_variable(const T var) {
-    std::cout << "$" << var.name << " = ";
-    dump_value(var.value.get());
-}
-
-void dump_variables(rpn_context & ctxt) {
+bool dump_variables(rpn_context & ctxt) {
     std::cout << "variables: " << ctxt.variables.size() << std::endl;
-    for (const auto& variable : ctxt.variables) {
-        dump_variable(variable);
+    for (auto variable : ctxt.variables) {
+        std::cout << "$" << variable.name.c_str() << " is ";
+        if (!variable.value) {
+            std::cout << "unset (error?)" << std::endl;
+            continue;
+        }
+        dump_value(*variable.value.get());
     }
+    return true;
 }
 
-void dump_stack(rpn_context & ctxt) {
+bool dump_stack(rpn_context & ctxt) {
     std::cout << "stack: " << ctxt.stack.size() << std::endl;
     auto index = ctxt.stack.size();
     for (auto stack_val : ctxt.stack) {
         std::cout << --index << ": ";
         dump_value(*(stack_val.value.get()));
     }
+    return true;
 }
 
 void test_concat(rpn_context & ctxt) {
@@ -79,9 +80,16 @@ int main(int argc, char** argv) {
 
     rpn_context ctxt;
     rpn_init(ctxt);
-    rpn_operator_set(ctxt, "dump", 0, [](rpn_context& c) { dump_stack(c); return true; });
-    rpn_operator_set(ctxt, "clear", 0, [](rpn_context& c) { rpn_stack_clear(c); return true; });
-    rpn_operator_set(ctxt, "cast", 1, [](rpn_context& c) { auto val = c.stack.back(); c.stack.pop_back(); auto upd = rpn_value(double(*val.value.get())); c.stack.push_back(upd); return true; });
+    rpn_operator_set(ctxt, "dump", 0, dump_stack);
+    rpn_operator_set(ctxt, "vars", 0, dump_variables);
+    rpn_operator_set(ctxt, "clear", 0, rpn_stack_clear);
+    rpn_operator_set(ctxt, "cast", 1, [](rpn_context& c) {
+        auto val = c.stack.back();
+        c.stack.pop_back();
+        auto upd = rpn_value(double(*val.value.get()));
+        c.stack.push_back(upd);
+        return true;
+    });
     rpn_debug([](rpn_context&, const char* message) {
         std::cout << message << std::endl;
     });
