@@ -160,7 +160,6 @@ void test_boolean(void) {
     run_and_compare("2 0 and 2 0 or 2 0 xor 1 not", {0.0L, 1.0L, 1.0L, 0.0L});
 }
 
-
 void test_variable(void) {
 
     double value;
@@ -176,6 +175,25 @@ void test_variable(void) {
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
     TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
 
+}
+
+void test_variable_operator(void) {
+
+    double value = 0.0L;
+    rpn_context ctxt;
+
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "$tmp 25 ="));
+    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
+    TEST_ASSERT_EQUAL_FLOAT(25, value);
+    TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
+
+    value = 0.0;
+    TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "tmp", value));
+    TEST_ASSERT_EQUAL_FLOAT(25, value);
+    TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
+    TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
 }
 
 void test_custom_operator(void) {
@@ -253,6 +271,7 @@ void setup() {
     RUN_TEST(test_logic);
     RUN_TEST(test_boolean);
     RUN_TEST(test_variable);
+    RUN_TEST(test_variable_operator);
     RUN_TEST(test_custom_operator);
     RUN_TEST(test_error_divide_by_zero);
     RUN_TEST(test_error_argument_count_mismatch);

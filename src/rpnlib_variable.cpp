@@ -103,11 +103,10 @@ bool rpn_variable_set(rpn_context & ctxt, const char * name, long value) {
     return rpn_variable_set(ctxt, name, double(value));
 }
 
-bool rpn_variable_get(rpn_context & ctxt, const char * name, float & value) {
+bool rpn_variable_get(rpn_context & ctxt, const char * name, double & value) {
     for (auto& v : ctxt.variables) {
         if (v.name != name) continue;
-        if (v.value->type != rpn_value::f64) break;
-        value = v.value->as_f64;
+        value = double(*v.value.get());
         return true;
     }
     return false;
