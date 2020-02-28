@@ -491,10 +491,10 @@ bool _rpn_exists(rpn_context & ctxt) {
 }
 
 bool _rpn_assign(rpn_context & ctxt) {
-    auto stack_first = *(ctxt.stack.end() - 1);
-    auto stack_second = *(ctxt.stack.end() - 2);
-    *stack_first.value.get() = *stack_second.value.get();
-    ctxt.stack.erase(ctxt.stack.end() - 2);
+    auto& stack_first = _rpn_stack_peek(ctxt, 2);
+    auto& stack_second = _rpn_stack_peek(ctxt, 1);
+    stack_first = stack_second;
+    ctxt.stack.erase(ctxt.stack.end() - 1);
     return true;
 }
 
