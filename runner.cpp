@@ -5,20 +5,32 @@
 #include <cctype>
 #include <string>
 #include <iostream>
+#include <iomanip>
+
+const char* get_value_type(const rpn_stack_value& val) {
+    switch (val.type) {
+        case RPN_STACK_TYPE_VALUE:
+            return "VALUE";
+        case RPN_STACK_TYPE_VARIABLE:
+            return "VARIABLE";
+        default:
+            return "UNKNOWN";
+    }
+}
 
 void dump_value(const rpn_value& val) {
     switch (val.type) {
         case rpn_value::boolean:
-            std::cout << "boolean -> " << val.as_boolean << std::endl;
+            std::cout << val.as_boolean << " (bool) ";
             break;
         case rpn_value::f64:
-            std::cout << "f64 -> " << val.as_f64 << std::endl;
+            std::cout << val.as_f64 << " (f64) ";
             break;
         case rpn_value::string:
-            std::cout << "string -> \"" << val.as_string.c_str() << "\"" << std::endl;
+            std::cout << "\"" << val.as_string.c_str() << "\" ";
             break;
         case rpn_value::null:
-            std::cout << "null" << std::endl;
+            std::cout << "null ";
             break;
     }
 }
@@ -37,11 +49,12 @@ bool dump_variables(rpn_context & ctxt) {
 }
 
 bool dump_stack(rpn_context & ctxt) {
-    std::cout << "stack: " << ctxt.stack.size() << std::endl;
+    //std::cout << "stack: " << ctxt.stack.size() << std::endl;
     auto index = ctxt.stack.size();
-    for (auto stack_val : ctxt.stack) {
-        std::cout << --index << ": ";
-        dump_value(*(stack_val.value.get()));
+    for (auto it = ctxt.stack.rbegin() ; it != ctxt.stack.rend(); ++it) {
+        std::cout << std::setfill('0') << std::setw(3) << --index << ": ";
+        dump_value(*((*it).value.get()));
+        std::cout << " (" << get_value_type(*it) << ")" << std::endl;
     }
     return true;
 }
@@ -73,11 +86,6 @@ void test_sum(rpn_context & ctxt) {
 }
 
 int main(int argc, char** argv) {
-
-    std::cout << "rpn_value " << sizeof(rpn_value) << std::endl;
-    std::cout << "rpn_stack_value " << sizeof(rpn_stack_value) << std::endl;
-    std::cout << "rpn_variable " << sizeof(rpn_variable) << std::endl;
-
     rpn_context ctxt;
     rpn_init(ctxt);
     rpn_operator_set(ctxt, "dump", 0, dump_stack);
@@ -90,23 +98,26 @@ int main(int argc, char** argv) {
         c.stack.push_back(upd);
         return true;
     });
+    rpn_operator_set(ctxt, "test", 0, [](rpn_context& c) {
+        test_concat(c);
+        test_and(c);
+        test_or(c);
+        test_sum(c);
+        return true;
+    });
     rpn_debug([](rpn_context&, const char* message) {
-        std::cout << message << std::endl;
+        std::cout << "DEBUG: " << message << std::endl;
     });
 
-    test_concat(ctxt);
-    test_and(ctxt);
-    test_or(ctxt);
-    test_sum(ctxt);
-
     while (true) {
-        std::cout << "> ";
+        std::cout << ">>> ";
         std::string input;
         if (!std::getline(std::cin, input)) {
             std::cout << std::endl;
             break;
         }
         rpn_process(ctxt, input.c_str());
+        dump_stack(ctxt);
         std::cout << std::endl;
     }
 }

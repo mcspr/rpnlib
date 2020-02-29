@@ -76,6 +76,9 @@ target_compile_options(rpnlib PUBLIC
     ${COMMON_FLAGS}
     -DRPNLIB_ADVANCED_MATH
 )
+target_compile_options(rpnlib PRIVATE
+    -Wall
+)
 
 # small repl test
 add_executable(runner runner.cpp)
