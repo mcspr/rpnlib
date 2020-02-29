@@ -310,11 +310,11 @@ bool _rpn_index(rpn_context & ctxt) {
 // maps value `a` from range `b`:`c` to `d`:`e`
 // stops execution when `c` and `d` are equal
 bool _rpn_map(rpn_context & ctxt) {
-    auto& value = _rpn_stack_peek(ctxt, 5);
-    auto& from_low = _rpn_stack_peek(ctxt, 4);
-    auto& from_high = _rpn_stack_peek(ctxt, 3);
-    auto& to_low = _rpn_stack_peek(ctxt, 2);
-    auto& to_high = _rpn_stack_peek(ctxt, 1);
+    auto value = _rpn_stack_peek(ctxt, 5);
+    auto from_low = _rpn_stack_peek(ctxt, 4);
+    auto from_high = _rpn_stack_peek(ctxt, 3);
+    auto to_low = _rpn_stack_peek(ctxt, 2);
+    auto to_high = _rpn_stack_peek(ctxt, 1);
 
     if (from_high == from_low) return false;
     if (value < from_low) value = from_low;
