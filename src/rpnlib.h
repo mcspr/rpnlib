@@ -38,6 +38,10 @@ using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 #include "rpnlib_variable.h"
 #include "rpnlib_stack.h"
 
+#ifndef RPN_EXPRESSION_BUFFER_SIZE
+#define RPN_EXPRESSION_BUFFER_SIZE  256
+#endif
+
 // ----------------------------------------------------------------------------
 
 struct rpn_context {

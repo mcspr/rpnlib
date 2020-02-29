@@ -214,19 +214,14 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
 
 bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exist) {
 
+    static char buffer[RPN_EXPRESSION_BUFFER_SIZE] = {0};
+
+    strncpy(buffer, input, sizeof(buffer) - 1);
     rpn_error = RPN_ERROR_OK;
 
-    std::unique_ptr<char[]> _input_copy(strdup(input));
+    _rpn_tokenize(buffer, [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
 
-    _rpn_tokenize(_input_copy.get(), [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
-
-        // Debug callback is always called first
-        // TODO: pretty pointless on live device, error messages below should be improved instead
-        if (_rpn_debug_callback) {
-            _rpn_debug_callback(ctxt, token);
-        }
-
-        // Is token a word, string or variable?
+        // Is token a string, bool, number or variable?
         switch (type) {
             case RPN_TOKEN_STRING:
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
