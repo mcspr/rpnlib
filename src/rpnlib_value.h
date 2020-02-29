@@ -46,6 +46,7 @@ struct rpn_value {
     rpn_value(const rpn_value&);
     ~rpn_value();
 
+    void assign(const rpn_value&);
     rpn_value& operator=(const rpn_value&);
 
     bool operator >(const rpn_value&) const;

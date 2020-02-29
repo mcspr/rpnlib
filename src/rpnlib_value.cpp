@@ -55,27 +55,13 @@ rpn_value::rpn_value(const rpn_value& other) {
 //       implement `template <T> _rpn_value_destroy_string(rpn_value&) { ... }`
 //       - ~basic_string() for std::string to test on host
 //       - ~String() for Arduino String
-rpn_value::rpn_value(rpn_value&& other) {
-    switch (other.type) {
-        case rpn_value::string: {
-            new (&as_string) String(std::move(other.as_string));
-            other.as_string.~String();
-            break;
-        }
-        case rpn_value::boolean:
-            as_boolean = other.as_boolean;
-            break;
-        case rpn_value::f64:
-            as_f64 = other.as_f64;
-            break;
-        case rpn_value::null:
-        default:
-            if (type == rpn_value::string) {
-                as_string.~String();
-            }
-            break;
+rpn_value::rpn_value(rpn_value&& other) :
+    type(rpn_value::null)
+{
+    assign(other);
+    if (other.type == rpn_value::string) {
+        other.as_string.~String();
     }
-    type = other.type;
     other.type = rpn_value::null;
 }
 
@@ -122,6 +108,32 @@ rpn_value::~rpn_value() {
         as_string.~String();
     }
 }
+
+void rpn_value::assign(const rpn_value& other) {
+    switch (other.type) {
+        case rpn_value::string:
+            if (type == rpn_value::string) {
+                as_string = other.as_string;
+            } else {
+                new (&as_string) String(other.as_string);
+            }
+            break;
+        case rpn_value::boolean:
+            as_boolean = other.as_boolean;
+            break;
+        case rpn_value::f64:
+            as_f64 = other.as_f64;
+            break;
+        case rpn_value::null:
+            if (type == rpn_value::string) {
+                as_string.~String();
+            }
+        default:
+            break;
+    }
+    type = other.type;
+}
+
 
 rpn_value::operator bool() const {
     switch (type) {
@@ -326,28 +338,7 @@ rpn_value rpn_value::operator %(const rpn_value& other) {
 }
 
 rpn_value& rpn_value::operator =(const rpn_value& other) {
-    switch (other.type) {
-        case rpn_value::string:
-            if (type == rpn_value::string) {
-                as_string = other.as_string;
-            } else {
-                new (&as_string) String(other.as_string);
-            }
-            break;
-        case rpn_value::boolean:
-            as_boolean = other.as_boolean;
-            break;
-        case rpn_value::f64:
-            as_f64 = other.as_f64;
-            break;
-        case rpn_value::null:
-            if (type == rpn_value::string) {
-                as_string.~String();
-            }
-        default:
-            break;
-    }
-    type = other.type;
+    assign(other);
     return *this;
 }
 
