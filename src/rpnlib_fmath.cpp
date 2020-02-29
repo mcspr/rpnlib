@@ -33,16 +33,6 @@ extern "C" {
 // this has the same effect as if these functions were `static`
 namespace {
 
-// TODO: move to core API?
-
-rpn_value& _rpn_stack_peek(rpn_context & ctxt, size_t offset = 1) {
-    return *((ctxt.stack.end() - offset)->value.get());
-}
-
-void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
-    ctxt.stack.erase(ctxt.stack.end() - size, ctxt.stack.end());
-}
-
 // ----------------------------------------------------------------------------
 // Advanced math
 // ----------------------------------------------------------------------------
