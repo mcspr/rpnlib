@@ -33,11 +33,15 @@ add_library(esp8266 STATIC
     ${ESP8266}/tests/host/common/ArduinoMainUdp.cpp
     ${ESP8266}/tests/host/common/MockUART.cpp
     ${ESP8266}/tests/host/common/MockTools.cpp
+    ${ESP8266}/tests/host/common/MockEsp.cpp
     ${ESP8266}/tests/host/common/UdpContextSocket.cpp
     ${ESP8266}/tests/host/common/user_interface.cpp
     ${ESP8266}/tests/host/common/noniso.c
     ${ESP8266}/cores/esp8266/core_esp8266_noniso.cpp
     ${ESP8266}/cores/esp8266/WString.cpp
+    ${ESP8266}/cores/esp8266/HardwareSerial.cpp
+    ${ESP8266}/cores/esp8266/Print.cpp
+    ${ESP8266}/cores/esp8266/Stream.cpp
 )
 target_include_directories(esp8266 PUBLIC
     ${ESP8266}/tests/host/common/
@@ -50,7 +54,7 @@ target_compile_options(esp8266 BEFORE PRIVATE
     "SHELL:-include ${ESP8266}/tests/host/common/mock.h"
     "SHELL:-include ${ESP8266}/tests/host/common/c_types.h"
 )
-target_compile_options(esp8266 PRIVATE
+target_compile_options(esp8266 PUBLIC
     ${COMMON_FLAGS}
     -Wl,--defsym,_FS_start=0x40300000
     -Wl,--defsym,_FS_end=0x411FA000
@@ -99,3 +103,12 @@ target_compile_options(piotest PRIVATE
     ${COMMON_FLAGS}
 )
 set_target_properties(piotest PROPERTIES COMPILE_FLAGS -g)
+
+# try out one example
+#add_executable(example-time examples/time/time.cpp)
+#set_target_properties(example-time PROPERTIES LINKER_LANGUAGE CXX)
+#target_link_libraries(example-time rpnlib)
+#target_compile_options(example-time PRIVATE
+#    ${COMMON_FLAGS}
+#)
+#set_target_properties(example-time PROPERTIES COMPILE_FLAGS -g)
