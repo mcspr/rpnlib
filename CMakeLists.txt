@@ -10,6 +10,8 @@ project(runner VERSION 1 LANGUAGES C CXX)
 
 # required for esp8266 host mocking
 set(COMMON_FLAGS
+    -fno-common
+    -funsigned-char
     -DCORE_MOCK
     -DHOST_MOCK=1
     -DLWIP_IPV6=0
@@ -37,11 +39,27 @@ add_library(esp8266 STATIC
     ${ESP8266}/tests/host/common/UdpContextSocket.cpp
     ${ESP8266}/tests/host/common/user_interface.cpp
     ${ESP8266}/tests/host/common/noniso.c
+    ${ESP8266}/tests/host/common/flash_hal_mock.cpp
+	${ESP8266}/tests/host/common/spiffs_mock.cpp
+	${ESP8266}/tests/host/common/littlefs_mock.cpp
+	${ESP8266}/tests/host/common/sdfs_mock.cpp
+    ${ESP8266}/tests/host/common/ArduinoMainLittlefs.cpp
+    ${ESP8266}/tests/host/common/ArduinoMainSpiffs.cpp
     ${ESP8266}/cores/esp8266/core_esp8266_noniso.cpp
     ${ESP8266}/cores/esp8266/WString.cpp
     ${ESP8266}/cores/esp8266/HardwareSerial.cpp
     ${ESP8266}/cores/esp8266/Print.cpp
     ${ESP8266}/cores/esp8266/Stream.cpp
+    ${ESP8266}/cores/esp8266/FS.cpp
+    ${ESP8266}/cores/esp8266/spiffs_api.cpp
+    ${ESP8266}/cores/esp8266/spiffs/spiffs_cache.cpp
+    ${ESP8266}/cores/esp8266/spiffs/spiffs_check.cpp
+    ${ESP8266}/cores/esp8266/spiffs/spiffs_gc.cpp
+    ${ESP8266}/cores/esp8266/spiffs/spiffs_hydrogen.cpp
+    ${ESP8266}/cores/esp8266/spiffs/spiffs_nucleus.cpp
+    ${ESP8266}/libraries/LittleFS/src/LittleFS.cpp
+    ${ESP8266}/libraries/LittleFS/src/lfs.c
+    ${ESP8266}/libraries/LittleFS/src/lfs_util.c
 )
 target_include_directories(esp8266 PUBLIC
     ${ESP8266}/tests/host/common/
@@ -49,6 +67,9 @@ target_include_directories(esp8266 PUBLIC
     ${ESP8266}/tools/sdk/lwip2/include
     ${ESP8266}/tools/sdk/include
     ${ESP8266}/cores/esp8266/
+    ${ESP8266}/libraries/LittleFS/src/
+    ${ESP8266}/libraries/SPI/
+    ${ESP8266}/libraries/ESP8266SdFat/src
 )
 target_compile_options(esp8266 BEFORE PRIVATE
     "SHELL:-include ${ESP8266}/tests/host/common/mock.h"
