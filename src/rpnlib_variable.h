@@ -48,23 +48,18 @@ struct rpn_variable {
     std::shared_ptr<rpn_value> value;
 };
 
-bool rpn_variable_set(rpn_context &, const char *, bool);
-bool rpn_variable_get(rpn_context &, const char *, bool &);
+const char * rpn_variable_name(rpn_context &, unsigned char);
 
-bool rpn_variable_set(rpn_context &, const char *, double);
-bool rpn_variable_get(rpn_context &, const char *, double &);
+bool rpn_variable_set(rpn_context & ctxt, const char * name, rpn_value& value);
+bool rpn_variable_set(rpn_context & ctxt, const char * name, rpn_value&& value);
 
-bool rpn_variable_set(rpn_context &, const char *, int);
-bool rpn_variable_get(rpn_context &, const char *, int &);
+bool rpn_variable_get(rpn_context & ctxt, const char * name, rpn_value& value);
 
-bool rpn_variable_set(rpn_context &, const char *, long);
-bool rpn_variable_get(rpn_context &, const char *, long &);
-
-bool rpn_variable_set(rpn_context &, const char *, char *);
-bool rpn_variable_get(rpn_context &, const char *, char **);
+template<typename T>
+bool rpn_variable_get(rpn_context & ctxt, const char * name, T& value);
 
 bool rpn_variable_del(rpn_context &, const char *);
+
 size_t rpn_variables_size(rpn_context &);
-const char * rpn_variable_name(rpn_context &, unsigned char);
 bool rpn_variables_clear(rpn_context &);
 

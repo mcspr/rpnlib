@@ -81,36 +81,73 @@ rpn_variable::rpn_variable(const char* name, rpn_value&& value) :
 // Variables methods
 // ----------------------------------------------------------------------------
 
-// TODO: handle assignment in rpn_value class method
-// TODO: avoid exposing rpn_value::as_... members
-bool rpn_variable_set(rpn_context & ctxt, const char * name, double value) {
-    for (auto& v : ctxt.variables) {
-        if (v.name != name) continue;
-        if (v.value->type != rpn_value::f64) break;
-        v.value->as_f64 = value;
-        return true;
-    }
+size_t rpn_variables_size(rpn_context & ctxt) {
+    return ctxt.variables.size();
+}
 
-    ctxt.variables.emplace_back(name, std::make_shared<rpn_value>(value));
+const char * rpn_variable_name(rpn_context & ctxt, unsigned char i) {
+    if (i < ctxt.variables.size()) {
+        return ctxt.variables[i].name.c_str();
+    }
+    return nullptr;
+}
+
+bool rpn_variables_clear(rpn_context & ctxt) {
+    ctxt.variables.clear();
     return true;
 }
 
-bool rpn_variable_set(rpn_context & ctxt, const char * name, int value) {
-    return rpn_variable_set(ctxt, name, double(value));
-}
+namespace {
 
-bool rpn_variable_set(rpn_context & ctxt, const char * name, long value) {
-    return rpn_variable_set(ctxt, name, double(value));
-}
-
-bool rpn_variable_get(rpn_context & ctxt, const char * name, double & value) {
+template<typename T>
+bool _rpn_variable_set(rpn_context & ctxt, const char * name, T&& value) {
     for (auto& v : ctxt.variables) {
         if (v.name != name) continue;
-        value = double(*v.value.get());
+        *v.value.get() = std::forward<T>(value);
+        return true;
+    }
+
+    ctxt.variables.emplace_back(name, std::make_shared<rpn_value>(std::forward<T>(value)));
+    return true;
+}
+
+}
+
+bool rpn_variable_set(rpn_context & ctxt, const char * name, const rpn_value& value) {
+    return _rpn_variable_set(ctxt, name, value);
+}
+
+bool rpn_variable_set(rpn_context & ctxt, const char * name, rpn_value&& value) {
+    return _rpn_variable_set(ctxt, name, std::move(value));
+}
+
+bool rpn_variable_get(rpn_context & ctxt, const char * name, rpn_value& value) {
+    for (auto& v : ctxt.variables) {
+        if (v.name != name) continue;
+        value = *v.value.get();
         return true;
     }
     return false;
 }
+
+template<typename T>
+bool rpn_variable_get(rpn_context & ctxt, const char * name, T& value) {
+    rpn_value tmp;
+    if (rpn_variable_get(ctxt, name, tmp)) {
+        value = tmp;
+        return true;
+    }
+    return false;
+}
+
+template
+bool rpn_variable_get<bool>(rpn_context & ctxt, const char * name, bool& value);
+
+template
+bool rpn_variable_get<double>(rpn_context & ctxt, const char * name, double& value);
+
+template
+bool rpn_variable_get<String>(rpn_context & ctxt, const char * name, String& value);
 
 bool rpn_variable_del(rpn_context & ctxt, const char * name) {
     for (auto v = ctxt.variables.begin(); v != ctxt.variables.end(); ++v) {
@@ -120,21 +157,5 @@ bool rpn_variable_del(rpn_context & ctxt, const char * name) {
         }
     }
     return false;
-}
-
-size_t rpn_variables_size(rpn_context & ctxt) {
-    return ctxt.variables.size();
-}
-
-const char * rpn_variable_name(rpn_context & ctxt, unsigned char i) {
-    if (i < ctxt.variables.size()) {
-        return ctxt.variables[i].name.c_str();
-    }
-    return NULL;
-}
-
-bool rpn_variables_clear(rpn_context & ctxt) {
-    ctxt.variables.clear();
-    return true;
 }
 

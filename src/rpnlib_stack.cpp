@@ -56,6 +56,88 @@ rpn_stack_value::rpn_stack_value(rpn_value&& value) :
 // Stack methods
 // ----------------------------------------------------------------------------
 
+namespace {
+
+template<typename T>
+bool _rpn_stack_push(rpn_context & ctxt, T&& value) {
+    ctxt.stack.emplace_back(std::forward<T>(value));
+    return true;
+}
+
+}
+
+bool rpn_stack_push(rpn_context & ctxt, const rpn_value& value) {
+    return _rpn_stack_push(ctxt, value);
+    return true;
+}
+
+bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value) {
+    return _rpn_stack_push(ctxt, std::move(value));
+    return true;
+}
+
+bool rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& value) {
+    const auto size = ctxt.stack.size();
+    if (index >= size) return false;
+
+    const auto& ref = ctxt.stack.at(size - index - 1);
+    if (!ref.value) return false;
+
+    value = *ref.value.get();
+
+    return true;
+}
+
+template <typename T>
+bool rpn_stack_get(rpn_context & ctxt, unsigned char index, T& value) {
+    rpn_value tmp;
+    if (rpn_stack_get(ctxt, index, tmp)) {
+        value = tmp;
+        return true;
+    }
+    return false;
+}
+
+template
+bool rpn_stack_get<bool>(rpn_context &, unsigned char, bool& value);
+
+template
+bool rpn_stack_get<double>(rpn_context &, unsigned char, double& value);
+
+template
+bool rpn_stack_get<String>(rpn_context &, unsigned char, String& value);
+
+bool rpn_stack_pop(rpn_context & ctxt, rpn_value& value) {
+    if (!ctxt.stack.size()) return false;
+
+    const auto& ref = ctxt.stack.back();
+    if (!ref.value) return false;
+
+    value = *ref.value.get();
+
+    ctxt.stack.pop_back();
+    return true;
+}
+
+template<typename T>
+bool rpn_stack_pop(rpn_context & ctxt, T& value) {
+    rpn_value tmp;
+    if (rpn_stack_pop(ctxt, tmp)) {
+        value = tmp;
+        return true;
+    }
+    return false;
+}
+
+template
+bool rpn_stack_pop<bool>(rpn_context & ctxt, bool& value);
+
+template
+bool rpn_stack_pop<double>(rpn_context & ctxt, double& value);
+
+template
+bool rpn_stack_pop<String>(rpn_context & ctxt, String& value);
+
 size_t rpn_stack_size(rpn_context & ctxt) {
     return ctxt.stack.size();
 }
@@ -65,62 +147,7 @@ bool rpn_stack_clear(rpn_context & ctxt) {
     return true;
 }
 
-bool rpn_stack_push(rpn_context & ctxt, const rpn_value& value) {
-    ctxt.stack.emplace_back(value);
-    return true;
+rpn_stack_type_t rpn_stack_inspect(rpn_context & ctxt) {
+    if (!ctxt.stack.size()) return RPN_STACK_TYPE_NONE;
+    return ctxt.stack.back().type;
 }
-
-bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value) {
-    ctxt.stack.emplace_back(std::move(value));
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, bool value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, double value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, int32_t value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, uint32_t value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_push(rpn_context & ctxt, char* value) {
-    ctxt.stack.emplace_back(value);
-    return true;
-}
-
-bool rpn_stack_get(rpn_context & ctxt, unsigned char index, double & value) {
-    const auto size = ctxt.stack.size();
-    if (index >= size) return false;
-
-    const auto& ref = ctxt.stack.at(size - index - 1);
-    if (!ref.value) return false;
-
-    value = double(*ref.value.get());
-
-    return true;
-}
-
-bool rpn_stack_pop(rpn_context & ctxt, double & value) {
-    if (!ctxt.stack.size()) return false;
-
-    const auto& ref = ctxt.stack.back();
-    if (!ref.value) return false;
-
-    value = double(*ref.value.get());
-
-    ctxt.stack.pop_back();
-    return true;
-}
-

@@ -22,15 +22,16 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <Arduino.h>
-#include "rpnlib.h"
-#include <Time.h>
+#include <time.h>
+#include <sys/time.h>
+#include <rpnlib.h>
 
 void dump_stack(rpn_context & ctxt) {
-    float value;
-    unsigned char index = rpn_stack_size(ctxt)-1;
+    double value;
+    auto index = rpn_stack_size(ctxt) - 1;
     Serial.printf("Stack\n--------------------\n");
     while (rpn_stack_get(ctxt, index, value)) {
-        Serial.printf("[%02d] %.2f\n", index--, value);
+        Serial.printf("[%02u] %.2f\n", index--, value);
     }
     Serial.println();
 }
@@ -39,13 +40,30 @@ void setup() {
     
     // Init serial communication with the computer
     Serial.begin(115200);
-    delay(2000);
+    delay(1000);
     Serial.println();
     Serial.println();
     
     // Initialize time
-    // This would normally be set via NTP or GPS
-    setTime(17, 8, 24, 26, 12, 2018);
+    // This would normally be set via NTP configTime() or external RTC
+    // See NTP examples from Core and `man ctime`
+    struct tm current_time;
+    current_time.tm_hour = 17;
+    current_time.tm_min = 8;
+    current_time.tm_sec = 24;
+    current_time.tm_mday = 26;
+    current_time.tm_mon = 11;
+    current_time.tm_year = 2018 - 1900;
+    time_t timestamp = mktime(&current_time);
+
+    // Set global timestamp value, so we can call time() later
+    timeval tv { timestamp, 0 };
+    timezone tz { 0, 0 };
+    settimeofday(&tv, &tz);
+
+    Serial.println("Time set to:");
+    Serial.println(asctime(&current_time));
+    Serial.printf("Timestamp is %d\n", time(nullptr));
 
     // Create context
     rpn_context ctxt;
@@ -55,30 +73,40 @@ void setup() {
 
     // Add custom time functions
     rpn_operator_set(ctxt, "now", 0, [](rpn_context & ctxt) {
-        rpn_stack_push(ctxt, now());
+        rpn_stack_push(ctxt, (double) time(nullptr));
         return true;
     });
     rpn_operator_set(ctxt, "dow", 1, [](rpn_context & ctxt) {
-        float a;
-        rpn_stack_pop(ctxt, a);
-        unsigned char dow = (weekday(int(a)) + 5) % 7;
-        rpn_stack_push(ctxt, dow);
+        double ts_d;
+        rpn_stack_pop(ctxt, ts_d);
+        time_t ts = (time_t) ts_d;
+        struct tm tm_from_ts;
+        localtime_r(&ts, &tm_from_ts);
+        rpn_stack_push(ctxt, (double) tm_from_ts.tm_wday);
         return true;
     });
     rpn_operator_set(ctxt, "hour", 1, [](rpn_context & ctxt) {
-        float a;
-        rpn_stack_pop(ctxt, a);
-        rpn_stack_push(ctxt, hour(int(a)));
+        double ts_d;
+        rpn_stack_pop(ctxt, ts_d);
+        time_t ts = (time_t) ts_d;
+        struct tm tm_from_ts;
+        localtime_r(&ts, &tm_from_ts);
+        rpn_stack_push(ctxt, (double) tm_from_ts.tm_hour);
         return true;
     });
     rpn_operator_set(ctxt, "minute", 1, [](rpn_context & ctxt) {
-        float a;
-        rpn_stack_pop(ctxt, a);
-        rpn_stack_push(ctxt, minute(int(a)));
+        double ts_d;
+        rpn_stack_pop(ctxt, ts_d);
+        time_t ts = (time_t) ts_d;
+        struct tm tm_from_ts;
+        localtime_r(&ts, &tm_from_ts);
+        rpn_stack_push(ctxt, (double) tm_from_ts.tm_min);
         return true;
     });
 
+
     // Process command
+    Serial.println("Push `day of week`, `hour` and `minute` to the stack");
     rpn_process(ctxt, "now dup dup dow rot hour rot minute");
     
     // Show final stack
@@ -90,5 +118,5 @@ void setup() {
 }
 
 void loop() {
-    delay(1);
+    delay(10);
 }

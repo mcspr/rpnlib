@@ -22,26 +22,22 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <Arduino.h>
-#include "rpnlib.h"
+#include <rpnlib.h>
 
 void dump_stack(rpn_context & ctxt) {
-    float value;
-    unsigned char index = rpn_stack_size(ctxt)-1;
+    double value;
+    auto index = rpn_stack_size(ctxt) - 1;
     Serial.printf("Stack\n--------------------\n");
     while (rpn_stack_get(ctxt, index, value)) {
-        Serial.printf("[%02d] %.2f\n", index--, value);
+        Serial.printf("[%02u] %.2f\n", index--, value);
     }
     Serial.println();
 }
 
-void setup() {
-    
-    // Init serial communication with the computer
-    Serial.begin(115200);
-    delay(2000);
-    Serial.println();
-    Serial.println();
-    
+void maybe_run_test(const int key) {
+
+    if ('t' != key) return;
+
     // Create context
     rpn_context ctxt;
     
@@ -59,6 +55,19 @@ void setup() {
 
 }
 
+void setup() {
+    
+    // Init serial communication with the computer
+    Serial.begin(115200);
+    delay(500);
+    Serial.println("Press 't' to run the test");
+    Serial.println();
+    
+}
+
 void loop() {
-    delay(1);
+    if (Serial.available() > 0) {
+        maybe_run_test(Serial.read());
+    }
+    delay(10);
 }

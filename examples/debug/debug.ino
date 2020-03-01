@@ -22,26 +22,28 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <Arduino.h>
-#include "rpnlib.h"
+#include <rpnlib.h>
 
 void dump_stack(rpn_context & ctxt) {
-    float value;
-    unsigned char index = rpn_stack_size(ctxt)-1;
+    double value;
+    auto index = rpn_stack_size(ctxt) - 1;
     Serial.printf("Stack\n--------------------\n");
     while (rpn_stack_get(ctxt, index, value)) {
-        Serial.printf("[%02d] %.2f\n", index--, value);
+        Serial.printf("[%02u] %.2f\n", index--, value);
     }
     Serial.println();
 }
 
 void dump_variables(rpn_context & ctxt) {
-    float value;
-    char * name;
-    unsigned char index = 0;
+    double value;
+
+    size_t index = 0;
+    const char* name = nullptr;
+
     Serial.printf("Variables\n--------------------\n");
     while ((name = rpn_variable_name(ctxt, index))) {
         rpn_variable_get(ctxt, name, value);
-        Serial.printf("%s = %.2f\n", name, value);
+        Serial.printf("$%s = %.2f\n", name, value);
         index++;
     }
     Serial.println();
@@ -64,14 +66,14 @@ void setup() {
     // Define debug callback
     // The callback returns the current context and
     // the token that is going to be processed next
-    rpn_debug([](rpn_context & ctxt, char * token) {
+    rpn_debug([](rpn_context & ctxt, const char * token) {
         dump_stack(ctxt);
         Serial.printf("Processing: %s\n\n", token);
     });
 
     // Load variables
-    rpn_variable_set(ctxt, "temperature", 22);
-    rpn_variable_set(ctxt, "relay", 1);
+    rpn_variable_set(ctxt, "temperature", 22.5);
+    rpn_variable_set(ctxt, "relay", true);
 
     // Show variables
     dump_variables(ctxt);
@@ -90,9 +92,9 @@ void setup() {
 
     // Show result
     if (rpn_stack_size(ctxt) == 1) {
-        float value;
+        bool value;
         rpn_stack_pop(ctxt, value);
-        Serial.printf("Relay status should be: %d\n", (int) value);
+        Serial.printf("Relay status should be: %s\n", value ? "true" : "false");
     } else {
         Serial.println("Stack should have only 1 value");
     }

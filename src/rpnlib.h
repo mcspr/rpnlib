@@ -23,14 +23,23 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef rpnlib_h
 #define rpnlib_h
 
-struct rpn_context;
+#include <memory>
+#include <vector>
+
+struct rpn_variable;
+struct rpn_operator;
+struct rpn_stack_value;
+
+struct rpn_context {
+    std::vector<rpn_variable> variables;
+    std::vector<rpn_operator> operators;
+    std::vector<rpn_stack_value> stack;
+};
 
 using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 
 #include <Arduino.h>
 
-#include <vector>
-#include <memory>
 #include <cstdint>
 
 #include "rpnlib_value.h"
@@ -43,12 +52,6 @@ using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 #endif
 
 // ----------------------------------------------------------------------------
-
-struct rpn_context {
-    std::vector<rpn_variable> variables;
-    std::vector<rpn_operator> operators;
-    std::vector<rpn_stack_value> stack;
-};
 
 enum rpn_errors {
     RPN_ERROR_OK,

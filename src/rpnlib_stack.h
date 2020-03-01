@@ -30,6 +30,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 struct rpn_context;
 
 enum rpn_stack_type_t {
+    RPN_STACK_TYPE_NONE,
     RPN_STACK_TYPE_VALUE,
     RPN_STACK_TYPE_VARIABLE
 };
@@ -50,23 +51,20 @@ struct rpn_stack_value {
 
 };
 
+rpn_stack_type_t rpn_stack_inspect(rpn_context & ctxt);
+
 size_t rpn_stack_size(rpn_context &);
 bool rpn_stack_clear(rpn_context &);
 
-bool rpn_stack_push(rpn_context &, bool);
-bool rpn_stack_push(rpn_context &, double);
-bool rpn_stack_push(rpn_context &, const char*);
-bool rpn_stack_push(rpn_context &, const String&);
+bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value);
+bool rpn_stack_push(rpn_context & ctxt, const rpn_value& value);
 
-bool rpn_stack_push(rpn_context &, const rpn_value &);
-bool rpn_stack_push(rpn_context &, rpn_value &&);
-bool rpn_stack_pop(rpn_context &, rpn_value &);
+bool rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& value);
 
-bool rpn_stack_pop(rpn_context &, double &);
-bool rpn_stack_pop(rpn_context &, bool &);
-bool rpn_stack_pop(rpn_context &, String &);
+template <typename T>
+bool rpn_stack_get(rpn_context & ctxt, unsigned char index, T& value);
 
-bool rpn_stack_get(rpn_context &, unsigned char, double &);
-bool rpn_stack_get(rpn_context &, unsigned char, bool &);
-bool rpn_stack_get(rpn_context &, unsigned char, String &);
+bool rpn_stack_pop(rpn_context & ctxt, rpn_value& value);
 
+template<typename T>
+bool rpn_stack_pop(rpn_context & ctxt, T& value);
