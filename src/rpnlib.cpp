@@ -57,14 +57,19 @@ enum rpn_token_t {
     RPN_TOKEN_VARIABLE,
 };
 
-using rpn_tokenizer_callback = std::function<bool(rpn_token_t, const char* ptr)>;
-
-// something more useful than strtok
-// based on https://stackoverflow.com/questions/9659697/parse-string-into-array-based-on-spaces-or-double-quotes-strings
-// changes from the answer:
+// Tokenizer based on https://stackoverflow.com/questions/9659697/parse-string-into-array-based-on-spaces-or-double-quotes-strings
+// Changes from the answer:
 // - rework inner loop to call external function with token arg
-// - rework interal types to known about numbers and variables
-// same as strtok, this still needs modifiable string. perhaps there is a way to not do that and pass some string-like struct with length from start_of_word to nullptr
+// - rework interal types. add variables, booleans and numbers
+// - special condition for bool
+// - special condition for scientific notation
+// String is modified in-place by inserting '\0', allowing to use callback on the resulting pointer directly.
+// Perhaps, there is a way to not do that and pass some string-like struct with length from start_of_word to nullptr.
+//
+// TODO: support '\'' and '"' at the same time, we must have different branches for each one. (likely to be solved with goto, also reducing nesting)
+// TODO: re2c could generate more efficient code
+
+using rpn_tokenizer_callback = std::function<bool(rpn_token_t, const char* ptr)>;
 
 namespace {
 
@@ -78,6 +83,8 @@ bool _rpn_token_as_bool(const char* token) {
 }
 
 // after initial match, check if token still matches the originally deduced type
+// no need for further checks, callback is expected to validate the token
+// TODO: ...should it though?
 
 bool _rpn_token_is_number(char c) {
     switch (c) {
@@ -105,6 +112,7 @@ bool _rpn_token_is_bool(char c) {
             return false;
     }
 }
+
 void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
     char *p = buffer;
     char *start_of_word = nullptr;
@@ -125,7 +133,15 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
     states_t state = UNKNOWN;
 
 	while (true) {
-		if (*p == '\0') break;
+		if (*p == '\0') {
+            // Silently drop, we must have closing quote
+            if (state == IN_STRING) {
+                state = UNKNOWN;
+                type = RPN_TOKEN_UNKNOWN;
+                callback(type, start_of_word);
+            }
+            break;
+        }
 
         c = *p;
         switch (state) {
@@ -200,7 +216,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
 		++p;
     }
 
-    if (strlen(start_of_word) && (state != UNKNOWN)) {
+    if ((state != UNKNOWN) && strlen(start_of_word)) {
         callback(type, start_of_word);
     }
 
@@ -269,6 +285,10 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                     return true;
                 }
             }
+
+            case RPN_TOKEN_UNKNOWN:
+                rpn_error = RPN_ERROR_UNKNOWN_TOKEN;
+                break;
 
             case RPN_TOKEN_WORD:
             default:
