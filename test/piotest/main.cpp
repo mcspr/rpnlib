@@ -236,6 +236,79 @@ void test_error_unknown_token(void) {
     run_and_error("1 2 sum", RPN_ERROR_UNKNOWN_TOKEN);
 }
 
+void test_strings(void) {
+    rpn_context ctxt;
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", "12345"));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "$value $value +"));
+
+    String result;
+    TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "value", result));
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(
+        "12345", result.c_str(),
+        "Stack string value should remain intact"
+    );
+
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, result));
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(
+        "1234512345", result.c_str(),
+        "Stack string value should contain concatenated string"
+    );
+
+    TEST_ASSERT_TRUE(rpn_clear(ctxt));
+}
+
+void test_parse_bool(void) {
+    rpn_context ctxt;
+
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "true true and"));
+
+    bool result;
+    TEST_ASSERT_TRUE_MESSAGE(
+        rpn_stack_pop(ctxt, result),
+        "Stack should contain `true` value"
+    );
+    TEST_ASSERT_TRUE(result);
+
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "false true and"));
+    TEST_ASSERT_TRUE_MESSAGE(
+        rpn_stack_pop(ctxt, result),
+        "Stack should contain `false` value"
+    );
+    TEST_ASSERT_FALSE(result);
+
+    TEST_ASSERT_EQUAL(0, rpn_stack_size(ctxt));
+    TEST_ASSERT_TRUE(rpn_clear(ctxt));
+}
+
+void test_parse_string(void) {
+    rpn_context ctxt;
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "\"12345 +"));
+
+    String result;
+    TEST_ASSERT_FALSE_MESSAGE(
+        rpn_stack_pop(ctxt, result),
+        "Parser should fail without closing quote"
+    );
+
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "\"12345\""));
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, result));
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(
+        "12345", result.c_str(),
+        "Parser should put string value on the stack"
+    );
+
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "12345\""));
+    TEST_ASSERT_FALSE_MESSAGE(
+        rpn_stack_pop(ctxt, result),
+        "Parser should fail without opening quote"
+    );
+
+    TEST_ASSERT_TRUE(rpn_clear(ctxt));
+}
+
 #if not HOST_MOCK
 void test_memory(void) {
 
@@ -285,6 +358,9 @@ void setup() {
     RUN_TEST(test_error_argument_count_mismatch);
     RUN_TEST(test_error_unknown_token);
     RUN_TEST(test_memory);
+    RUN_TEST(test_strings);
+    RUN_TEST(test_parse_string);
+    RUN_TEST(test_parse_bool);
     UNITY_END();
 }
 

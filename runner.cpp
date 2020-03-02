@@ -21,7 +21,7 @@ const char* get_value_type(const rpn_stack_value& val) {
 void dump_value(const rpn_value& val) {
     switch (val.type) {
         case rpn_value::boolean:
-            std::cout << val.as_boolean << " (bool) ";
+            std::cout << (val.as_boolean ? "true" : "false") << " (bool) ";
             break;
         case rpn_value::f64:
             std::cout << val.as_f64 << " (f64) ";
