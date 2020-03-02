@@ -360,9 +360,6 @@ bool _rpn_constrain(rpn_context & ctxt) {
 bool _rpn_and(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
-    if (!top.isNumber() || !prev.isNumber()) {
-        return false;
-    }
 
     const bool result = (bool(top) && bool(prev));
     _rpn_stack_eat(ctxt, 2);
@@ -376,9 +373,6 @@ bool _rpn_and(rpn_context & ctxt) {
 bool _rpn_or(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
-    if (!top.isNumber() || !prev.isNumber()) {
-        return false;
-    }
 
     const bool result = (bool(top) || bool(prev));
     _rpn_stack_eat(ctxt, 2);
@@ -392,9 +386,6 @@ bool _rpn_or(rpn_context & ctxt) {
 bool _rpn_xor(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
-    if (!top.isNumber() || !prev.isNumber()) {
-        return false;
-    }
 
     const bool result = (bool(top) ^ bool(prev));
     _rpn_stack_eat(ctxt, 2);
