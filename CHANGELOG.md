@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - rpn\_... setter and getter methods now support String, bool and double
 - Improve precision of `e` and `pi`
 
-### Fix
+### Fixed
 - Proper value for `e` constant
 
 ## [0.3.0] 2019-05-24
@@ -29,10 +29,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.2.0] 2019-05-24
 ### Added
-- rpn_process will (optionally) fail if variable does not exist
+- rpn\_process will (optionally) fail if variable does not exist
 
 ### Fix
-- rpn_variable_set will replace value if variable already exists
+- rpn\_variable\_set will replace value if variable already exists
 
 ## [0.1.0] 2019-05-23
 ### Fixed
@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Examples and more commmands
   
 ### Changed
-- Renamed 'rpn_begin' to 'rpn_init'
+- Renamed 'rpn\_begin' to 'rpn\_init'
 - Variables now start with $ sign
 
 ## [0.0.1]
