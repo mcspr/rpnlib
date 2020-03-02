@@ -117,8 +117,8 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
     char *p = buffer;
     char *start_of_word = nullptr;
 
-	char c = '\0';
-	char tmp = '\0';
+    char c = '\0';
+    char tmp = '\0';
 
     enum states_t {
         UNKNOWN,
@@ -132,8 +132,8 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
     rpn_token_t type = RPN_TOKEN_UNKNOWN;
     states_t state = UNKNOWN;
 
-	while (true) {
-		if (*p == '\0') {
+    while (true) {
+        if (*p == '\0') {
             // Silently drop, we must have closing quote
             if (state == IN_STRING) {
                 state = UNKNOWN;
@@ -177,7 +177,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
             if (c == '"') {
                 tmp = *p;
                 *p = '\0';
-				if (!callback(type, start_of_word)) {
+                if (!callback(type, start_of_word)) {
                     state = UNKNOWN;
                     break;
                 }
@@ -203,7 +203,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
             if (isspace(c)) {
                 tmp = *p;
                 *p = '\0';
-				if (!callback(type, start_of_word)) {
+                if (!callback(type, start_of_word)) {
                     state = UNKNOWN;
                     break;
                 }
@@ -213,7 +213,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
             break;
         }
 
-		++p;
+        ++p;
     }
 
     if ((state != UNKNOWN) && strlen(start_of_word)) {
