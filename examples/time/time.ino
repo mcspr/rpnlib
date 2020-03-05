@@ -57,8 +57,8 @@ void setup() {
     time_t timestamp = mktime(&current_time);
 
     // Set global timestamp value, so we can call time() later
-    timeval tv { timestamp, 0 };
-    timezone tz { 0, 0 };
+    struct timeval tv { timestamp, 0 };
+    struct timezone tz { 0, 0 };
     settimeofday(&tv, &tz);
 
     Serial.println("Time set to:");

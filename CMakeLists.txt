@@ -125,11 +125,17 @@ target_compile_options(piotest PRIVATE
 )
 set_target_properties(piotest PROPERTIES COMPILE_FLAGS -g)
 
-# try out one example
-#add_executable(example-time examples/time/time.cpp)
-#set_target_properties(example-time PROPERTIES LINKER_LANGUAGE CXX)
-#target_link_libraries(example-time rpnlib)
-#target_compile_options(example-time PRIVATE
-#    ${COMMON_FLAGS}
-#)
-#set_target_properties(example-time PROPERTIES COMPILE_FLAGS -g)
+# try out example code
+function(example_build)
+    foreach(ARG IN LISTS ARGN)
+        configure_file(examples/${ARG}/${ARG}.ino ${CMAKE_BINARY_DIR}/${ARG}.cpp COPYONLY)
+        add_executable(example-${ARG} ${CMAKE_BINARY_DIR}/${ARG}.cpp)
+        target_link_libraries(example-${ARG} rpnlib)
+        target_compile_options(example-${ARG} PRIVATE
+            ${COMMON_FLAGS}
+        )
+        set_target_properties(example-${ARG} PROPERTIES COMPILE_FLAGS -g)
+    endforeach()
+endfunction()
+
+example_build(basic debug time)
