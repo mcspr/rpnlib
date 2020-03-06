@@ -27,7 +27,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <rpnlib.h>
 
 void dump_stack(rpn_context & ctxt) {
-    int32_t value;
+    rpn_int_t value;
     auto index = rpn_stack_size(ctxt) - 1;
     Serial.printf("Stack\n--------------------\n");
     while (rpn_stack_get(ctxt, index, value)) {
@@ -85,7 +85,7 @@ void setup() {
         rpn_stack_pop(ctxt, ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_stack_push(ctxt, (int32_t) tm_from_ts.tm_wday);
+        rpn_stack_push(ctxt, (rpn_int_t) tm_from_ts.tm_wday);
         return true;
     });
     rpn_operator_set(ctxt, "hour", 1, [](rpn_context & ctxt) {
@@ -93,7 +93,7 @@ void setup() {
         rpn_stack_pop(ctxt, ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_stack_push(ctxt, (int32_t) tm_from_ts.tm_hour);
+        rpn_stack_push(ctxt, (rpn_int_t) tm_from_ts.tm_hour);
         return true;
     });
     rpn_operator_set(ctxt, "minute", 1, [](rpn_context & ctxt) {
@@ -101,7 +101,7 @@ void setup() {
         rpn_stack_pop(ctxt, ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_stack_push(ctxt, (int32_t) tm_from_ts.tm_min);
+        rpn_stack_push(ctxt, (rpn_int_t) tm_from_ts.tm_min);
         return true;
     });
 

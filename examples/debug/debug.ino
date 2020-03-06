@@ -35,7 +35,7 @@ void dump_stack(rpn_context & ctxt) {
 }
 
 void dump_variables(rpn_context & ctxt) {
-    double value;
+    rpn_float_t value;
 
     size_t index = 0;
     const char* name = nullptr;
@@ -72,7 +72,7 @@ void setup() {
     });
 
     // Load variables
-    rpn_variable_set(ctxt, "temperature", 22.5);
+    rpn_variable_set(ctxt, "temperature", (rpn_float_t)22.5);
     rpn_variable_set(ctxt, "relay", true);
 
     // Show variables
