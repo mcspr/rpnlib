@@ -139,4 +139,7 @@ function(example_build)
     endforeach()
 endfunction()
 
-example_build(basic debug time)
+# TODO: time example depends on time_t == int32_t
+#       we don't support i64 or u64 (yet?), so host build will fail
+# example_build(basic debug time)
+example_build(basic debug)

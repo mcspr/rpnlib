@@ -77,12 +77,12 @@ void setup() {
 
     // Add custom time functions
     rpn_operator_set(ctxt, "now", 0, [](rpn_context & ctxt) {
-        rpn_stack_push(ctxt, (int32_t)time(nullptr));
+        rpn_stack_push(ctxt, time(nullptr));
         return true;
     });
     rpn_operator_set(ctxt, "dow", 1, [](rpn_context & ctxt) {
         time_t ts;
-        rpn_stack_pop(ctxt, (int32_t&)ts);
+        rpn_stack_pop(ctxt, ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
         rpn_stack_push(ctxt, (int32_t) tm_from_ts.tm_wday);
@@ -90,7 +90,7 @@ void setup() {
     });
     rpn_operator_set(ctxt, "hour", 1, [](rpn_context & ctxt) {
         time_t ts;
-        rpn_stack_pop(ctxt, (int32_t&)ts);
+        rpn_stack_pop(ctxt, ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
         rpn_stack_push(ctxt, (int32_t) tm_from_ts.tm_hour);
@@ -98,7 +98,7 @@ void setup() {
     });
     rpn_operator_set(ctxt, "minute", 1, [](rpn_context & ctxt) {
         time_t ts;
-        rpn_stack_pop(ctxt, (int32_t&)ts);
+        rpn_stack_pop(ctxt, ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
         rpn_stack_push(ctxt, (int32_t) tm_from_ts.tm_min);
