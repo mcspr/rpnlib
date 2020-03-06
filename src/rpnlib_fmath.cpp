@@ -38,79 +38,79 @@ namespace {
 // ----------------------------------------------------------------------------
 
 bool _rpn_sqrt(rpn_context & ctxt) {
-    double a;
+    rpn_float_t a;
     rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, fs_sqrt(a));
+    rpn_stack_push(ctxt, rpn_float_t(fs_sqrt(a)));
     return true;
 }
 
 bool _rpn_log(rpn_context & ctxt) {
-    double a;
+    rpn_float_t a;
     rpn_stack_pop(ctxt, a);
     if (0 >= a) {
         rpn_error = RPN_ERROR_INVALID_ARGUMENT;
         return false;
     }
-    rpn_stack_push(ctxt, fs_log(a));
+    rpn_stack_push(ctxt, rpn_float_t(fs_log(a)));
     return true;
 }
 
 bool _rpn_log10(rpn_context & ctxt) {
-    double a;
+    rpn_float_t a;
     rpn_stack_pop(ctxt, a);
     if (0.0L >= a) {
         rpn_error = RPN_ERROR_INVALID_ARGUMENT;
         return false;
     }
-    rpn_stack_push(ctxt, fs_log10(a));
+    rpn_stack_push(ctxt, rpn_float_t(fs_log10(a)));
     return true;
 }
 
 bool _rpn_exp(rpn_context & ctxt) {
-    double a;
+    rpn_float_t a;
     rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, fs_exp(a));
+    rpn_stack_push(ctxt, rpn_float_t(fs_exp(a)));
     return true;
 }
 
 bool _rpn_fmod(rpn_context & ctxt) {
-    double a, b;
+    rpn_float_t a, b;
     rpn_stack_pop(ctxt, b);
     rpn_stack_pop(ctxt, a);
     if (0.0L == b) {
         rpn_error = RPN_ERROR_DIVIDE_BY_ZERO;
         return false;
     }
-    rpn_stack_push(ctxt, fs_fmod(a, b));
+    rpn_stack_push(ctxt, rpn_float_t(fs_fmod(a, b)));
     return true;
 }
 
 bool _rpn_pow(rpn_context & ctxt) {
-    double a, b;
+    rpn_float_t a, b;
     rpn_stack_pop(ctxt, b);
     rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, fs_pow(a, b));
+    rpn_stack_push(ctxt, rpn_float_t(fs_pow(a, b)));
     return true;
 }
 
 bool _rpn_cos(rpn_context & ctxt) {
-    double a;
+    rpn_float_t a;
     rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, fs_cos(a));
+    rpn_stack_push(ctxt, rpn_float_t(fs_cos(a)));
     return true;
 }
 
 bool _rpn_sin(rpn_context & ctxt) {
-    double a;
+    rpn_float_t a;
     rpn_stack_pop(ctxt, a);
     const double cos = fs_cos(a);
     const double sin = fs_sqrt(1.0L - cos * cos);
-    rpn_stack_push(ctxt, sin);
+    rpn_stack_push(ctxt, rpn_float_t(sin));
     return true;
 }
 
 bool _rpn_tan(rpn_context & ctxt) {
-    double a;
+    rpn_float_t a;
     rpn_stack_pop(ctxt, a);
     const double cos = fs_cos(a);
     if (0.0L == cos) {
@@ -118,7 +118,7 @@ bool _rpn_tan(rpn_context & ctxt) {
         return false;
     }
     const double sin = fs_sqrt(1.0L - cos * cos);
-    rpn_stack_push(ctxt, sin / cos);
+    rpn_stack_push(ctxt, rpn_float_t(sin / cos));
     return true;
 }
 

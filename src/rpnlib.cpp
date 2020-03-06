@@ -249,7 +249,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
             case RPN_TOKEN_NUMBER: {
                 char* endptr = nullptr;
-                double value = strtod(token, &endptr);
+                rpn_float_t value = strtod(token, &endptr);
                 if (endptr == token || endptr[0] != '\0') { 
                     break;
                 }

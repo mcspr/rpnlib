@@ -33,37 +33,42 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace {
 
-bool _rpn_is_zero(const rpn_value& value) {
+bool _rpn_can_divide_by(const rpn_value& value) {
     bool result = false;
 
     switch (value.type) {
-        case rpn_value::f64:
-            if (std::isinf(value.as_f64) || std::isnan(value.as_f64)) {
-                break;
+        case rpn_value::Type::Float:
+            if (std::isinf(value.as_float) || std::isnan(value.as_float)) {
+                rpn_error = RPN_ERROR_IEE_754;
+                return result;
             }
-            result = value.as_f64 == 0.0L;
+            result = value.as_float != 0.0L;
             break;
-        case rpn_value::i32:
-            result = value.as_i32 == 0L;
+        case rpn_value::Type::Integer:
+            result = value.as_integer != 0L;
             break;
-        case rpn_value::u32:
-            result = value.as_i32 == 0UL;
+        case rpn_value::Type::Unsigned:
+            result = value.as_unsigned != 0UL;
             break;
         default:
             break;
     }
 
+    if (!result) {
+        rpn_error = RPN_ERROR_DIVIDE_BY_ZERO;
+    }
+
     return result;
 }
 
-const char* _rpn_type(rpn_value::value_t type) {
+const char* _rpn_type(rpn_value::Type type) {
     switch (type) {
-        case rpn_value::null: return "null";
-        case rpn_value::boolean: return "boolean";
-        case rpn_value::i32: return "i32";
-        case rpn_value::u32: return "u32";
-        case rpn_value::f64: return "f64";
-        case rpn_value::string: return "string";
+        case rpn_value::Type::Null: return "null";
+        case rpn_value::Type::Boolean: return "boolean";
+        case rpn_value::Type::Integer: return "integer";
+        case rpn_value::Type::Unsigned: return "unsigned";
+        case rpn_value::Type::Float: return "float";
+        case rpn_value::Type::String: return "string";
     }
     return "(unknown)";
 }
@@ -71,26 +76,26 @@ const char* _rpn_type(rpn_value::value_t type) {
 }
 
 rpn_value::rpn_value() :
-    type(rpn_value::null)
+    type(rpn_value::Type::Null)
 {}
 
 rpn_value::rpn_value(const rpn_value& other) {
     switch (other.type) {
-        case rpn_value::null:
+        case rpn_value::Type::Null:
             break;
-        case rpn_value::boolean:
+        case rpn_value::Type::Boolean:
             as_boolean = other.as_boolean;
             break;
-        case rpn_value::i32:
-            as_i32 = other.as_i32;
+        case rpn_value::Type::Integer:
+            as_integer = other.as_integer;
             break;
-        case rpn_value::u32:
-            as_u32 = other.as_u32;
+        case rpn_value::Type::Unsigned:
+            as_unsigned = other.as_unsigned;
             break;
-        case rpn_value::f64:
-            as_f64 = other.as_f64;
+        case rpn_value::Type::Float:
+            as_float = other.as_float;
             break;
-        case rpn_value::string:
+        case rpn_value::Type::String:
             new (&as_string) String(other.as_string);
             break;
         default:
@@ -101,82 +106,82 @@ rpn_value::rpn_value(const rpn_value& other) {
 
 // TODO: global flag RPNLIB_STRING_IMPLEMENTATION, default String
 //       implement `template <T> _rpn_value_destroy_string(rpn_value&) { ... }`
-//       - ~basic_string() for std::string to test on host
+//       - ~basic_string() for std::String to test on host
 //       - ~String() for Arduino String
 rpn_value::rpn_value(rpn_value&& other) :
-    type(rpn_value::null)
+    type(rpn_value::Type::Null)
 {
     assign(other);
-    if (other.type == rpn_value::string) {
+    if (other.type == rpn_value::Type::String) {
         other.as_string.~String();
     }
-    other.type = rpn_value::null;
+    other.type = rpn_value::Type::Null;
 }
 
 rpn_value::rpn_value(bool value) :
     as_boolean(value),
-    type(rpn_value::boolean)
+    type(rpn_value::Type::Boolean)
 {}
 
-rpn_value::rpn_value(int32_t value) :
-    as_i32(value),
-    type(rpn_value::i32)
+rpn_value::rpn_value(rpn_int_t value) :
+    as_integer(value),
+    type(rpn_value::Type::Integer)
 {}
 
-rpn_value::rpn_value(uint32_t value) :
-    as_u32(value),
-    type(rpn_value::u32)
+rpn_value::rpn_value(rpn_uint_t value) :
+    as_unsigned(value),
+    type(rpn_value::Type::Unsigned)
 {}
 
-rpn_value::rpn_value(double value) :
-    as_f64(value),
-    type(rpn_value::f64)
+rpn_value::rpn_value(rpn_float_t value) :
+    as_float(value),
+    type(rpn_value::Type::Float)
 {}
 
 rpn_value::rpn_value(const char* value) :
-    type(rpn_value::string)
+    type(rpn_value::Type::String)
 {
     new (&as_string) String(value);
 }
 
 rpn_value::rpn_value(const String& value) :
-    type(rpn_value::string)
+    type(rpn_value::Type::String)
 {
     new (&as_string) String(value);
 }
 
 rpn_value::rpn_value(String&& value) :
-    type(rpn_value::string)
+    type(rpn_value::Type::String)
 {
     new (&as_string) String(std::move(value));
 }
 
 rpn_value::~rpn_value() {
-    if (type == rpn_value::string) {
+    if (type == rpn_value::Type::String) {
         as_string.~String();
     }
 }
 
 void rpn_value::assign(const rpn_value& other) {
     switch (other.type) {
-        case rpn_value::null:
-            if (type == rpn_value::string) {
+        case rpn_value::Type::Null:
+            if (type == rpn_value::Type::String) {
                 as_string.~String();
             }
-        case rpn_value::boolean:
+        case rpn_value::Type::Boolean:
             as_boolean = other.as_boolean;
             break;
-        case rpn_value::i32:
-            as_i32 = other.as_i32;
+        case rpn_value::Type::Integer:
+            as_integer = other.as_integer;
             break;
-        case rpn_value::u32:
-            as_u32 = other.as_u32;
+        case rpn_value::Type::Unsigned:
+            as_unsigned = other.as_unsigned;
             break;
-        case rpn_value::f64:
-            as_f64 = other.as_f64;
+        case rpn_value::Type::Float:
+            as_float = other.as_float;
             break;
-        case rpn_value::string:
-            if (type == rpn_value::string) {
+        case rpn_value::Type::String:
+            if (type == rpn_value::Type::String) {
                 as_string = other.as_string;
             } else {
                 new (&as_string) String(other.as_string);
@@ -191,38 +196,38 @@ void rpn_value::assign(const rpn_value& other) {
 
 rpn_value::operator bool() const {
     switch (type) {
-        case rpn_value::boolean:
+        case rpn_value::Type::Boolean:
             return as_boolean;
-        case rpn_value::i32:
-        case rpn_value::u32:
-        case rpn_value::f64:
-            return !_rpn_is_zero(*this);
-        case rpn_value::string:
+        case rpn_value::Type::Integer:
+        case rpn_value::Type::Unsigned:
+        case rpn_value::Type::Float:
+            return as_float != 0.0L;
+        case rpn_value::Type::String:
             return as_string.length() > 0;
         default:
             return true;
     }
 }
 
-rpn_value::operator uint32_t() const {
-    uint32_t result = 0UL;
+rpn_value::operator rpn_uint_t() const {
+    rpn_uint_t result = 0UL;
 
     switch (type) {
-        case rpn_value::u32:
-            result = as_u32;
+        case rpn_value::Type::Unsigned:
+            result = as_unsigned;
             break;
-        case rpn_value::boolean:
+        case rpn_value::Type::Boolean:
             result = as_boolean ? 1UL : 0UL;
             break;
-        case rpn_value::i32:
-            if (as_i32 >= 0) {
-                result = as_i32;
+        case rpn_value::Type::Integer:
+            if (as_integer >= 0) {
+                result = as_integer;
             }
             break;
-        case rpn_value::f64:
-            if ((std::numeric_limits<uint32_t>::min() <= as_f64)
-                && (std::numeric_limits<uint32_t>::max() < as_f64)) {
-                result = static_cast<uint32_t>(as_f64);
+        case rpn_value::Type::Float:
+            if ((std::numeric_limits<rpn_uint_t>::min() <= as_float)
+                && (std::numeric_limits<rpn_uint_t>::max() < as_float)) {
+                result = static_cast<rpn_uint_t>(as_float);
             }
             break;
         default:
@@ -232,21 +237,21 @@ rpn_value::operator uint32_t() const {
     return result;
 }
 
-rpn_value::operator double() const {
-    double result = 0.0L;
+rpn_value::operator rpn_float_t() const {
+    rpn_float_t result = 0.0L;
 
     switch (type) {
-        case rpn_value::f64:
-            result = as_f64;
+        case rpn_value::Type::Float:
+            result = as_float;
             break;
-        case rpn_value::boolean:
+        case rpn_value::Type::Boolean:
             result = as_boolean ? 1.0L : 0.0L;
             break;
-        case rpn_value::i32:
-            result = as_i32;
+        case rpn_value::Type::Integer:
+            result = as_integer;
             break;
-        case rpn_value::u32:
-            result = as_u32;
+        case rpn_value::Type::Unsigned:
+            result = as_unsigned;
             break;
         default:
             break;
@@ -255,25 +260,25 @@ rpn_value::operator double() const {
     return result;
 }
 
-rpn_value::operator int32_t() const {
-    int32_t result = 0;
+rpn_value::operator rpn_int_t() const {
+    rpn_int_t result = 0;
 
     switch (type) {
-        case rpn_value::i32:
-            result = as_i32;
+        case rpn_value::Type::Integer:
+            result = as_integer;
             break;
-        case rpn_value::boolean:
+        case rpn_value::Type::Boolean:
             result = as_boolean ? 1.0L : 0.0L;
             break;
-        case rpn_value::u32:
-            if (static_cast<uint32_t>(std::numeric_limits<int32_t>::max()) < as_u32) {
-                result = as_u32;
+        case rpn_value::Type::Unsigned:
+            if (static_cast<rpn_uint_t>(std::numeric_limits<rpn_int_t>::max()) < as_unsigned) {
+                result = as_unsigned;
             }
             break;
-        case rpn_value::f64:
-            if ((std::numeric_limits<int32_t>::min() <= as_f64)
-                && (std::numeric_limits<int32_t>::max() < as_f64)) {
-                result = lround(as_f64);
+        case rpn_value::Type::Float:
+            if ((std::numeric_limits<rpn_int_t>::min() <= as_float)
+                && (std::numeric_limits<rpn_int_t>::max() < as_float)) {
+                result = lround(as_float);
             }
             break;
         default:
@@ -287,14 +292,14 @@ rpn_value::operator String() const {
     String result("");
 
     switch (type) {
-        case rpn_value::string:
+        case rpn_value::Type::String:
             return as_string;
-        case rpn_value::i32:
-            result = String(as_i32);
-        case rpn_value::u32:
-            result = String(as_u32);
-        case rpn_value::f64:
-            result = String(as_f64);
+        case rpn_value::Type::Integer:
+            result = String(as_integer);
+        case rpn_value::Type::Unsigned:
+            result = String(as_unsigned);
+        case rpn_value::Type::Float:
+            result = String(as_float);
             break;
         default:
             break;
@@ -307,17 +312,17 @@ bool rpn_value::operator <(const rpn_value& other) const {
     bool result = false;
 
     switch (type) {
-        case rpn_value::f64:
-            result = as_f64 < double(other);
+        case rpn_value::Type::Float:
+            result = as_float < rpn_float_t(other);
             break;
-        case rpn_value::i32:
-            result = as_i32 < int32_t(other);
+        case rpn_value::Type::Integer:
+            result = as_integer < rpn_int_t(other);
             break;
-        case rpn_value::u32:
-            result = as_u32 < uint32_t(other);
+        case rpn_value::Type::Unsigned:
+            result = as_unsigned < rpn_uint_t(other);
             break;
-        case rpn_value::string:
-        case rpn_value::boolean:
+        case rpn_value::Type::String:
+        case rpn_value::Type::Boolean:
         default:
             break;
     }
@@ -329,17 +334,17 @@ bool rpn_value::operator >(const rpn_value& other) const {
     bool result = false;
 
     switch (type) {
-        case rpn_value::f64:
-            result = as_f64 > double(other);
+        case rpn_value::Type::Float:
+            result = as_float > rpn_float_t(other);
             break;
-        case rpn_value::i32:
-            result = as_i32 > int32_t(other);
+        case rpn_value::Type::Integer:
+            result = as_integer > rpn_int_t(other);
             break;
-        case rpn_value::u32:
-            result = as_u32 > uint32_t(other);
+        case rpn_value::Type::Unsigned:
+            result = as_unsigned > rpn_uint_t(other);
             break;
-        case rpn_value::string:
-        case rpn_value::boolean:
+        case rpn_value::Type::String:
+        case rpn_value::Type::Boolean:
         default:
             break;
     }
@@ -351,20 +356,20 @@ bool rpn_value::operator ==(const rpn_value& other) const {
     bool result = false;
 
     switch (type) {
-        case rpn_value::string:
+        case rpn_value::Type::String:
             result = (as_string == other.as_string);
             break;
-        case rpn_value::boolean:
+        case rpn_value::Type::Boolean:
             result = as_boolean == bool(other);
             break;
-        case rpn_value::f64:
-            result = as_f64 == double(other);
+        case rpn_value::Type::Float:
+            result = as_float == rpn_float_t(other);
             break;
-        case rpn_value::i32:
-            result = as_i32 == int32_t(other);
+        case rpn_value::Type::Integer:
+            result = as_integer == rpn_int_t(other);
             break;
-        case rpn_value::u32:
-            result = as_u32 == uint32_t(other);
+        case rpn_value::Type::Unsigned:
+            result = as_unsigned == rpn_uint_t(other);
             break;
         default:
             break;
@@ -390,11 +395,11 @@ rpn_value rpn_value::operator +(const rpn_value& other) {
 
     switch (type) {
         // concat strings
-        case rpn_value::string: {
-            if (other.type != rpn_value::string) {
+        case rpn_value::Type::String: {
+            if (other.type != rpn_value::Type::String) {
                 break;
             }
-            val.type = rpn_value::string;
+            val.type = rpn_value::Type::String;
 
             const auto our_size = as_string.length();
             const auto other_size = other.as_string.length();
@@ -406,24 +411,24 @@ rpn_value rpn_value::operator +(const rpn_value& other) {
             break;
         }
         // just do generic math
-        case rpn_value::boolean:
-            if (other.type != rpn_value::boolean) {
+        case rpn_value::Type::Boolean:
+            if (other.type != rpn_value::Type::Boolean) {
                 break;
             }
-            val.type = rpn_value::boolean;
+            val.type = rpn_value::Type::Boolean;
             val.as_boolean = as_boolean + other.as_boolean;
             break;
-        case rpn_value::f64:
-            val.type = rpn_value::f64;
-            val.as_f64 = as_f64 + double(other);
+        case rpn_value::Type::Float:
+            val.type = rpn_value::Type::Float;
+            val.as_float = as_float + rpn_float_t(other);
             break;
-        case rpn_value::i32:
-            val.type = rpn_value::i32;
-            val.as_i32 = as_i32 + int32_t(other);
+        case rpn_value::Type::Integer:
+            val.type = rpn_value::Type::Integer;
+            val.as_integer = as_integer + rpn_int_t(other);
             break;
-        case rpn_value::u32:
-            val.type = rpn_value::u32;
-            val.as_u32 = as_u32 + uint32_t(other);
+        case rpn_value::Type::Unsigned:
+            val.type = rpn_value::Type::Unsigned;
+            val.as_unsigned = as_unsigned + rpn_uint_t(other);
             break;
         default:
             break;
@@ -442,21 +447,21 @@ rpn_value rpn_value::operator -(const rpn_value& other) {
 
     // just do generic math
     switch (type) {
-        case rpn_value::boolean:
-            val.type = rpn_value::boolean;
+        case rpn_value::Type::Boolean:
+            val.type = rpn_value::Type::Boolean;
             val.as_boolean = as_boolean - bool(other);
             break;
-        case rpn_value::f64:
-            val.type = rpn_value::f64;
-            val.as_f64 = as_f64 - double(other);
+        case rpn_value::Type::Float:
+            val.type = rpn_value::Type::Float;
+            val.as_float = as_float - rpn_float_t(other);
             break;
-        case rpn_value::i32:
-            val.type = rpn_value::i32;
-            val.as_i32 = as_i32 - int32_t(other);
+        case rpn_value::Type::Integer:
+            val.type = rpn_value::Type::Integer;
+            val.as_integer = as_integer - rpn_int_t(other);
             break;
-        case rpn_value::u32:
-            val.type = rpn_value::u32;
-            val.as_u32 = as_u32 - uint32_t(other);
+        case rpn_value::Type::Unsigned:
+            val.type = rpn_value::Type::Unsigned;
+            val.as_unsigned = as_unsigned - rpn_uint_t(other);
             break;
         default:
             break;
@@ -475,21 +480,21 @@ rpn_value rpn_value::operator *(const rpn_value& other) {
 
     // jost do generic math
     switch (type) {
-        case rpn_value::boolean:
-            val.type = rpn_value::boolean;
+        case rpn_value::Type::Boolean:
+            val.type = rpn_value::Type::Boolean;
             val.as_boolean = as_boolean && bool(other);
             break;
-        case rpn_value::f64:
-            val.type = rpn_value::f64;
-            val.as_f64 = as_f64 * double(other);
+        case rpn_value::Type::Float:
+            val.type = rpn_value::Type::Float;
+            val.as_float = as_float * rpn_float_t(other);
             break;
-        case rpn_value::i32:
-            val.type = rpn_value::i32;
-            val.as_i32 = as_i32 * int32_t(other);
+        case rpn_value::Type::Integer:
+            val.type = rpn_value::Type::Integer;
+            val.as_integer = as_integer * rpn_int_t(other);
             break;
-        case rpn_value::u32:
-            val.type = rpn_value::u32;
-            val.as_u32 = as_u32 * uint32_t(other);
+        case rpn_value::Type::Unsigned:
+            val.type = rpn_value::Type::Unsigned;
+            val.as_unsigned = as_unsigned * rpn_uint_t(other);
             break;
         default:
             break;
@@ -508,27 +513,27 @@ rpn_value rpn_value::operator /(const rpn_value& other) {
 
     // avoid division by zero (previously, RPN_ERROR_DIVIDE_BY_ZERO)
     // technically, we will get either inf or nan with floating point math, but we need operator to do the conversion for this `val` to make sense to the user
-    if (_rpn_is_zero(other)) {
+    if (!_rpn_can_divide_by(other)) {
         return val;
     }
 
     // just do generic math
     switch (type) {
-        case rpn_value::boolean:
-            val.type = rpn_value::boolean;
+        case rpn_value::Type::Boolean:
+            val.type = rpn_value::Type::Boolean;
             val.as_boolean = as_boolean / bool(other);
             break;
-        case rpn_value::f64:
-            val.type = rpn_value::f64;
-            val.as_f64 = as_f64 / double(other);
+        case rpn_value::Type::Float:
+            val.type = rpn_value::Type::Float;
+            val.as_float = as_float / rpn_float_t(other);
             break;
-        case rpn_value::i32:
-            val.type = rpn_value::i32;
-            val.as_i32 = as_i32 / int32_t(other);
+        case rpn_value::Type::Integer:
+            val.type = rpn_value::Type::Integer;
+            val.as_integer = as_integer / rpn_int_t(other);
             break;
-        case rpn_value::u32:
-            val.type = rpn_value::u32;
-            val.as_u32 = as_u32 / uint32_t(other);
+        case rpn_value::Type::Unsigned:
+            val.type = rpn_value::Type::Unsigned;
+            val.as_unsigned = as_unsigned / rpn_uint_t(other);
             break;
         default:
             break;
@@ -547,27 +552,27 @@ rpn_value rpn_value::operator %(const rpn_value& other) {
 
     // avoid division by zero (previously, RPN_ERROR_DIVIDE_BY_ZERO)
     // technically, we will get either inf or nan with floating point math, but we need operator to do the conversion for this `val` to make sense to the user
-    if (_rpn_is_zero(other)) {
+    if (!_rpn_can_divide_by(other)) {
         return val;
     }
 
     // just do generic math
     switch (type) {
-        case rpn_value::boolean:
-            val.type = rpn_value::boolean;
+        case rpn_value::Type::Boolean:
+            val.type = rpn_value::Type::Boolean;
             val.as_boolean = as_boolean % other.as_boolean;
             break;
-        case rpn_value::i32:
-            val.type = rpn_value::i32;
-            val.as_i32 = as_i32 - (floor(as_i32 / double(other.as_i32)) * other.as_i32);
+        case rpn_value::Type::Integer:
+            val.type = rpn_value::Type::Integer;
+            val.as_integer = as_integer - (floor(as_integer / rpn_float_t(other.as_integer)) * other.as_integer);
             break;
-        case rpn_value::u32:
-            val.type = rpn_value::u32;
-            val.as_u32 = as_u32 - (floor(as_u32 / double(other.as_u32)) * other.as_u32);
+        case rpn_value::Type::Unsigned:
+            val.type = rpn_value::Type::Unsigned;
+            val.as_unsigned = as_unsigned - (floor(as_unsigned / rpn_float_t(other.as_unsigned)) * other.as_unsigned);
             break;
-        case rpn_value::f64:
-            val.type = rpn_value::f64;
-            val.as_f64 = as_f64 - (floor(as_f64 / other.as_f64) * other.as_f64);
+        case rpn_value::Type::Float:
+            val.type = rpn_value::Type::Float;
+            val.as_float = as_float - (floor(as_float / other.as_float) * other.as_float);
             break;
         default:
             break;
@@ -581,35 +586,35 @@ rpn_value& rpn_value::operator =(const rpn_value& other) {
     return *this;
 }
 
-bool rpn_value::is(value_t value) const {
+bool rpn_value::is(Type value) const {
     return (type == value);
 }
 
 bool rpn_value::isNull() const {
-    return is(rpn_value::null);
+    return is(rpn_value::Type::Null);
 }
 
 bool rpn_value::isBoolean() const {
-    return is(rpn_value::boolean);
+    return is(rpn_value::Type::Boolean);
 }
 
 bool rpn_value::isString() const {
-    return is(rpn_value::string);
+    return is(rpn_value::Type::String);
 }
 
 bool rpn_value::isNumber() const {
-    return is(rpn_value::f64) || is(rpn_value::i32) || is(rpn_value::u32);
+    return is(rpn_value::Type::Float) || is(rpn_value::Type::Integer) || is(rpn_value::Type::Unsigned);
 }
 
 bool rpn_value::isFloat() const {
-    return is(rpn_value::f64);
+    return is(rpn_value::Type::Float);
 }
 
 bool rpn_value::isInt() const {
-    return is(rpn_value::i32);
+    return is(rpn_value::Type::Integer);
 }
 
 bool rpn_value::isUint() const {
-    return is(rpn_value::u32);
+    return is(rpn_value::Type::Unsigned);
 }
 

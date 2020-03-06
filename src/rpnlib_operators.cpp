@@ -137,12 +137,12 @@ int32_t _rpn_stack_compare3(rpn_context & ctxt) {
 // TODO: should these be `$pi` and `$e` instead?
 
 bool _rpn_pi(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, RPN_CONST_PI);
+    rpn_stack_push(ctxt, rpn_float_t(RPN_CONST_PI));
     return true;
 }
 
 bool _rpn_e(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, RPN_CONST_E);
+    rpn_stack_push(ctxt, rpn_float_t(RPN_CONST_E));
     return true;
 }
 
@@ -194,7 +194,7 @@ bool _rpn_abs(rpn_context & ctxt) {
     if (!top.isNumber()) {
         return false;
     }
-    double result = top.as_f64 * -1.0L;
+    rpn_float_t result = top.as_float * -1.0L;
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -260,7 +260,7 @@ bool _rpn_le(rpn_context & ctxt) {
 // - 1 if `a` > `b`
 // - 0 if `a` == `b`
 bool _rpn_cmp(rpn_context & ctxt) {
-    const auto result = double(_rpn_stack_compare(ctxt));
+    const auto result = rpn_float_t(_rpn_stack_compare(ctxt));
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
@@ -272,7 +272,7 @@ bool _rpn_cmp(rpn_context & ctxt) {
 // - 1 if `a` > `c`
 // - 0 if none of the above match
 bool _rpn_cmp3(rpn_context & ctxt) {
-    const auto result = double(_rpn_stack_compare3(ctxt));
+    const auto result = rpn_float_t(_rpn_stack_compare3(ctxt));
     _rpn_stack_eat(ctxt, 3);
     rpn_stack_push(ctxt, result);
     return true;
@@ -288,7 +288,7 @@ bool _rpn_index(rpn_context & ctxt) {
     const auto stack_size = rpn_stack_size(ctxt);
 
     const auto& top = _rpn_stack_peek(ctxt, 1);
-    const auto size = double(top);
+    const auto size = rpn_float_t(top);
     if (size < 0) {
         return false;
     }
@@ -297,7 +297,7 @@ bool _rpn_index(rpn_context & ctxt) {
     }
 
     const auto& bottom = _rpn_stack_peek(ctxt, size + 2);
-    const auto index = double(bottom);
+    const auto index = rpn_float_t(bottom);
     if ((index + 1) > size) {
         return false;
     }
@@ -423,12 +423,12 @@ bool _rpn_round(rpn_context & ctxt) {
         return false;
     }
     
-    double multiplier = 1.0L;
-    for (int i = 0; i < round(decimals.as_f64); ++i) {
+    rpn_float_t multiplier = 1.0L;
+    for (int i = 0; i < round(decimals.as_float); ++i) {
         multiplier *= 10.0L;
     }
     
-    const auto result = double(int(value.as_f64 * multiplier + 0.5L) / multiplier);
+    const auto result = rpn_float_t(int(value.as_float * multiplier + 0.5L) / multiplier);
 
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
@@ -445,7 +445,7 @@ bool _rpn_ceil(rpn_context & ctxt) {
         return false;
     }
 
-    double result = ceil(value.as_f64);
+    rpn_float_t result = ceil(value.as_float);
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -459,7 +459,7 @@ bool _rpn_floor(rpn_context & ctxt) {
         return false;
     }
 
-    double result = floor(value.as_f64);
+    rpn_float_t result = floor(value.as_float);
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -559,7 +559,7 @@ bool _rpn_drop(rpn_context & ctxt) {
 
 // [a b c] -> [a b c 3]
 bool _rpn_depth(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, double(rpn_stack_size(ctxt)));
+    rpn_stack_push(ctxt, rpn_float_t(rpn_stack_size(ctxt)));
     return true;
 }
 
@@ -603,22 +603,22 @@ bool _rpn_print(rpn_context & ctxt) {
     }
 
     switch (val.type) {
-        case rpn_value::null:
+        case rpn_value::Type::Null:
             sprintf(buffer + offset, "null");
             break;
-        case rpn_value::boolean:
+        case rpn_value::Type::Boolean:
             sprintf(buffer + offset, "%s", val.as_boolean ? "true" : "false");
             break;
-        case rpn_value::i32:
-            sprintf(buffer + offset, "%d", val.as_i32);
+        case rpn_value::Type::Integer:
+            sprintf(buffer + offset, "%ld", val.as_integer);
             break;
-        case rpn_value::u32:
-            sprintf(buffer + offset, "%u", val.as_u32);
+        case rpn_value::Type::Unsigned:
+            sprintf(buffer + offset, "%u", val.as_unsigned);
             break;
-        case rpn_value::f64:
-            sprintf(buffer + offset, "%f", val.as_f64);
+        case rpn_value::Type::Float:
+            sprintf(buffer + offset, "%f", val.as_float);
             break;
-        case rpn_value::string:
+        case rpn_value::Type::String:
             sprintf(buffer + offset, "\"%s\"", val.as_string.c_str());
             break;
         default:

@@ -100,16 +100,16 @@ template
 bool rpn_stack_get<bool>(rpn_context &, unsigned char, bool& value);
 
 template
-bool rpn_stack_get<double>(rpn_context &, unsigned char, double& value);
+bool rpn_stack_get<rpn_float_t>(rpn_context &, unsigned char, rpn_float_t& value);
 
 template
 bool rpn_stack_get<String>(rpn_context &, unsigned char, String& value);
 
 template
-bool rpn_stack_get<int32_t>(rpn_context &, unsigned char, int32_t& value);
+bool rpn_stack_get<rpn_int_t>(rpn_context &, unsigned char, rpn_int_t& value);
 
 template
-bool rpn_stack_get<uint32_t>(rpn_context &, unsigned char, uint32_t& value);
+bool rpn_stack_get<rpn_uint_t>(rpn_context &, unsigned char, rpn_uint_t& value);
 
 bool rpn_stack_pop(rpn_context & ctxt, rpn_value& value) {
     if (!ctxt.stack.size()) return false;
@@ -137,16 +137,16 @@ template
 bool rpn_stack_pop<bool>(rpn_context & ctxt, bool& value);
 
 template
-bool rpn_stack_pop<double>(rpn_context & ctxt, double& value);
+bool rpn_stack_pop<rpn_float_t>(rpn_context & ctxt, rpn_float_t& value);
 
 template
 bool rpn_stack_pop<String>(rpn_context & ctxt, String& value);
 
 template
-bool rpn_stack_pop<int32_t>(rpn_context & ctxt, int32_t& value);
+bool rpn_stack_pop<rpn_int_t>(rpn_context & ctxt, rpn_int_t& value);
 
 template
-bool rpn_stack_pop<uint32_t>(rpn_context & ctxt, uint32_t& value);
+bool rpn_stack_pop<rpn_uint_t>(rpn_context & ctxt, rpn_uint_t& value);
 
 size_t rpn_stack_size(rpn_context & ctxt) {
     return ctxt.stack.size();

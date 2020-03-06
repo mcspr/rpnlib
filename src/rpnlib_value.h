@@ -25,21 +25,23 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 #include <cstring>
 
+#include <limits>
+
 struct rpn_value {
-    enum value_t {
-        null,
-        boolean,
-        i32,
-        u32,
-        f64,
-        string
+    enum class Type {
+        Null,
+        Boolean,
+        Integer,
+        Unsigned,
+        Float,
+        String
     };
 
     rpn_value();
     rpn_value(bool);
-    rpn_value(int32_t);
-    rpn_value(uint32_t);
-    rpn_value(double);
+    rpn_value(rpn_int_t);
+    rpn_value(rpn_uint_t);
+    rpn_value(rpn_float_t);
     rpn_value(const char*);
     rpn_value(const String&);
     rpn_value(String&&);
@@ -66,12 +68,12 @@ struct rpn_value {
     rpn_value operator %(const rpn_value&);
 
     operator bool() const;
-    operator int32_t() const;
-    operator uint32_t() const;
-    operator double() const;
+    operator rpn_int_t() const;
+    operator rpn_uint_t() const;
+    operator rpn_float_t() const;
     operator String() const;
 
-    bool is(value_t) const;
+    bool is(Type) const;
     bool isNull() const;
     bool isBoolean() const;
     bool isInt() const;
@@ -82,13 +84,13 @@ struct rpn_value {
 
     union {
         bool as_boolean;
-        int32_t as_i32;
-        uint32_t as_u32;
-        double as_f64;
+        rpn_int_t as_integer;
+        rpn_uint_t as_unsigned;
+        rpn_float_t as_float;
         String as_string;
     };
 
-    value_t type;
+    Type type;
 
 };
 

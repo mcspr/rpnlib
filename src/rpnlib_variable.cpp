@@ -144,16 +144,16 @@ template
 bool rpn_variable_get<bool>(rpn_context & ctxt, const char * name, bool& value);
 
 template
-bool rpn_variable_get<double>(rpn_context & ctxt, const char * name, double& value);
+bool rpn_variable_get<rpn_float_t>(rpn_context & ctxt, const char * name, rpn_float_t& value);
 
 template
 bool rpn_variable_get<String>(rpn_context & ctxt, const char * name, String& value);
 
 template
-bool rpn_variable_get<int32_t>(rpn_context & ctxt, const char * name, int32_t& value);
+bool rpn_variable_get<rpn_int_t>(rpn_context & ctxt, const char * name, rpn_int_t& value);
 
 template
-bool rpn_variable_get<uint32_t>(rpn_context & ctxt, const char * name, uint32_t& value);
+bool rpn_variable_get<rpn_uint_t>(rpn_context & ctxt, const char * name, rpn_uint_t& value);
 
 bool rpn_variable_del(rpn_context & ctxt, const char * name) {
     for (auto v = ctxt.variables.begin(); v != ctxt.variables.end(); ++v) {
