@@ -266,7 +266,9 @@ rpn_value::operator int32_t() const {
             result = as_boolean ? 1.0L : 0.0L;
             break;
         case rpn_value::u32:
-            result = as_u32;
+            if (static_cast<uint32_t>(std::numeric_limits<int32_t>::max()) < as_u32) {
+                result = as_u32;
+            }
             break;
         case rpn_value::f64:
             if ((std::numeric_limits<int32_t>::min() <= as_f64)
