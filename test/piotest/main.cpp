@@ -34,7 +34,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 // Helper methods
 // -----------------------------------------------------------------------------
 
-void highlight_stack_index(rpn_context& ctxt, unsigned char match, double value, double match_value) {
+void highlight_stack_index(rpn_context& ctxt, unsigned char match, rpn_float_t value, rpn_float_t match_value) {
     char buffer[256] = {0};
 
     snprintf(buffer, sizeof(buffer) - 1, "Stack size = %zu", ctxt.stack.size());
@@ -46,7 +46,7 @@ void highlight_stack_index(rpn_context& ctxt, unsigned char match, double value,
         3, match_value,
         3, value,
         3, std::fabs(match_value - value),
-        (std::fabs(match_value - value) < std::numeric_limits<double>::epsilon()) ? "less than epsilon" : "more than epsilon"
+        (std::fabs(match_value - value) < std::numeric_limits<rpn_float_t>::epsilon()) ? "less than epsilon" : "more than epsilon"
     );
     TEST_MESSAGE(buffer);
 
@@ -54,22 +54,22 @@ void highlight_stack_index(rpn_context& ctxt, unsigned char match, double value,
     for (auto& stack_value : ctxt.stack) {
         char highlight = (index == match) ? '*' : ' ';
         switch (stack_value.value->type) {
-            case rpn_value::i32:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %d", highlight, index, stack_value.value->as_i32);
+            case rpn_value::Type::Integer:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %d", highlight, index, stack_value.value->as_integer);
                 break;
-            case rpn_value::u32:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %u", highlight, index, stack_value.value->as_u32);
+            case rpn_value::Type::Unsigned:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %u", highlight, index, stack_value.value->as_unsigned);
                 break;
-            case rpn_value::f64:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %f", highlight, index, stack_value.value->as_f64);
+            case rpn_value::Type::Float:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %f", highlight, index, stack_value.value->as_float);
                 break;
-            case rpn_value::string:
+            case rpn_value::Type::String:
                 snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: \"%s\"", highlight, index, stack_value.value->as_string.c_str());
                 break;
-            case rpn_value::boolean:
+            case rpn_value::Type::Boolean:
                 snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %s", highlight, index, stack_value.value->as_boolean ? "true" : "false");
                 break;
-            case rpn_value::null:
+            case rpn_value::Type::Null:
                 snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: null", highlight, index);
                 break;
         }
@@ -78,10 +78,12 @@ void highlight_stack_index(rpn_context& ctxt, unsigned char match, double value,
     }
 }
 
-void run_and_compare(const char * command, std::vector<double> expected) {
+void run_and_compare(const char * command, std::vector<rpn_float_t> expected) {
 
-    double value;
+    rpn_float_t value;
     rpn_context ctxt;
+
+    TEST_MESSAGE(command);
 
     TEST_ASSERT_TRUE_MESSAGE(rpn_init(ctxt), "rpn_init() should return true");
     TEST_ASSERT_TRUE_MESSAGE(rpn_process(ctxt, command), "rpn_process() should return true");
@@ -94,7 +96,7 @@ void run_and_compare(const char * command, std::vector<double> expected) {
             TEST_MESSAGE(command);
             TEST_FAIL_MESSAGE("Can't get stack value at specified index");
         }
-        if (std::fabs(expected[i] - value) > std::numeric_limits<double>::epsilon()) {
+        if (std::fabs(expected[i] - value) > std::numeric_limits<rpn_float_t>::epsilon()) {
             highlight_stack_index(ctxt, i, value, expected[i]);
             TEST_MESSAGE(command);
             TEST_FAIL_MESSAGE("Stack value does not match the expected value");
@@ -180,11 +182,11 @@ void test_boolean(void) {
 
 void test_variable(void) {
 
-    double value;
+    rpn_float_t value;
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", double(25)));
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", (rpn_float_t)25));
     TEST_ASSERT_TRUE(rpn_process(ctxt, "$tmp 5 /"));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
     TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
@@ -197,7 +199,7 @@ void test_variable(void) {
 
 void test_variable_operator(void) {
 
-    double value = 0.0L;
+    rpn_float_t value = 0.0L;
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
@@ -216,12 +218,12 @@ void test_variable_operator(void) {
 
 void test_custom_operator(void) {
 
-    double value;
+    rpn_float_t value;
     rpn_context ctxt;
     
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_TRUE(rpn_operator_set(ctxt, "cube", 1, [](rpn_context & ctxt) {
-        double a;
+        rpn_float_t a;
         rpn_stack_pop(ctxt, a);
         rpn_stack_push(ctxt, a*a*a);
         return true;
@@ -234,8 +236,7 @@ void test_custom_operator(void) {
 }
 
 void test_error_divide_by_zero(void) {
-    //run_and_error("5 0 /", RPN_ERROR_DIVIDE_BY_ZERO);
-    TEST_IGNORE_MESSAGE("division by zero, inf and nan are handled internally, operator will not set anything");
+    run_and_error("5 0 /", RPN_ERROR_DIVIDE_BY_ZERO);
 }
 
 void test_error_argument_count_mismatch(void) {
@@ -327,7 +328,7 @@ void test_memory(void) {
     {
         rpn_context ctxt;
         TEST_ASSERT_TRUE(rpn_init(ctxt));
-        TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", double(5)));
+        TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", (rpn_float_t) 5));
         TEST_ASSERT_TRUE(rpn_process(ctxt, "$value dup 1 - dup 1 - dup 1 - dup 1 -"));
         TEST_ASSERT_TRUE(rpn_clear(ctxt));
     }

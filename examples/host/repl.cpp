@@ -1,7 +1,8 @@
 // check if arduino type works with ours
 
-#include "src/rpnlib.h"
+#include <rpnlib.h>
 
+#include <ctime>
 #include <cctype>
 #include <string>
 #include <iostream>
@@ -20,16 +21,22 @@ const char* get_value_type(const rpn_stack_value& val) {
 
 void dump_value(const rpn_value& val) {
     switch (val.type) {
-        case rpn_value::boolean:
-            std::cout << (val.as_boolean ? "true" : "false") << " (bool) ";
+        case rpn_value::Type::Boolean:
+            std::cout << (val.as_boolean ? "true" : "false") << " (Boolean) ";
             break;
-        case rpn_value::f64:
-            std::cout << val.as_f64 << " (f64) ";
+        case rpn_value::Type::Integer:
+            std::cout << val.as_integer << " (Integer) ";
             break;
-        case rpn_value::string:
+        case rpn_value::Type::Unsigned:
+            std::cout << val.as_unsigned << " (Unsigned) ";
+            break;
+        case rpn_value::Type::Float:
+            std::cout << val.as_float << " (Float) ";
+            break;
+        case rpn_value::Type::String:
             std::cout << "\"" << val.as_string.c_str() << "\" ";
             break;
-        case rpn_value::null:
+        case rpn_value::Type::Null:
             std::cout << "null ";
             break;
     }
@@ -88,13 +95,18 @@ void test_sum(rpn_context & ctxt) {
 int main(int argc, char** argv) {
     rpn_context ctxt;
     rpn_init(ctxt);
+    rpn_operator_set(ctxt, "time", 0, [](rpn_context& c) {
+        time_t ts = time(nullptr);
+        rpn_stack_push(c, ts);
+        return true;
+    });
     rpn_operator_set(ctxt, "dump", 0, dump_stack);
     rpn_operator_set(ctxt, "vars", 0, dump_variables);
     rpn_operator_set(ctxt, "clear", 0, rpn_stack_clear);
     rpn_operator_set(ctxt, "cast", 1, [](rpn_context& c) {
         auto val = c.stack.back();
         c.stack.pop_back();
-        auto upd = rpn_value(double(*val.value.get()));
+        auto upd = rpn_value(rpn_float_t(*val.value.get()));
         c.stack.push_back(upd);
         return true;
     });
@@ -116,7 +128,9 @@ int main(int argc, char** argv) {
             std::cout << std::endl;
             break;
         }
-        rpn_process(ctxt, input.c_str());
+        if (!rpn_process(ctxt, input.c_str())) {
+            std::cout << "ERROR! "  << rpn_error << std::endl;
+        }
         dump_stack(ctxt);
         std::cout << std::endl;
     }
