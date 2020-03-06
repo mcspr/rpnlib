@@ -230,7 +230,7 @@ void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
 
 bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exist) {
 
-    static char buffer[RPN_EXPRESSION_BUFFER_SIZE] = {0};
+    static char buffer[RPNLIB_EXPRESSION_BUFFER_SIZE] = {0};
 
     strncpy(buffer, input, sizeof(buffer) - 1);
     rpn_error = RPN_ERROR_OK;

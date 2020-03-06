@@ -655,6 +655,8 @@ bool rpn_operators_clear(rpn_context & ctxt) {
 
 bool rpn_operators_init(rpn_context & ctxt) {
 
+    #if RPNLIB_BUILTIN_OPERATORS
+
     rpn_operator_set(ctxt, "pi", 0, _rpn_pi);
     rpn_operator_set(ctxt, "e", 0, _rpn_e);
 
@@ -707,6 +709,8 @@ bool rpn_operators_init(rpn_context & ctxt) {
     #ifdef RPNLIB_ADVANCED_MATH
         rpn_operators_fmath_init(ctxt);
     #endif
+
+    #endif // RPNLIB_BUILTIN_OPERATORS
 
     return true;
 }

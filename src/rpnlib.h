@@ -23,8 +23,14 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef rpnlib_h
 #define rpnlib_h
 
+#include "rpnlib_config.h"
+
 #include <memory>
 #include <vector>
+
+using rpn_int_t = RPNLIB_INT_TYPE;
+using rpn_float_t = RPNLIB_FLOAT_TYPE;
+using rpn_uint_t = RPNLIB_UINT_TYPE;
 
 struct rpn_variable;
 struct rpn_operator;
@@ -47,16 +53,13 @@ using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 #include "rpnlib_variable.h"
 #include "rpnlib_stack.h"
 
-#ifndef RPN_EXPRESSION_BUFFER_SIZE
-#define RPN_EXPRESSION_BUFFER_SIZE  256
-#endif
-
 // ----------------------------------------------------------------------------
 
 enum rpn_errors {
     RPN_ERROR_OK,
     RPN_ERROR_UNKNOWN_TOKEN,
     RPN_ERROR_ARGUMENT_COUNT_MISMATCH,
+    RPN_ERROR_IEE_754,
     RPN_ERROR_DIVIDE_BY_ZERO,
     RPN_ERROR_INVALID_ARGUMENT,
     RPN_ERROR_VARIABLE_DOES_NOT_EXIST,
