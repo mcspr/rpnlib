@@ -105,6 +105,12 @@ bool rpn_stack_get<double>(rpn_context &, unsigned char, double& value);
 template
 bool rpn_stack_get<String>(rpn_context &, unsigned char, String& value);
 
+template
+bool rpn_stack_get<int32_t>(rpn_context &, unsigned char, int32_t& value);
+
+template
+bool rpn_stack_get<uint32_t>(rpn_context &, unsigned char, uint32_t& value);
+
 bool rpn_stack_pop(rpn_context & ctxt, rpn_value& value) {
     if (!ctxt.stack.size()) return false;
 
@@ -135,6 +141,12 @@ bool rpn_stack_pop<double>(rpn_context & ctxt, double& value);
 
 template
 bool rpn_stack_pop<String>(rpn_context & ctxt, String& value);
+
+template
+bool rpn_stack_pop<int32_t>(rpn_context & ctxt, int32_t& value);
+
+template
+bool rpn_stack_pop<uint32_t>(rpn_context & ctxt, uint32_t& value);
 
 size_t rpn_stack_size(rpn_context & ctxt) {
     return ctxt.stack.size();

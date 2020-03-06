@@ -78,6 +78,10 @@ rpn_value& _rpn_stack_peek(rpn_context & ctxt, size_t offset = 1) {
     return *((ctxt.stack.end() - offset)->value.get());
 }
 
+rpn_value _rpn_stack_take(rpn_context & ctxt, size_t offset = 1) {
+    return _rpn_stack_peek(ctxt, offset);
+}
+
 void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
     ctxt.stack.erase(ctxt.stack.end() - size, ctxt.stack.end());
 }
@@ -599,8 +603,17 @@ bool _rpn_print(rpn_context & ctxt) {
     }
 
     switch (val.type) {
+        case rpn_value::null:
+            sprintf(buffer + offset, "null");
+            break;
         case rpn_value::boolean:
             sprintf(buffer + offset, "%s", val.as_boolean ? "true" : "false");
+            break;
+        case rpn_value::i32:
+            sprintf(buffer + offset, "%d", val.as_i32);
+            break;
+        case rpn_value::u32:
+            sprintf(buffer + offset, "%u", val.as_u32);
             break;
         case rpn_value::f64:
             sprintf(buffer + offset, "%f", val.as_f64);
@@ -608,9 +621,8 @@ bool _rpn_print(rpn_context & ctxt) {
         case rpn_value::string:
             sprintf(buffer + offset, "\"%s\"", val.as_string.c_str());
             break;
-        case rpn_value::null:
         default:
-            sprintf(buffer + offset, "null");
+            sprintf(buffer + offset, "(unknown)");
             break;
     }
 

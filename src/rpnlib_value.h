@@ -29,8 +29,10 @@ struct rpn_value {
     enum value_t {
         null,
         boolean,
-        string,
-        f64
+        i32,
+        u32,
+        f64,
+        string
     };
 
     rpn_value();
@@ -64,17 +66,24 @@ struct rpn_value {
     rpn_value operator %(const rpn_value&);
 
     operator bool() const;
+    operator int32_t() const;
+    operator uint32_t() const;
     operator double() const;
     operator String() const;
 
     bool is(value_t) const;
     bool isNull() const;
     bool isBoolean() const;
-    bool isString() const;
+    bool isInt() const;
+    bool isUint() const;
+    bool isFloat() const;
     bool isNumber() const;
+    bool isString() const;
 
     union {
         bool as_boolean;
+        int32_t as_i32;
+        uint32_t as_u32;
         double as_f64;
         String as_string;
     };
