@@ -68,12 +68,10 @@ bool _rpn_stack_push(rpn_context & ctxt, T&& value) {
 
 bool rpn_stack_push(rpn_context & ctxt, const rpn_value& value) {
     return _rpn_stack_push(ctxt, value);
-    return true;
 }
 
 bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value) {
     return _rpn_stack_push(ctxt, std::move(value));
-    return true;
 }
 
 bool rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& value) {
