@@ -226,7 +226,7 @@ rpn_value::operator rpn_uint_t() const {
             break;
         case rpn_value::Type::Float:
             if ((std::numeric_limits<rpn_uint_t>::min() <= as_float)
-                && (std::numeric_limits<rpn_uint_t>::max() < as_float)) {
+                && (std::numeric_limits<rpn_uint_t>::max() > as_float)) {
                 result = static_cast<rpn_uint_t>(as_float);
             }
             break;
@@ -277,7 +277,7 @@ rpn_value::operator rpn_int_t() const {
             break;
         case rpn_value::Type::Float:
             if ((std::numeric_limits<rpn_int_t>::min() <= as_float)
-                && (std::numeric_limits<rpn_int_t>::max() < as_float)) {
+                && (std::numeric_limits<rpn_int_t>::max() > as_float)) {
                 result = lround(as_float);
             }
             break;
