@@ -27,11 +27,11 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <rpnlib.h>
 
 void dump_stack(rpn_context & ctxt) {
-    double value;
+    int32_t value;
     auto index = rpn_stack_size(ctxt) - 1;
     Serial.printf("Stack\n--------------------\n");
     while (rpn_stack_get(ctxt, index, value)) {
-        Serial.printf("[%02u] %.2f\n", index--, value);
+        Serial.printf("[%02u] %d\n", index--, value);
     }
     Serial.println();
 }
@@ -55,11 +55,15 @@ void setup() {
     current_time.tm_mon = 11;
     current_time.tm_year = 2018 - 1900;
     time_t timestamp = mktime(&current_time);
+    Serial.printf("Timestamp is %d\n", timestamp);
 
     // Set global timestamp value, so we can call time() later
     struct timeval tv { timestamp, 0 };
     struct timezone tz { 0, 0 };
-    settimeofday(&tv, &tz);
+    if (0 != settimeofday(&tv, &tz)) {
+        Serial.println("Time was not set, can't run the test!");
+        return;
+    }
 
     Serial.println("Time set to:");
     Serial.println(asctime(&current_time));
@@ -73,41 +77,38 @@ void setup() {
 
     // Add custom time functions
     rpn_operator_set(ctxt, "now", 0, [](rpn_context & ctxt) {
-        rpn_stack_push(ctxt, (double) time(nullptr));
+        rpn_stack_push(ctxt, (int32_t)time(nullptr));
         return true;
     });
     rpn_operator_set(ctxt, "dow", 1, [](rpn_context & ctxt) {
-        double ts_d;
-        rpn_stack_pop(ctxt, ts_d);
-        time_t ts = (time_t) ts_d;
+        time_t ts;
+        rpn_stack_pop(ctxt, (int32_t&)ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_stack_push(ctxt, (double) tm_from_ts.tm_wday);
+        rpn_stack_push(ctxt, (int32_t) tm_from_ts.tm_wday);
         return true;
     });
     rpn_operator_set(ctxt, "hour", 1, [](rpn_context & ctxt) {
-        double ts_d;
-        rpn_stack_pop(ctxt, ts_d);
-        time_t ts = (time_t) ts_d;
+        time_t ts;
+        rpn_stack_pop(ctxt, (int32_t&)ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_stack_push(ctxt, (double) tm_from_ts.tm_hour);
+        rpn_stack_push(ctxt, (int32_t) tm_from_ts.tm_hour);
         return true;
     });
     rpn_operator_set(ctxt, "minute", 1, [](rpn_context & ctxt) {
-        double ts_d;
-        rpn_stack_pop(ctxt, ts_d);
-        time_t ts = (time_t) ts_d;
+        time_t ts;
+        rpn_stack_pop(ctxt, (int32_t&)ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_stack_push(ctxt, (double) tm_from_ts.tm_min);
+        rpn_stack_push(ctxt, (int32_t) tm_from_ts.tm_min);
         return true;
     });
 
 
     // Process command
     Serial.println("Push `day of week`, `hour` and `minute` to the stack");
-    rpn_process(ctxt, "now dup dup dow rot hour rot minute");
+    rpn_process(ctxt, "now dup dup dow rot hour rot minute ");
     
     // Show final stack
     dump_stack(ctxt);

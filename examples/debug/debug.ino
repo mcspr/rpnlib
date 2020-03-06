@@ -25,11 +25,11 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <rpnlib.h>
 
 void dump_stack(rpn_context & ctxt) {
-    double value;
+    bool value;
     auto index = rpn_stack_size(ctxt) - 1;
     Serial.printf("Stack\n--------------------\n");
     while (rpn_stack_get(ctxt, index, value)) {
-        Serial.printf("[%02u] %.2f\n", index--, value);
+        Serial.printf("[%02u] %s\n", index--, value ? "true" : "false");
     }
     Serial.println();
 }
@@ -94,7 +94,7 @@ void setup() {
     if (rpn_stack_size(ctxt) == 1) {
         bool value;
         rpn_stack_pop(ctxt, value);
-        Serial.printf("Relay status should be: %s\n", value ? "true" : "false");
+        Serial.printf("Relay status should be: `%s`\n", value ? "true" : "false");
     } else {
         Serial.println("Stack should have only 1 value");
     }
