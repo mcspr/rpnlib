@@ -37,13 +37,15 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 void highlight_stack_index(rpn_context& ctxt, unsigned char match, double value, double match_value) {
     char buffer[256] = {0};
 
-    snprintf(buffer, sizeof(buffer) - 1, "Stack size = %u", ctxt.stack.size());
+    snprintf(buffer, sizeof(buffer) - 1, "Stack size = %zu", ctxt.stack.size());
     TEST_MESSAGE(buffer);
 
     snprintf(buffer, sizeof(buffer) - 1,
         "Expected stack[%u] == %.*ef, but it is %.*ef instead (fabs diff is %.*e, %s)",
-        match, match_value, value,
-        std::fabs(match_value - value),
+        match,
+        3, match_value,
+        3, value,
+        3, std::fabs(match_value - value),
         (std::fabs(match_value - value) < std::numeric_limits<double>::epsilon()) ? "less than epsilon" : "more than epsilon"
     );
     TEST_MESSAGE(buffer);
@@ -52,17 +54,23 @@ void highlight_stack_index(rpn_context& ctxt, unsigned char match, double value,
     for (auto& stack_value : ctxt.stack) {
         char highlight = (index == match) ? '*' : ' ';
         switch (stack_value.value->type) {
+            case rpn_value::i32:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %d", highlight, index, stack_value.value->as_i32);
+                break;
+            case rpn_value::u32:
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %u", highlight, index, stack_value.value->as_u32);
+                break;
             case rpn_value::f64:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: %f", highlight, index, stack_value.value->as_f64);
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %f", highlight, index, stack_value.value->as_f64);
                 break;
             case rpn_value::string:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: \"%s\"", highlight, index, stack_value.value->as_string.c_str());
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: \"%s\"", highlight, index, stack_value.value->as_string.c_str());
                 break;
             case rpn_value::boolean:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: %s", highlight, index, stack_value.value->as_boolean ? "true" : "false");
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %s", highlight, index, stack_value.value->as_boolean ? "true" : "false");
                 break;
             case rpn_value::null:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02u: null", highlight, index);
+                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: null", highlight, index);
                 break;
         }
         --index;
@@ -83,10 +91,12 @@ void run_and_compare(const char * command, std::vector<double> expected) {
     for (unsigned char i=0; i<expected.size(); i++) {
         if (!rpn_stack_get(ctxt, i, value)) {
             highlight_stack_index(ctxt, i, value, expected[i]);
+            TEST_MESSAGE(command);
             TEST_FAIL_MESSAGE("Can't get stack value at specified index");
         }
         if (std::fabs(expected[i] - value) > std::numeric_limits<double>::epsilon()) {
             highlight_stack_index(ctxt, i, value, expected[i]);
+            TEST_MESSAGE(command);
             TEST_FAIL_MESSAGE("Stack value does not match the expected value");
         }
     }

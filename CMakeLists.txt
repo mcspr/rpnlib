@@ -122,6 +122,7 @@ add_executable(piotest test/piotest/main.cpp)
 target_link_libraries(piotest unity rpnlib)
 target_compile_options(piotest PRIVATE
     ${COMMON_FLAGS}
+    -Wall
 )
 set_target_properties(piotest PROPERTIES COMPILE_FLAGS -g)
 
