@@ -10,11 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `exists` operator to check for variable existance
 - `"..."` syntax for strings
 - `true` and `false` in expressions, add boolean types
+- Allow to configure underlying types from rpnlib_config.h and -D... flags
 
 ### Changed
 - Stack structure no longer holds raw `float`, but internal `rpn_value` type
 - Variables in expressions are no longer required to exist
-- rpn\_... setter and getter methods now support String, bool and double
+- rpn\_... setter and getter methods now support String, Integer, Unsigned, bool and double
 - Improve precision of `e` and `pi`
 
 ### Fixed
