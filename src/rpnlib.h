@@ -63,7 +63,8 @@ enum rpn_errors {
     RPN_ERROR_DIVIDE_BY_ZERO,
     RPN_ERROR_INVALID_ARGUMENT,
     RPN_ERROR_VARIABLE_DOES_NOT_EXIST,
-    RPN_ERROR_TYPE_MISMATCH
+    RPN_ERROR_VALUE_TYPE_MISMATCH,
+    RPN_ERROR_VALUE_IS_NULL
 };
 
 // ----------------------------------------------------------------------------

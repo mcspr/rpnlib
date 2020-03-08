@@ -14,8 +14,6 @@ set(COMMON_FLAGS
     -DCORE_MOCK
     -DHOST_MOCK=1
     -DLWIP_IPV6=0
-    -DRPN_INT_TYPE=int64_t
-    -DRPN_UINT_TYPE=uint64_t
 )
 set(RPNLIB_PATH ${CMAKE_SOURCE_DIR}/../../ CACHE FILEPATH "RPNLIB source code repo root")
 
@@ -101,6 +99,8 @@ target_include_directories(rpnlib PUBLIC
 )
 target_compile_options(rpnlib PUBLIC
     ${COMMON_FLAGS}
+    -DRPNLIB_INT_TYPE=int64_t
+    -DRPNLIB_UINT_TYPE=uint64_t
     -DRPNLIB_ADVANCED_MATH
 )
 target_compile_options(rpnlib PRIVATE

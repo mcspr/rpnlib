@@ -44,6 +44,9 @@ bool _rpn_can_divide_by(const rpn_value& value) {
             }
             result = value.as_float != 0.0L;
             break;
+        case rpn_value::Type::Null:
+            rpn_error = RPN_ERROR_VALUE_IS_NULL;
+            return result;
         case rpn_value::Type::Integer:
             result = value.as_integer != 0L;
             break;
@@ -63,12 +66,12 @@ bool _rpn_can_divide_by(const rpn_value& value) {
 
 const char* _rpn_type(rpn_value::Type type) {
     switch (type) {
-        case rpn_value::Type::Null: return "null";
-        case rpn_value::Type::Boolean: return "boolean";
-        case rpn_value::Type::Integer: return "integer";
-        case rpn_value::Type::Unsigned: return "unsigned";
-        case rpn_value::Type::Float: return "float";
-        case rpn_value::Type::String: return "string";
+        case rpn_value::Type::Null: return "Null";
+        case rpn_value::Type::Boolean: return "Boolean";
+        case rpn_value::Type::Integer: return "Integer";
+        case rpn_value::Type::Unsigned: return "Unsigned";
+        case rpn_value::Type::Float: return "Float";
+        case rpn_value::Type::String: return "String";
     }
     return "(unknown)";
 }
@@ -199,18 +202,29 @@ rpn_value::operator bool() const {
         case rpn_value::Type::Boolean:
             return as_boolean;
         case rpn_value::Type::Integer:
+            return as_integer != 0L;
         case rpn_value::Type::Unsigned:
+            return as_unsigned != 0UL;
         case rpn_value::Type::Float:
             return as_float != 0.0L;
         case rpn_value::Type::String:
             return as_string.length() > 0;
+        case rpn_value::Type::Null:
         default:
-            return true;
+            break;
     }
+
+    return false;
 }
 
 rpn_value::operator rpn_uint_t() const {
     rpn_uint_t result = 0UL;
+
+    // return Null and set err flag when trying to convert Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
 
     switch (type) {
         case rpn_value::Type::Unsigned:
@@ -240,6 +254,12 @@ rpn_value::operator rpn_uint_t() const {
 rpn_value::operator rpn_float_t() const {
     rpn_float_t result = 0.0L;
 
+    // return Null and set err flag when trying to convert Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
+
     switch (type) {
         case rpn_value::Type::Float:
             result = as_float;
@@ -262,6 +282,12 @@ rpn_value::operator rpn_float_t() const {
 
 rpn_value::operator rpn_int_t() const {
     rpn_int_t result = 0;
+
+    // return Null and set err flag when trying to convert Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
 
     switch (type) {
         case rpn_value::Type::Integer:
@@ -291,13 +317,21 @@ rpn_value::operator rpn_int_t() const {
 rpn_value::operator String() const {
     String result("");
 
+    // return Null and set err flag when trying to convert Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
+
     switch (type) {
         case rpn_value::Type::String:
             return as_string;
         case rpn_value::Type::Integer:
             result = String(as_integer);
+            break;
         case rpn_value::Type::Unsigned:
             result = String(as_unsigned);
+            break;
         case rpn_value::Type::Float:
             result = String(as_float);
             break;
@@ -310,6 +344,12 @@ rpn_value::operator String() const {
 
 bool rpn_value::operator <(const rpn_value& other) const {
     bool result = false;
+
+    // return Null and set err flag when trying to do logic with Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
 
     switch (type) {
         case rpn_value::Type::Float:
@@ -333,6 +373,12 @@ bool rpn_value::operator <(const rpn_value& other) const {
 bool rpn_value::operator >(const rpn_value& other) const {
     bool result = false;
 
+    // return Null and set err flag when trying to do logic with Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
+
     switch (type) {
         case rpn_value::Type::Float:
             result = as_float > rpn_float_t(other);
@@ -354,6 +400,12 @@ bool rpn_value::operator >(const rpn_value& other) const {
 
 bool rpn_value::operator ==(const rpn_value& other) const {
     bool result = false;
+
+    // return Null and set err flag when trying to do logic with Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
 
     switch (type) {
         case rpn_value::Type::String:
@@ -392,6 +444,12 @@ bool rpn_value::operator <=(const rpn_value& other) const {
 
 rpn_value rpn_value::operator +(const rpn_value& other) {
     rpn_value val;
+
+    // return Null and set err flag when trying to do math with Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
 
     switch (type) {
         // concat strings
@@ -440,6 +498,12 @@ rpn_value rpn_value::operator +(const rpn_value& other) {
 rpn_value rpn_value::operator -(const rpn_value& other) {
     rpn_value val;
 
+    // return Null and set err flag when trying to do math with Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
+
     // return null when can't do anything to compute the result
     if (!isNumber() && !isBoolean()) {
         return val;
@@ -473,7 +537,13 @@ rpn_value rpn_value::operator -(const rpn_value& other) {
 rpn_value rpn_value::operator *(const rpn_value& other) {
     rpn_value val;
 
-    // return null when can't do anything to compute the result
+    // return Null and set err flag when trying to do math with Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
+
+    // return Null when can't do anything to compute the result
     if (!isNumber() && !isBoolean()) {
         return val;
     }
@@ -505,6 +575,12 @@ rpn_value rpn_value::operator *(const rpn_value& other) {
 
 rpn_value rpn_value::operator /(const rpn_value& other) {
     rpn_value val;
+
+    // return Null and set err flag when trying to do math with Null
+    if (isNull() || other.isNull()) {
+        rpn_error = RPN_ERROR_VALUE_IS_NULL;
+        return val;
+    }
 
     // return null when can't do anything to compute the result
     if (!isNumber() && !isBoolean()) {
