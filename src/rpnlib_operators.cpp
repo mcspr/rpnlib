@@ -519,15 +519,11 @@ bool _rpn_changed(rpn_context & ctxt) {
         }
     }
 
-    bool result = false;
-
     // compare shared hash value with the value itself
     const auto value = ctxt.stack.back().value;
     const auto found = values.find(value);
-    if (found != values.end()) {
-       result = ((*found).second == *value);
-    }
 
+    const bool result = (found == values.end()) || (found != values.end()) && ((*found).second != *value);
     values[value] = *value;
 
     return result;
