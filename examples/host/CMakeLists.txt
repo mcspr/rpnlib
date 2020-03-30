@@ -19,7 +19,6 @@ set(RPNLIB_PATH ${CMAKE_SOURCE_DIR}/../../ CACHE FILEPATH "RPNLIB source code re
 
 # base for test/piotest
 add_library(unity STATIC
-    ${UNITY_PATH}/unity_fixture_stubs.c
     ${UNITY_PATH}/unity.c
 )
 target_include_directories(unity PUBLIC
