@@ -39,7 +39,7 @@ bool _rpn_can_divide_by(const rpn_value& value) {
     switch (value.type) {
         case rpn_value::Type::Float:
             if (std::isinf(value.as_float) || std::isnan(value.as_float)) {
-                rpn_error = RPN_ERROR_IEE_754;
+                rpn_error = RPN_ERROR_IEEE_754;
                 return result;
             }
             result = value.as_float != 0.0L;
@@ -221,9 +221,9 @@ rpn_value::operator rpn_uint_t() const {
     rpn_uint_t result = 0UL;
 
     // return Null and set err flag when trying to convert Null
-    if (isNull() || other.isNull()) {
+    if (isNull()) {
         rpn_error = RPN_ERROR_VALUE_IS_NULL;
-        return val;
+        return result;
     }
 
     switch (type) {
@@ -255,9 +255,9 @@ rpn_value::operator rpn_float_t() const {
     rpn_float_t result = 0.0L;
 
     // return Null and set err flag when trying to convert Null
-    if (isNull() || other.isNull()) {
+    if (isNull()) {
         rpn_error = RPN_ERROR_VALUE_IS_NULL;
-        return val;
+        return result;
     }
 
     switch (type) {
@@ -284,9 +284,9 @@ rpn_value::operator rpn_int_t() const {
     rpn_int_t result = 0;
 
     // return Null and set err flag when trying to convert Null
-    if (isNull() || other.isNull()) {
+    if (isNull()) {
         rpn_error = RPN_ERROR_VALUE_IS_NULL;
-        return val;
+        return result;
     }
 
     switch (type) {
@@ -318,9 +318,9 @@ rpn_value::operator String() const {
     String result("");
 
     // return Null and set err flag when trying to convert Null
-    if (isNull() || other.isNull()) {
+    if (isNull()) {
         rpn_error = RPN_ERROR_VALUE_IS_NULL;
-        return val;
+        return result;
     }
 
     switch (type) {
@@ -348,7 +348,7 @@ bool rpn_value::operator <(const rpn_value& other) const {
     // return Null and set err flag when trying to do logic with Null
     if (isNull() || other.isNull()) {
         rpn_error = RPN_ERROR_VALUE_IS_NULL;
-        return val;
+        return result;
     }
 
     switch (type) {
@@ -376,7 +376,7 @@ bool rpn_value::operator >(const rpn_value& other) const {
     // return Null and set err flag when trying to do logic with Null
     if (isNull() || other.isNull()) {
         rpn_error = RPN_ERROR_VALUE_IS_NULL;
-        return val;
+        return result;
     }
 
     switch (type) {
@@ -404,7 +404,7 @@ bool rpn_value::operator ==(const rpn_value& other) const {
     // return Null and set err flag when trying to do logic with Null
     if (isNull() || other.isNull()) {
         rpn_error = RPN_ERROR_VALUE_IS_NULL;
-        return val;
+        return result;
     }
 
     switch (type) {
