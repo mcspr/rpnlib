@@ -146,6 +146,7 @@ depth   ( a b c ... -> a b c ... n ) where n is the number of elements in the st
 
 ifn     ( a b c -> d ) if a!=0 then b else c
 end     ( a -> ...) ends execution if a resolves to false
+changed ( $a -> $a ) ends execution if $a changed since the last time
 
 =       ( a $var = -> $var ) sets $var to the value of a and keeps $var on the stack
 

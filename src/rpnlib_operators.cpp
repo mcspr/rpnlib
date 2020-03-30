@@ -66,6 +66,18 @@ extern "C" {
 #define RPN_CONST_E     2.718282
 #endif
 
+// Allow unordered_map to work with Arduino String
+namespace std {
+
+  template <>
+  struct hash<String> {
+	  std::size_t operator()(const String& value) const {
+		  return hash<const char*>()(value.c_str());
+	  }
+  };
+
+}
+
 // anonymous namespace binds all of the functions below to this compilation unit
 // this has the same effect as if these functions were `static`
 namespace {
