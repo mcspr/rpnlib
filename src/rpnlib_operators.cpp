@@ -32,6 +32,8 @@ extern "C" {
 #include <cmath>
 #include <utility>
 #include <cstdio>
+#include <utility>
+#include <unordered_map>
 
 // These are from <cmath>
 #ifdef M_PI
@@ -490,6 +492,35 @@ bool _rpn_end(rpn_context & ctxt) {
     return bool(value);
 }
 
+bool _rpn_changed(rpn_context & ctxt) {
+	if (ctxt.stack.back().type != RPN_STACK_TYPE_VARIABLE) return false;
+
+    using ValuePtr = std::shared_ptr<rpn_value>;
+    static std::unordered_map<ValuePtr, rpn_value> values;
+
+    // clean-up values that only exist here
+    for (auto it = values.begin(); it != values.end();) {
+        if ((*it).first.unique()) {
+            it = values.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    bool result = false;
+
+    // compare shared hash value with the value itself
+    const auto value = ctxt.stack.back().value;
+    const auto found = values.find(value);
+    if (found != values.end()) {
+       result = ((*found).second == *value);
+    }
+
+    values[value] = *value;
+
+    return result;
+}
+
 // ----------------------------------------------------------------------------
 // Stack
 // ----------------------------------------------------------------------------
@@ -705,6 +736,7 @@ bool rpn_operators_init(rpn_context & ctxt) {
 
     rpn_operator_set(ctxt, "ifn", 3, _rpn_ifn);
     rpn_operator_set(ctxt, "end", 1, _rpn_end);
+    rpn_operator_set(ctxt, "changed", 1, _rpn_changed);
 
     #ifdef RPNLIB_ADVANCED_MATH
         rpn_operators_fmath_init(ctxt);
