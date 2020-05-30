@@ -93,40 +93,40 @@ void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
 // rpn_value::operator >=()
 // rpn_value::operator <=()
 
-int32_t _rpn_stack_compare(rpn_context & ctxt) {
+rpn_int_t _rpn_stack_compare(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     if (prev < top) {
-        return -1;
+        return -1.0;
     } else if (prev > top) {
-        return 1;
+        return 1.0;
     } else {
-        return 0;
+        return 0.0;
     }
 }
 
-int32_t _rpn_stack_compare_or_eq(rpn_context & ctxt) {
+rpn_int_t _rpn_stack_compare_or_eq(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     if (prev <= top) {
-        return -1;
+        return -1.0;
     } else if (prev >= top) {
-        return 1;
+        return 1.0;
     } else {
-        return 0;
+        return 0.0;
     }
 }
 
-int32_t _rpn_stack_compare3(rpn_context & ctxt) {
+rpn_int_t _rpn_stack_compare3(rpn_context & ctxt) {
     auto& upper = _rpn_stack_peek(ctxt, 1);
     auto& lower = _rpn_stack_peek(ctxt, 2);
     auto& value = _rpn_stack_peek(ctxt, 3);
     if (value < lower) {
-        return -1;
+        return -1.0;
     } else if (value > upper) {
-        return 1;
+        return 1.0;
     } else {
-        return 0;
+        return 0.0;
     }
 }
 
@@ -261,7 +261,7 @@ bool _rpn_le(rpn_context & ctxt) {
 // - 1 if `a` > `b`
 // - 0 if `a` == `b`
 bool _rpn_cmp(rpn_context & ctxt) {
-    const auto result = rpn_float_t(_rpn_stack_compare(ctxt));
+    const auto result = _rpn_stack_compare(ctxt);
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
@@ -273,7 +273,7 @@ bool _rpn_cmp(rpn_context & ctxt) {
 // - 1 if `a` > `c`
 // - 0 if none of the above match
 bool _rpn_cmp3(rpn_context & ctxt) {
-    const auto result = rpn_float_t(_rpn_stack_compare3(ctxt));
+    const auto result = _rpn_stack_compare3(ctxt);
     _rpn_stack_eat(ctxt, 3);
     rpn_stack_push(ctxt, result);
     return true;
