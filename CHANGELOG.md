@@ -8,9 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `p` operator to print the top of the stack via debug function
 - `=` operator for variable assignment in expression
 - `exists` operator to check for variable existance
-- `"..."` syntax for strings
-- `true` and `false` in expressions, add boolean types
-- Allow to configure underlying types from rpnlib_config.h and -D... flags
+- allow to use either float or double as floating type, parse numbers in expressions as specified type
+- add boolean type, parse `true` and `false` in expressions
+- add string type, parse `"string"` in expressions
+- add null type, parse `null` in expressions
+- add integer and unsigned integer type, used in operators
+- Allow to configure underlying types from rpnlib\_config.h and -D... flags
 
 ### Changed
 - Stack structure no longer holds raw `float`, but internal `rpn_value` type
