@@ -69,8 +69,6 @@ enum rpn_token_t {
 // TODO: support '\'' and '"' at the same time, we must have different branches for each one. (likely to be solved with goto, also reducing nesting)
 // TODO: re2c could generate more efficient code
 
-using rpn_tokenizer_callback = std::function<bool(rpn_token_t, const char* ptr)>;
-
 namespace {
 
 // convert raw word to bool. we only need to match one of `true` or `false`, since we expect tokenizer to deduce the correct string
@@ -113,7 +111,13 @@ bool _rpn_token_is_bool(char c) {
     }
 }
 
-void _rpn_tokenize(char* buffer, rpn_tokenizer_callback callback) {
+// TODO: check that we have this signature:
+// bool(rpn_token_t, const char* ptr)
+// One option is to use std::inplace_function / function_ref:
+// https://github.com/TartanLlama/function_ref
+
+template <typename CallbackType>
+void _rpn_tokenize(char* buffer, CallbackType callback) {
     char *p = buffer;
     char *start_of_word = nullptr;
 
