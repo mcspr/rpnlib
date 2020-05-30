@@ -50,6 +50,7 @@ rpn_debug_callback_f _rpn_debug_callback = nullptr;
 
 enum rpn_token_t {
     RPN_TOKEN_UNKNOWN,
+    RPN_TOKEN_NULL,
     RPN_TOKEN_WORD,
     RPN_TOKEN_BOOLEAN,
     RPN_TOKEN_NUMBER,
@@ -74,41 +75,53 @@ namespace {
 // convert raw word to bool. we only need to match one of `true` or `false`, since we expect tokenizer to deduce the correct string
 
 bool _rpn_token_as_bool(const char* token) {
-    if (strcmp(token, "true") == 0) {
-        return true;
-    }
-    return false;
+    return (strcmp(token, "true") == 0);
 }
 
 // after initial match, check if token still matches the originally deduced type
 // no need for further checks, callback is expected to validate the token
 // TODO: ...should it though?
 
-bool _rpn_token_is_number(char c) {
+bool _rpn_token_still_number(char c) {
     switch (c) {
-        case '.':
-        case 'e':
-        case 'E':
-        case '-':
-        case '+':
-            return true;
-        default:
-            return isdigit(c);
+    case '.':
+    case 'e':
+    case 'E':
+    case '-':
+    case '+':
+        return true;
+    default:
+        return isdigit(c);
     }
 }
 
-bool _rpn_token_is_bool(char c) {
+bool _rpn_token_still_bool(char c) {
     switch (c) {
-        case 'r':
-        case 'u':
-        case 'e':
-        case 'a':
-        case 'l':
-        case 's':
-            return true;
-        default:
-            return false;
+    case 'r':
+    case 'u':
+    case 'e':
+    case 'a':
+    case 'l':
+    case 's':
+        return true;
+    default:
+        return false;
     }
+}
+
+bool _rpn_token_still_null(char c) {
+    switch (c) {
+    case 'n':
+    case 'u':
+    case 'l':
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool _rpn_token_is_null(const char* token) {
+    return (strcmp(token, "null") == 0);
 }
 
 // TODO: check that we have this signature:
@@ -126,6 +139,7 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
 
     enum states_t {
         UNKNOWN,
+        IN_NULL,
         IN_WORD,
         IN_NUMBER,
         IN_BOOLEAN,
@@ -170,6 +184,9 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
             } else if ((c == 't') || (c == 'f')) {
                 state = IN_BOOLEAN;
                 type = RPN_TOKEN_BOOLEAN;
+            } else if (c == 'n') {
+                state = IN_NULL;
+                type = RPN_TOKEN_NULL;
             } else {
                 state = IN_WORD;
                 type = RPN_TOKEN_WORD;
@@ -191,13 +208,12 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
             break;
 
         case IN_NUMBER:
-            if ((state == IN_NUMBER) && !isspace(c) && !_rpn_token_is_number(c)) {
-                state = IN_WORD;
-                type = RPN_TOKEN_WORD;
-            }
-
         case IN_BOOLEAN:
-            if ((state == IN_BOOLEAN) && !isspace(c) && !_rpn_token_is_bool(c)) {
+        case IN_NULL:
+            if (!isspace(c) && (
+                (state == IN_NUMBER) ? !_rpn_token_still_number(c) :
+                (state == IN_BOOLEAN) ? !_rpn_token_still_bool(c) :
+                (state == IN_NULL) ? !_rpn_token_still_null(c) : true)) {
                 state = IN_WORD;
                 type = RPN_TOKEN_WORD;
             }
@@ -234,6 +250,7 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
 
 bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exist) {
 
+    // XXX: must be arg too!
     static char buffer[RPNLIB_EXPRESSION_BUFFER_SIZE] = {0};
 
     strncpy(buffer, input, sizeof(buffer) - 1);
@@ -241,7 +258,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
     _rpn_tokenize(buffer, [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
 
-        // Is token a string, bool, number or variable?
+        // Is token a string, bool, number, variable or null?
         switch (type) {
             case RPN_TOKEN_STRING:
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
@@ -289,6 +306,13 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                     return true;
                 }
             }
+
+            case RPN_TOKEN_NULL:
+                if (_rpn_token_is_null(token)) {
+                    ctxt.stack.emplace_back(std::make_shared<rpn_value>());
+                    return true;
+                }
+                break;
 
             case RPN_TOKEN_UNKNOWN:
                 rpn_error = RPN_ERROR_UNKNOWN_TOKEN;
