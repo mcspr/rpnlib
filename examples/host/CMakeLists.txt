@@ -76,6 +76,7 @@ target_compile_options(esp8266 BEFORE PRIVATE
 )
 target_compile_options(esp8266 PUBLIC
     ${COMMON_FLAGS}
+    -DF_CPU=80000000
     -Wl,--defsym,_FS_start=0x40300000
     -Wl,--defsym,_FS_end=0x411FA000
     -Wl,--defsym,_FS_page=0x100
