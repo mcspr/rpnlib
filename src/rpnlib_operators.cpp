@@ -33,7 +33,6 @@ extern "C" {
 #include <utility>
 #include <cstdio>
 #include <utility>
-#include <unordered_map>
 
 // These are from <cmath>
 #ifdef M_PI
@@ -65,18 +64,6 @@ extern "C" {
 #ifndef RPN_CONST_E
 #define RPN_CONST_E     2.718282
 #endif
-
-// Allow unordered_map to work with Arduino String
-namespace std {
-
-  template <>
-  struct hash<String> {
-	  std::size_t operator()(const String& value) const {
-		  return hash<const char*>()(value.c_str());
-	  }
-  };
-
-}
 
 // anonymous namespace binds all of the functions below to this compilation unit
 // this has the same effect as if these functions were `static`
@@ -504,31 +491,6 @@ bool _rpn_end(rpn_context & ctxt) {
     return bool(value);
 }
 
-bool _rpn_changed(rpn_context & ctxt) {
-	if (ctxt.stack.back().type != RPN_STACK_TYPE_VARIABLE) return false;
-
-    using ValuePtr = std::shared_ptr<rpn_value>;
-    static std::unordered_map<ValuePtr, rpn_value> values;
-
-    // clean-up values that only exist here
-    for (auto it = values.begin(); it != values.end();) {
-        if ((*it).first.unique()) {
-            it = values.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    // compare shared hash value with the value itself
-    const auto value = ctxt.stack.back().value;
-    const auto found = values.find(value);
-
-    const bool result = (found == values.end()) || (found != values.end()) && ((*found).second != *value);
-    values[value] = *value;
-
-    return result;
-}
-
 // ----------------------------------------------------------------------------
 // Stack
 // ----------------------------------------------------------------------------
@@ -744,7 +706,6 @@ bool rpn_operators_init(rpn_context & ctxt) {
 
     rpn_operator_set(ctxt, "ifn", 3, _rpn_ifn);
     rpn_operator_set(ctxt, "end", 1, _rpn_end);
-    rpn_operator_set(ctxt, "changed", 1, _rpn_changed);
 
     #ifdef RPNLIB_ADVANCED_MATH
         rpn_operators_fmath_init(ctxt);
