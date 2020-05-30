@@ -216,6 +216,23 @@ void test_variable_operator(void) {
     TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
 }
 
+void test_variable_cleanup(void) {
+
+    rpn_float_t value;
+    rpn_context ctxt;
+
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "12.3 $tmp ="));
+    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
+    TEST_ASSERT_EQUAL_FLOAT(12.3, value);
+    TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
+
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "null $tmp ="));
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "$tmp exists"));
+    TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
+}
+
 void test_custom_operator(void) {
 
     rpn_float_t value;
@@ -320,6 +337,14 @@ void test_parse_string(void) {
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
+void test_parse_null(void) {
+    TEST_ASSERT_TRUE(false);
+}
+
+void test_parse_number(void) {
+    TEST_ASSERT_TRUE(false);
+}
+
 #if not HOST_MOCK
 void test_memory(void) {
 
@@ -342,34 +367,11 @@ void test_memory(void) {
 }
 #endif
 
-void test_changed_var() {
-    rpn_context ctxt;
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-
-    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", (rpn_float_t) 5));
-
-    // we haven't seen the variable yet, assume was not changed
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "$value changed"));
-    // previous expression should remember the variable, stop execution
-    TEST_ASSERT_FALSE(rpn_process(ctxt, "$value changed"));
-
-    // variable updated to a new value (TODO: same type?), detect change
-    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", (rpn_float_t) 6));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "$value changed"));
-
-    // variable updated through API, but value was not changed
-    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", (rpn_float_t) 6));
-    TEST_ASSERT_FALSE(rpn_process(ctxt, "$value changed"));
-
-    TEST_ASSERT_TRUE(rpn_clear(ctxt));
-}
-
 // -----------------------------------------------------------------------------
 // Main
 // -----------------------------------------------------------------------------
 
-void setup() {
-    //delay(2000);
+int run_tests() {
     UNITY_BEGIN();
     RUN_TEST(test_math);
     RUN_TEST(test_math_advanced);
@@ -386,6 +388,7 @@ void setup() {
     RUN_TEST(test_boolean);
     RUN_TEST(test_variable);
     RUN_TEST(test_variable_operator);
+    RUN_TEST(test_variable_cleanup);
     RUN_TEST(test_custom_operator);
     RUN_TEST(test_error_divide_by_zero);
     RUN_TEST(test_error_argument_count_mismatch);
@@ -394,10 +397,25 @@ void setup() {
     RUN_TEST(test_strings);
     RUN_TEST(test_parse_string);
     RUN_TEST(test_parse_bool);
-    RUN_TEST(test_changed_var);
-    UNITY_END();
+    RUN_TEST(test_parse_null);
+    RUN_TEST(test_parse_number);
+    return UNITY_END();
 }
 
-void loop() {
-    delay(1);
+#if HOST_MOCK
+
+int main() {
+    return run_tests();
 }
+
+#else
+
+void loop() {
+    delay(1)
+}
+
+void setup() {
+    run_tests();
+}
+
+#endif

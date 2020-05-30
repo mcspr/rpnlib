@@ -21,6 +21,9 @@ set(RPNLIB_PATH ${CMAKE_SOURCE_DIR}/../../ CACHE FILEPATH "RPNLIB source code re
 add_library(unity STATIC
     ${UNITY_PATH}/unity.c
 )
+target_compile_options(unity BEFORE PRIVATE
+    -DUNITY_OUTPUT_COLOR
+)
 target_include_directories(unity PUBLIC
     ${UNITY_PATH}
 )
