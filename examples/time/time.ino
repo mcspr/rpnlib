@@ -36,6 +36,16 @@ void dump_stack(rpn_context & ctxt) {
     Serial.println();
 }
 
+template<>
+bool rpn_stack_pop(rpn_context& ctxt, time_t& value) {
+    return rpn_stack_pop(ctxt, reinterpret_cast<rpn_int_t&>(value));
+}
+
+template<>
+bool rpn_stack_push(rpn_context& ctxt, time_t&& value) {
+    return rpn_stack_push(ctxt, reinterpret_cast<const rpn_int_t&>(value));
+}
+
 void setup() {
     
     // Init serial communication with the computer
@@ -85,7 +95,8 @@ void setup() {
         rpn_stack_pop(ctxt, ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_stack_push(ctxt, (rpn_int_t) tm_from_ts.tm_wday);
+        //rpn_stack_push(ctxt, (rpn_int_t) tm_from_ts.tm_wday);
+        rpn_stack_push(ctxt, tm_from_ts.tm_wday);
         return true;
     });
     rpn_operator_set(ctxt, "hour", 1, [](rpn_context & ctxt) {

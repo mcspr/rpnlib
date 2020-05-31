@@ -35,6 +35,8 @@ enum rpn_stack_type_t {
     RPN_STACK_TYPE_VARIABLE
 };
 
+// TODO: 0.5.0 direct class methods instead of c style functions
+//       return this struct as 'optional' type instead of bool
 struct rpn_stack_value {
 
     rpn_stack_value(rpn_stack_type_t type, std::shared_ptr<rpn_value> value);
@@ -56,15 +58,44 @@ rpn_stack_type_t rpn_stack_inspect(rpn_context & ctxt);
 size_t rpn_stack_size(rpn_context &);
 bool rpn_stack_clear(rpn_context &);
 
-bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value);
-bool rpn_stack_push(rpn_context & ctxt, const rpn_value& value);
+template<typename T>
+inline bool rpn_stack_push(rpn_context & ctxt, T&& value) {
+    ctxt.stack.emplace_back(rpn_value(std::forward<T>(value)));
+    return ctxt.stack.size();
+}
+
+template<>
+inline bool rpn_stack_push(rpn_context & ctxt, const rpn_value& value) {
+    ctxt.stack.emplace_back(value);
+    return true;
+}
+
+template<>
+inline bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value) {
+    ctxt.stack.emplace_back(std::move(value));
+    return true;
+}
 
 bool rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& value);
 
 template <typename T>
-bool rpn_stack_get(rpn_context & ctxt, unsigned char index, T& value);
+inline bool rpn_stack_get(rpn_context & ctxt, unsigned char index, T& value) {
+    rpn_value tmp;
+    if (rpn_stack_get(ctxt, index, tmp)) {
+        value = T(tmp);
+        return true;
+    }
+    return false;
+}
 
 bool rpn_stack_pop(rpn_context & ctxt, rpn_value& value);
 
 template<typename T>
-bool rpn_stack_pop(rpn_context & ctxt, T& value);
+bool rpn_stack_pop(rpn_context & ctxt, T& value) {
+    rpn_value tmp;
+    if (rpn_stack_pop(ctxt, tmp)) {
+        value = T(tmp);
+        return true;
+    }
+    return false;
+}

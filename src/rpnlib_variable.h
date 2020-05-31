@@ -56,7 +56,14 @@ bool rpn_variable_set(rpn_context & ctxt, const char * name, rpn_value&& value);
 bool rpn_variable_get(rpn_context & ctxt, const char * name, rpn_value& value);
 
 template<typename T>
-bool rpn_variable_get(rpn_context & ctxt, const char * name, T& value);
+bool rpn_variable_get(rpn_context & ctxt, const char * name, T& value) {
+    rpn_value tmp;
+    if (rpn_variable_get(ctxt, name, tmp)) {
+        value = T(tmp);
+        return true;
+    }
+    return false;
+}
 
 bool rpn_variable_del(rpn_context &, const char *);
 

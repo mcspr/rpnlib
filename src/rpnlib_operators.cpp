@@ -195,7 +195,7 @@ bool _rpn_abs(rpn_context & ctxt) {
     if (!top.isNumber()) {
         return false;
     }
-    rpn_float_t result = top.as_float * -1.0L;
+    rpn_float_t result = rpn_float_t(top) * -1.0L;
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -425,11 +425,11 @@ bool _rpn_round(rpn_context & ctxt) {
     }
     
     rpn_float_t multiplier = 1.0L;
-    for (int i = 0; i < round(decimals.as_float); ++i) {
+    for (int i = 0; i < round(rpn_float_t(decimals)); ++i) {
         multiplier *= 10.0L;
     }
     
-    const auto result = rpn_float_t(int(value.as_float * multiplier + 0.5L) / multiplier);
+    const auto result = rpn_float_t(int(rpn_float_t(value) * multiplier + 0.5L) / multiplier);
 
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
@@ -446,7 +446,7 @@ bool _rpn_ceil(rpn_context & ctxt) {
         return false;
     }
 
-    rpn_float_t result = ceil(value.as_float);
+    rpn_float_t result = ceil(rpn_float_t(value));
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -460,7 +460,7 @@ bool _rpn_floor(rpn_context & ctxt) {
         return false;
     }
 
-    rpn_float_t result = floor(value.as_float);
+    rpn_float_t result = floor(rpn_float_t(value));
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -560,7 +560,7 @@ bool _rpn_drop(rpn_context & ctxt) {
 
 // [a b c] -> [a b c 3]
 bool _rpn_depth(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, rpn_float_t(rpn_stack_size(ctxt)));
+    rpn_stack_push(ctxt, rpn_uint_t(rpn_stack_size(ctxt)));
     return true;
 }
 
@@ -608,19 +608,19 @@ bool _rpn_print(rpn_context & ctxt) {
             sprintf(buffer + offset, "null");
             break;
         case rpn_value::Type::Boolean:
-            sprintf(buffer + offset, "%s", val.as_boolean ? "true" : "false");
+            sprintf(buffer + offset, "%s", bool(val) ? "true" : "false");
             break;
         case rpn_value::Type::Integer:
-            sprintf(buffer + offset, "%ld", val.as_integer);
+            sprintf(buffer + offset, "%d", rpn_int_t(val));
             break;
         case rpn_value::Type::Unsigned:
-            sprintf(buffer + offset, "%u", val.as_unsigned);
+            sprintf(buffer + offset, "%u", rpn_uint_t(val));
             break;
         case rpn_value::Type::Float:
-            sprintf(buffer + offset, "%f", val.as_float);
+            sprintf(buffer + offset, "%f", rpn_float_t(val));
             break;
         case rpn_value::Type::String:
-            sprintf(buffer + offset, "\"%s\"", val.as_string.c_str());
+            sprintf(buffer + offset, "\"%s\"", String(val).c_str());
             break;
         default:
             sprintf(buffer + offset, "(unknown)");

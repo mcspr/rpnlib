@@ -38,13 +38,13 @@ struct rpn_value {
     };
 
     rpn_value();
-    rpn_value(bool);
-    rpn_value(rpn_int_t);
-    rpn_value(rpn_uint_t);
-    rpn_value(rpn_float_t);
-    rpn_value(const char*);
-    rpn_value(const String&);
-    rpn_value(String&&);
+    explicit rpn_value(bool);
+    explicit rpn_value(rpn_int_t);
+    explicit rpn_value(rpn_uint_t);
+    explicit rpn_value(rpn_float_t);
+    explicit rpn_value(const char*);
+    explicit rpn_value(const String&);
+    explicit rpn_value(String&&);
 
     rpn_value(rpn_value&&);
     rpn_value(const rpn_value&);
@@ -67,11 +67,11 @@ struct rpn_value {
     rpn_value operator /(const rpn_value&);
     rpn_value operator %(const rpn_value&);
 
-    operator bool() const;
-    operator rpn_int_t() const;
-    operator rpn_uint_t() const;
-    operator rpn_float_t() const;
-    operator String() const;
+    explicit operator bool() const;
+    explicit operator rpn_int_t() const;
+    explicit operator rpn_uint_t() const;
+    explicit operator rpn_float_t() const;
+    explicit operator String() const;
 
     bool is(Type) const;
     bool isNull() const;
@@ -82,6 +82,8 @@ struct rpn_value {
     bool isNumber() const;
     bool isString() const;
 
+    private:
+
     union {
         bool as_boolean;
         rpn_int_t as_integer;
@@ -89,6 +91,8 @@ struct rpn_value {
         rpn_float_t as_float;
         String as_string;
     };
+
+    public:
 
     Type type;
 

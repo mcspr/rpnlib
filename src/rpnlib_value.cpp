@@ -37,21 +37,23 @@ bool _rpn_can_divide_by(const rpn_value& value) {
     bool result = false;
 
     switch (value.type) {
-        case rpn_value::Type::Float:
-            if (std::isinf(value.as_float) || std::isnan(value.as_float)) {
+        case rpn_value::Type::Float: {
+            auto as_float = rpn_float_t(value);
+            if (std::isinf(as_float) || std::isnan(as_float)) {
                 rpn_error = RPN_ERROR_IEEE_754;
                 return result;
             }
-            result = value.as_float != 0.0L;
+            result = as_float != 0.0L;
             break;
+        }
         case rpn_value::Type::Null:
             rpn_error = RPN_ERROR_VALUE_IS_NULL;
             return result;
         case rpn_value::Type::Integer:
-            result = value.as_integer != 0L;
+            result = rpn_int_t(value) != 0L;
             break;
         case rpn_value::Type::Unsigned:
-            result = value.as_unsigned != 0UL;
+            result = rpn_int_t(value) != 0UL;
             break;
         default:
             break;

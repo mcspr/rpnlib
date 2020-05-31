@@ -56,24 +56,6 @@ rpn_stack_value::rpn_stack_value(rpn_value&& value) :
 // Stack methods
 // ----------------------------------------------------------------------------
 
-namespace {
-
-template<typename T>
-bool _rpn_stack_push(rpn_context & ctxt, T&& value) {
-    ctxt.stack.emplace_back(std::forward<T>(value));
-    return true;
-}
-
-}
-
-bool rpn_stack_push(rpn_context & ctxt, const rpn_value& value) {
-    return _rpn_stack_push(ctxt, value);
-}
-
-bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value) {
-    return _rpn_stack_push(ctxt, std::move(value));
-}
-
 bool rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& value) {
     const auto size = ctxt.stack.size();
     if (index >= size) return false;
@@ -86,31 +68,6 @@ bool rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& value) {
     return true;
 }
 
-template <typename T>
-bool rpn_stack_get(rpn_context & ctxt, unsigned char index, T& value) {
-    rpn_value tmp;
-    if (rpn_stack_get(ctxt, index, tmp)) {
-        value = tmp;
-        return true;
-    }
-    return false;
-}
-
-template
-bool rpn_stack_get<bool>(rpn_context &, unsigned char, bool& value);
-
-template
-bool rpn_stack_get<rpn_float_t>(rpn_context &, unsigned char, rpn_float_t& value);
-
-template
-bool rpn_stack_get<String>(rpn_context &, unsigned char, String& value);
-
-template
-bool rpn_stack_get<rpn_int_t>(rpn_context &, unsigned char, rpn_int_t& value);
-
-template
-bool rpn_stack_get<rpn_uint_t>(rpn_context &, unsigned char, rpn_uint_t& value);
-
 bool rpn_stack_pop(rpn_context & ctxt, rpn_value& value) {
     if (!ctxt.stack.size()) return false;
 
@@ -122,31 +79,6 @@ bool rpn_stack_pop(rpn_context & ctxt, rpn_value& value) {
     ctxt.stack.pop_back();
     return true;
 }
-
-template<typename T>
-bool rpn_stack_pop(rpn_context & ctxt, T& value) {
-    rpn_value tmp;
-    if (rpn_stack_pop(ctxt, tmp)) {
-        value = tmp;
-        return true;
-    }
-    return false;
-}
-
-template
-bool rpn_stack_pop<bool>(rpn_context & ctxt, bool& value);
-
-template
-bool rpn_stack_pop<rpn_float_t>(rpn_context & ctxt, rpn_float_t& value);
-
-template
-bool rpn_stack_pop<String>(rpn_context & ctxt, String& value);
-
-template
-bool rpn_stack_pop<rpn_int_t>(rpn_context & ctxt, rpn_int_t& value);
-
-template
-bool rpn_stack_pop<rpn_uint_t>(rpn_context & ctxt, rpn_uint_t& value);
 
 size_t rpn_stack_size(rpn_context & ctxt) {
     return ctxt.stack.size();
