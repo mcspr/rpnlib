@@ -250,13 +250,10 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
 
 bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exist) {
 
-    // XXX: must be arg too!
-    static char buffer[RPNLIB_EXPRESSION_BUFFER_SIZE] = {0};
-
-    strncpy(buffer, input, sizeof(buffer) - 1);
+    strncpy(ctxt._input_buffer.data(), input, ctxt._input_buffer.size() - 1);
     rpn_error = RPN_ERROR_OK;
 
-    _rpn_tokenize(buffer, [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
+    _rpn_tokenize(ctxt._input_buffer.data(), [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
 
         // Is token a string, bool, number, variable or null?
         switch (type) {

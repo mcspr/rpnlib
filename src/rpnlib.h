@@ -25,6 +25,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "rpnlib_config.h"
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -40,6 +41,11 @@ struct rpn_context {
     std::vector<rpn_variable> variables;
     std::vector<rpn_operator> operators;
     std::vector<rpn_stack_value> stack;
+
+    private:
+
+    friend bool rpn_process(rpn_context &, const char*, bool);
+    std::array<char, RPNLIB_EXPRESSION_BUFFER_SIZE> _input_buffer;
 };
 
 using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
