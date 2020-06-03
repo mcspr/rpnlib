@@ -24,7 +24,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "rpnlib.h"
 
-using rpn_operator_callback_f = bool(*)(rpn_context &);
+using rpn_operator_callback_f = rpn_error(*)(rpn_context &);
 
 struct rpn_operator {
     rpn_operator() = delete;

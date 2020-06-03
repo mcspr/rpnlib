@@ -34,14 +34,10 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdlib>
 #include <cctype>
 
-// XXX REMOVE XXX ME XXX
-#include <cstdio>
-
 // ----------------------------------------------------------------------------
 // Globals
 // ----------------------------------------------------------------------------
 
-rpn_errors rpn_error = RPN_ERROR_OK;
 rpn_debug_callback_f _rpn_debug_callback = nullptr;
 
 // ----------------------------------------------------------------------------
@@ -250,10 +246,10 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
 
 bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exist) {
 
-    strncpy(ctxt._input_buffer.data(), input, ctxt._input_buffer.size() - 1);
-    rpn_error = RPN_ERROR_OK;
+    ctxt.input_buffer = input;
+    ctxt.error = RPN_ERROR_OK;
 
-    _rpn_tokenize(ctxt._input_buffer.data(), [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
+    _rpn_tokenize(const_cast<char*>(ctxt.input_buffer.c_str()), [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
 
         // Is token a string, bool, number, variable or null?
         switch (type) {
@@ -291,7 +287,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
                 // no reason to continue
                 if (!found && variable_must_exist) {
-                    rpn_error = RPN_ERROR_VARIABLE_DOES_NOT_EXIST;
+                    ctxt.error = RPN_ERROR_VARIABLE_DOES_NOT_EXIST;
                     return false;
                 }
 
@@ -316,7 +312,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 break;
 
             case RPN_TOKEN_UNKNOWN:
-                rpn_error = RPN_ERROR_UNKNOWN_TOKEN;
+                ctxt.error = RPN_ERROR_UNKNOWN_TOKEN;
                 break;
 
             case RPN_TOKEN_WORD:
@@ -330,23 +326,20 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             for (auto & f : ctxt.operators) {
                 if (f.name == token) {
                     if (rpn_stack_size(ctxt) < f.argc) {
-                        rpn_error = RPN_ERROR_ARGUMENT_COUNT_MISMATCH;
+                        ctxt.error = RPN_ERROR_ARGUMENT_COUNT_MISMATCH;
                         break;
                     }
-                    if (!(f.callback)(ctxt)) {
-                        // Method should set rpn_error
-                        break;
-                    }
+                    ctxt.error = (f.callback)(ctxt);
                     found = true;
                     break;
                 }
             }
-            if (RPN_ERROR_OK != rpn_error) return false;
+            if (RPN_ERROR_OK != ctxt.error) return false;
             if (found) return true;
         }
 
         // Don't know the token
-        rpn_error = RPN_ERROR_UNKNOWN_TOKEN;
+        ctxt.error = RPN_ERROR_UNKNOWN_TOKEN;
         return false;
 
     });
@@ -354,12 +347,12 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
     // clean-up temporaries
     ctxt.variables.erase(
         std::remove_if(ctxt.variables.begin(), ctxt.variables.end(), [](const rpn_variable& var) {
-            return var.value->isNull();
+            return ((var.value.use_count() == 1) && var.value->isNull());
         }),
         ctxt.variables.end()
     );
 
-    return (RPN_ERROR_OK == rpn_error);
+    return (RPN_ERROR_OK == ctxt.error);
 
 }
 
@@ -369,6 +362,7 @@ bool rpn_debug(rpn_debug_callback_f callback) {
 }
 
 bool rpn_init(rpn_context & ctxt) {
+    ctxt.input_buffer.reserve(RPNLIB_EXPRESSION_BUFFER_SIZE);
     return rpn_operators_init(ctxt);
 }
 

@@ -27,9 +27,19 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <limits>
 
+enum class rpn_value_error {
+    OK,
+    InvalidOperation,
+    TypeMismatch,
+    DivideByZero,
+    IEEE754,
+    IsNull
+};
+
 struct rpn_value {
     enum class Type {
         Null,
+        Error,
         Boolean,
         Integer,
         Unsigned,
@@ -38,6 +48,7 @@ struct rpn_value {
     };
 
     rpn_value();
+    explicit rpn_value(rpn_value_error);
     explicit rpn_value(bool);
     explicit rpn_value(rpn_int_t);
     explicit rpn_value(rpn_uint_t);
@@ -74,6 +85,7 @@ struct rpn_value {
     explicit operator String() const;
 
     bool is(Type) const;
+    bool isError() const;
     bool isNull() const;
     bool isBoolean() const;
     bool isInt() const;
@@ -85,6 +97,7 @@ struct rpn_value {
     private:
 
     union {
+        rpn_value_error as_error;
         bool as_boolean;
         rpn_int_t as_integer;
         rpn_uint_t as_unsigned;

@@ -133,16 +133,16 @@ rpn_int_t _rpn_stack_compare3(rpn_context & ctxt) {
 // Pushes specified predefined const values onto the stack
 // TODO: should these be `$pi` and `$e` instead?
 
-bool _rpn_pi(rpn_context & ctxt) {
+rpn_error _rpn_pi(rpn_context & ctxt) {
     static auto value = rpn_value { RPN_CONST_PI };
     rpn_stack_push(ctxt, value);
-    return true;
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_e(rpn_context & ctxt) {
+rpn_error _rpn_e(rpn_context & ctxt) {
     static auto value = rpn_value { RPN_CONST_E };
     rpn_stack_push(ctxt, value);
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // ----------------------------------------------------------------------------
@@ -153,50 +153,68 @@ bool _rpn_e(rpn_context & ctxt) {
 // Pushes `f64` value as the result
 // Eats both stack values
 
-bool _rpn_sum(rpn_context & ctxt) {
-    const auto result = _rpn_stack_peek(ctxt, 2) + _rpn_stack_peek(ctxt, 1);
+rpn_error _rpn_sum(rpn_context & ctxt) {
+    auto result = _rpn_stack_peek(ctxt, 2) + _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
-    rpn_stack_push(ctxt, result);
-    return true;
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
+    rpn_stack_push(ctxt, std::move(result));
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_substract(rpn_context & ctxt) {
-    const auto result = _rpn_stack_peek(ctxt, 2) - _rpn_stack_peek(ctxt, 1);
+rpn_error _rpn_substract(rpn_context & ctxt) {
+    auto result = _rpn_stack_peek(ctxt, 2) - _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
-    rpn_stack_push(ctxt, result);
-    return true;
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
+    rpn_stack_push(ctxt, std::move(result));
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_times(rpn_context & ctxt) {
-    const auto result = _rpn_stack_peek(ctxt, 2) * _rpn_stack_peek(ctxt, 1);
+rpn_error _rpn_times(rpn_context & ctxt) {
+    auto result = _rpn_stack_peek(ctxt, 2) * _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
-    rpn_stack_push(ctxt, result);
-    return true;
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
+    rpn_stack_push(ctxt, std::move(result));
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_divide(rpn_context & ctxt) {
-    const auto result = _rpn_stack_peek(ctxt, 2) / _rpn_stack_peek(ctxt, 1);
+rpn_error _rpn_divide(rpn_context & ctxt) {
+    auto result = _rpn_stack_peek(ctxt, 2) / _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
-    rpn_stack_push(ctxt, result);
-    return true;
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
+    rpn_stack_push(ctxt, std::move(result));
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_mod(rpn_context & ctxt) {
-    const auto result = _rpn_stack_peek(ctxt, 2) % _rpn_stack_peek(ctxt, 1);
+rpn_error _rpn_mod(rpn_context & ctxt) {
+    auto result = _rpn_stack_peek(ctxt, 2) % _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 2);
-    rpn_stack_push(ctxt, result);
-    return true;
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
+    rpn_stack_push(ctxt, std::move(result));
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_abs(rpn_context & ctxt) {
+rpn_error _rpn_abs(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     if (!top.isNumber()) {
-        return false;
+        return RPN_ERROR_INVALID_OPERATION;
     }
     rpn_value result { rpn_float_t(top) * -1.0 };
     _rpn_stack_eat(ctxt, 1);
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
     rpn_stack_push(ctxt, std::move(result));
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // ----------------------------------------------------------------------------
@@ -207,46 +225,64 @@ bool _rpn_abs(rpn_context & ctxt) {
 // Pushes `boolean` value of the comparison
 // Eats both stack values
 
-bool _rpn_eq(rpn_context & ctxt) {
+rpn_error _rpn_eq(rpn_context & ctxt) {
     rpn_value result { _rpn_stack_peek(ctxt, 2) == _rpn_stack_peek(ctxt, 1) };
     _rpn_stack_eat(ctxt, 2);
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_ne(rpn_context & ctxt) {
+rpn_error _rpn_ne(rpn_context & ctxt) {
     rpn_value result { _rpn_stack_peek(ctxt, 2) != _rpn_stack_peek(ctxt, 1) };
     _rpn_stack_eat(ctxt, 2);
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_gt(rpn_context & ctxt) {
+rpn_error _rpn_gt(rpn_context & ctxt) {
     rpn_value result { _rpn_stack_compare(ctxt) == 1 };
     _rpn_stack_eat(ctxt, 2);
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_ge(rpn_context & ctxt) {
+rpn_error _rpn_ge(rpn_context & ctxt) {
     rpn_value result { _rpn_stack_compare_or_eq(ctxt) == 1 };
     _rpn_stack_eat(ctxt, 2);
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_lt(rpn_context & ctxt) {
+rpn_error _rpn_lt(rpn_context & ctxt) {
     rpn_value result { _rpn_stack_compare(ctxt) == -1 };
     _rpn_stack_eat(ctxt, 2);
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 }
 
-bool _rpn_le(rpn_context & ctxt) {
+rpn_error _rpn_le(rpn_context & ctxt) {
     rpn_value result { _rpn_stack_compare_or_eq(ctxt) == -1 };
     _rpn_stack_eat(ctxt, 2);
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // ----------------------------------------------------------------------------
@@ -258,11 +294,14 @@ bool _rpn_le(rpn_context & ctxt) {
 // - -1 if `a` < `b`
 // - 1 if `a` > `b`
 // - 0 if `a` == `b`
-bool _rpn_cmp(rpn_context & ctxt) {
+rpn_error _rpn_cmp(rpn_context & ctxt) {
     rpn_value result { _rpn_stack_compare(ctxt) };
     _rpn_stack_eat(ctxt, 2);
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 };    
 
 // [a b c] -> [d]
@@ -270,11 +309,15 @@ bool _rpn_cmp(rpn_context & ctxt) {
 // - -1 if `a` < `b`
 // - 1 if `a` > `c`
 // - 0 if none of the above match
-bool _rpn_cmp3(rpn_context & ctxt) {
+rpn_error _rpn_cmp3(rpn_context & ctxt) {
     rpn_value result { _rpn_stack_compare3(ctxt) };
     _rpn_stack_eat(ctxt, 3);
+    if (result.isError()) {
+        return RPN_ERROR_VALUE;
+    }
+
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 };    
 
 // [a ... x] -> [y]
@@ -283,22 +326,22 @@ bool _rpn_cmp3(rpn_context & ctxt) {
 // - ... next elements are members of the array
 // - `a` is the array[index] to push onto the stack
 // We eat all of the stack and push N'th element. When either index or array size is wrong, do nothing
-bool _rpn_index(rpn_context & ctxt) {
+rpn_error _rpn_index(rpn_context & ctxt) {
     const auto stack_size = rpn_stack_size(ctxt);
 
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto size = rpn_float_t(top);
     if (size < 0) {
-        return false;
+        return RPN_ERROR_INVALID_ARGUMENT;
     }
     if (stack_size < size + 1) {
-        return false;
+        return RPN_ERROR_INVALID_ARGUMENT;
     }
 
     const auto& bottom = _rpn_stack_peek(ctxt, size + 2);
     const auto index = rpn_float_t(bottom);
     if ((index + 1) > size) {
-        return false;
+        return RPN_ERROR_INVALID_ARGUMENT;
     }
 
     const auto pick = _rpn_stack_peek(ctxt, size + 1 - index);
@@ -306,33 +349,39 @@ bool _rpn_index(rpn_context & ctxt) {
 
     rpn_stack_push(ctxt, pick);
 
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a b c d e] -> [x]
 // maps value `a` from range `b`:`c` to `d`:`e`
 // stops execution when `c` and `d` are equal
-bool _rpn_map(rpn_context & ctxt) {
+rpn_error _rpn_map(rpn_context & ctxt) {
     auto value = _rpn_stack_peek(ctxt, 5);
     auto from_low = _rpn_stack_peek(ctxt, 4);
     auto from_high = _rpn_stack_peek(ctxt, 3);
     auto to_low = _rpn_stack_peek(ctxt, 2);
     auto to_high = _rpn_stack_peek(ctxt, 1);
 
-    if (from_high == from_low) return false;
+    if (from_high == from_low) {
+        return RPN_ERROR_INVALID_ARGUMENT;
+    }
     if (value < from_low) value = from_low;
     if (value > from_high) value = from_high;
     value = to_low + (value - from_low) * (to_high - to_low) / (from_high - from_low);
 
     _rpn_stack_eat(ctxt, 5);
+    if (value.isError()) {
+        return RPN_ERROR_VALUE;
+    }
+
     rpn_stack_push(ctxt, value);
 
-    return true;
+    return RPN_ERROR_OK;
 };
 
 // [a b c] -> [d]
 // constrains `a` between values `b` (lower bound) and `c` (upper bound)
-bool _rpn_constrain(rpn_context & ctxt) {
+rpn_error _rpn_constrain(rpn_context & ctxt) {
     const auto upper = _rpn_stack_peek(ctxt, 1);
     const auto lower = _rpn_stack_peek(ctxt, 2);
     const auto value = _rpn_stack_peek(ctxt, 3);
@@ -346,7 +395,7 @@ bool _rpn_constrain(rpn_context & ctxt) {
         rpn_stack_push(ctxt, value);
     }
 
-    return true;
+    return RPN_ERROR_OK;
 };    
 
 // ----------------------------------------------------------------------------
@@ -360,7 +409,7 @@ bool _rpn_constrain(rpn_context & ctxt) {
 
 // [a b] -> [c]
 // pushes boolean value of `b` && `a`
-bool _rpn_and(rpn_context & ctxt) {
+rpn_error _rpn_and(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
 
@@ -368,12 +417,12 @@ bool _rpn_and(rpn_context & ctxt) {
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a b] -> [c]
 // pushes boolean value of `b` || `a`
-bool _rpn_or(rpn_context & ctxt) {
+rpn_error _rpn_or(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
 
@@ -381,12 +430,12 @@ bool _rpn_or(rpn_context & ctxt) {
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a b] -> [c]
 // pushes boolean value of `b` ^ `a`
-bool _rpn_xor(rpn_context & ctxt) {
+rpn_error _rpn_xor(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
 
@@ -394,17 +443,17 @@ bool _rpn_xor(rpn_context & ctxt) {
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a] -> [b]
 // pushes inverse boolean value of `a`
-bool _rpn_not(rpn_context & ctxt) {
+rpn_error _rpn_not(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     rpn_value result { !bool(top) };
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // ----------------------------------------------------------------------------
@@ -413,13 +462,13 @@ bool _rpn_not(rpn_context & ctxt) {
 
 // [a b] -> [c], where a is equal to round(a) and `b` is number of decimal places
 // stops execution when either `a` or `b` are not numbers
-bool _rpn_round(rpn_context & ctxt) {
+rpn_error _rpn_round(rpn_context & ctxt) {
     
     const auto& decimals = _rpn_stack_peek(ctxt, 1);
     const auto& value = _rpn_stack_peek(ctxt, 2);
 
     if (!decimals.isNumber() || !value.isNumber()) {
-        return false;
+        return RPN_ERROR_INVALID_ARGUMENT;
     }
     
     rpn_float_t multiplier = 1.0;
@@ -432,36 +481,36 @@ bool _rpn_round(rpn_context & ctxt) {
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, std::move(result));
 
-    return true;
+    return RPN_ERROR_OK;
 
 }
 
 // [a] -> [b], where b is equal to ceil(a)
 // stops execution when `a` is not a number
-bool _rpn_ceil(rpn_context & ctxt) {
+rpn_error _rpn_ceil(rpn_context & ctxt) {
     auto& value = _rpn_stack_peek(ctxt, 1);
     if (!value.isNumber()) {
-        return false;
+        return RPN_ERROR_INVALID_ARGUMENT;
     }
 
     rpn_value result { ceil(rpn_float_t(value)) };
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, std::move(result));
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a] -> [b], where b is equal to floor(a)
 // stops execution when `a` is not a number
-bool _rpn_floor(rpn_context & ctxt) {
+rpn_error _rpn_floor(rpn_context & ctxt) {
     auto& value = _rpn_stack_peek(ctxt, 1);
     if (!value.isNumber()) {
-        return false;
+        return RPN_ERROR_INVALID_ARGUMENT;
     }
 
     rpn_value result { floor(rpn_float_t(value)) };
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, std::move(result));
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // ----------------------------------------------------------------------------
@@ -470,7 +519,7 @@ bool _rpn_floor(rpn_context & ctxt) {
 
 // [a b c] -> [b] when a resolves `true`
 // [a b c] -> [c] when a resolves `false`
-bool _rpn_ifn(rpn_context & ctxt) {
+rpn_error _rpn_ifn(rpn_context & ctxt) {
     const auto c = _rpn_stack_peek(ctxt, 1);
     const auto b = _rpn_stack_peek(ctxt, 2);
     const auto a = _rpn_stack_peek(ctxt, 3);
@@ -479,15 +528,15 @@ bool _rpn_ifn(rpn_context & ctxt) {
     rpn_value result { bool(a) ? b : c };
     rpn_stack_push(ctxt, result);
 
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a] -> []
 // stops execution when a resolves to `false`
-bool _rpn_end(rpn_context & ctxt) {
+rpn_error _rpn_end(rpn_context & ctxt) {
     const auto value = _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 1);
-    return bool(value);
+    return bool(value) ? RPN_ERROR_OK : RPN_ERROR_VALUE;
 }
 
 // ----------------------------------------------------------------------------
@@ -495,34 +544,34 @@ bool _rpn_end(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 // [a] -> [a a]
-bool _rpn_dup(rpn_context & ctxt) {
+rpn_error _rpn_dup(rpn_context & ctxt) {
     rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 1));
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a b] -> [a b a b]
-bool _rpn_dup2(rpn_context & ctxt) {
+rpn_error _rpn_dup2(rpn_context & ctxt) {
     rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 1));
     rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 3));
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a b] -> [a b a]
-bool _rpn_over(rpn_context & ctxt) {
+rpn_error _rpn_over(rpn_context & ctxt) {
     rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 2));
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a b] -> [b a]
-bool _rpn_swap(rpn_context & ctxt) {
+rpn_error _rpn_swap(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     std::swap(top, prev);
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a b c] -> [c a b]
-bool _rpn_unrot(rpn_context & ctxt) {
+rpn_error _rpn_unrot(rpn_context & ctxt) {
     const auto c = _rpn_stack_peek(ctxt, 1);
     const auto b = _rpn_stack_peek(ctxt, 2);
     const auto a = _rpn_stack_peek(ctxt, 3);
@@ -533,11 +582,11 @@ bool _rpn_unrot(rpn_context & ctxt) {
     rpn_stack_push(ctxt, a);
     rpn_stack_push(ctxt, b);
 
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a b c] -> [b c a]
-bool _rpn_rot(rpn_context & ctxt) {
+rpn_error _rpn_rot(rpn_context & ctxt) {
     const auto c = _rpn_stack_peek(ctxt, 1);
     const auto b = _rpn_stack_peek(ctxt, 2);
     const auto a = _rpn_stack_peek(ctxt, 3);
@@ -548,37 +597,40 @@ bool _rpn_rot(rpn_context & ctxt) {
     rpn_stack_push(ctxt, c);
     rpn_stack_push(ctxt, a);
 
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a b c] -> [a b]
-bool _rpn_drop(rpn_context & ctxt) {
+rpn_error _rpn_drop(rpn_context & ctxt) {
     _rpn_stack_eat(ctxt, 1);
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [a b c] -> [a b c 3]
-bool _rpn_depth(rpn_context & ctxt) {
+rpn_error _rpn_depth(rpn_context & ctxt) {
     rpn_stack_push(ctxt, rpn_value(
         static_cast<rpn_uint_t>(rpn_stack_size(ctxt))
     ));
-    return true;
+    return RPN_ERROR_OK;
 }
 
 // [$var exists] -> [$var]
 // stops execution when $var is null
-bool _rpn_exists(rpn_context & ctxt) {
-    return !ctxt.stack.back().value->isNull();
+rpn_error _rpn_exists(rpn_context & ctxt) {
+    if (ctxt.stack.back().value->isNull() || ctxt.stack.back().value->isError()) {
+        return RPN_ERROR_VALUE;
+    }
+    return RPN_ERROR_OK;
 }
 
 // [a $var] -> [$var]
 // $var is persisted and set to the value of a
-bool _rpn_assign(rpn_context & ctxt) {
+rpn_error _rpn_assign(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     top = prev;
     ctxt.stack.erase(ctxt.stack.end() - 2);
-    return true;
+    return RPN_ERROR_OK;
 }
 
 } // namespace anonymous
@@ -595,12 +647,12 @@ rpn_operator::rpn_operator(const char* name, unsigned char argc, rpn_operator_ca
 
 bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, rpn_operator_callback_f callback) {
     ctxt.operators.emplace_back(name, argc, callback);
-    return true;
+    return RPN_ERROR_OK;
 }
 
 bool rpn_operators_clear(rpn_context & ctxt) {
     ctxt.operators.clear();
-    return true;
+    return RPN_ERROR_OK;
 }
 
 bool rpn_operators_init(rpn_context & ctxt) {
@@ -661,6 +713,6 @@ bool rpn_operators_init(rpn_context & ctxt) {
 
     #endif // RPNLIB_BUILTIN_OPERATORS
 
-    return true;
+    return RPN_ERROR_OK;
 }
 
