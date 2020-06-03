@@ -38,87 +38,152 @@ namespace {
 // ----------------------------------------------------------------------------
 
 bool _rpn_sqrt(rpn_context & ctxt) {
-    rpn_float_t a;
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, rpn_float_t(fs_sqrt(a)));
+    rpn_value a;
+    if (!rpn_stack_pop(ctxt, a)) {
+        return false;
+    }
+
+    rpn_float_t value { fs_sqrt(rpn_float_t(a)) };
+    rpn_value result { value };
+    rpn_stack_push(ctxt, result);
+
     return true;
 }
 
 bool _rpn_log(rpn_context & ctxt) {
-    rpn_float_t a;
-    rpn_stack_pop(ctxt, a);
-    if (0 >= a) {
+    rpn_value a;
+    if (!rpn_stack_pop(ctxt, a)) {
+        return false;
+    }
+    rpn_float_t a_val { a };
+    if (0 >= a_val) {
         rpn_error = RPN_ERROR_INVALID_ARGUMENT;
         return false;
     }
-    rpn_stack_push(ctxt, rpn_float_t(fs_log(a)));
+    rpn_value result { rpn_float_t(fs_log(a_val)) };
+    rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_log10(rpn_context & ctxt) {
-    rpn_float_t a;
-    rpn_stack_pop(ctxt, a);
-    if (0.0L >= a) {
+    rpn_value a;
+    if (!rpn_stack_pop(ctxt, a)) {
+        return false;
+    }
+
+    rpn_float_t a_val { a };
+    if (0.0 >= a_val) {
         rpn_error = RPN_ERROR_INVALID_ARGUMENT;
         return false;
     }
-    rpn_stack_push(ctxt, rpn_float_t(fs_log10(a)));
+
+    rpn_value result { rpn_float_t(fs_log10(a_val)) };
+    rpn_stack_push(ctxt, result);
+
     return true;
 }
 
 bool _rpn_exp(rpn_context & ctxt) {
-    rpn_float_t a;
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, rpn_float_t(fs_exp(a)));
+    rpn_value a;
+    if (!rpn_stack_pop(ctxt, a)) {
+        return false;
+    }
+
+    rpn_float_t a_val { a };
+    rpn_value result { rpn_float_t(fs_exp(a_val)) };
+    rpn_stack_push(ctxt, result);
+
     return true;
 }
 
 bool _rpn_fmod(rpn_context & ctxt) {
-    rpn_float_t a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    if (0.0L == b) {
-        rpn_error = RPN_ERROR_DIVIDE_BY_ZERO;
+    rpn_value a;
+    rpn_value b;
+
+    if (!rpn_stack_pop(ctxt, a)) {
         return false;
     }
-    rpn_stack_push(ctxt, rpn_float_t(fs_fmod(a, b)));
+
+    if (!rpn_stack_pop(ctxt, b)) {
+        return false;
+    }
+
+    rpn_float_t a_val { a };
+    rpn_float_t b_val { b };
+    if (0.0 == b_val) {
+        rpn_error = RPN_ERROR_INVALID_ARGUMENT;
+        return false;
+    }
+
+    rpn_value result { fs_fmod(a_val, b_val) };
+    rpn_stack_push(ctxt, result);
+
     return true;
 }
 
 bool _rpn_pow(rpn_context & ctxt) {
-    rpn_float_t a, b;
-    rpn_stack_pop(ctxt, b);
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, rpn_float_t(fs_pow(a, b)));
+    rpn_value a;
+    rpn_value b;
+
+    if (!rpn_stack_pop(ctxt, a)) {
+        return false;
+    }
+
+    if (!rpn_stack_pop(ctxt, b)) {
+        return false;
+    }
+
+    rpn_value result { fs_pow(rpn_float_t(a), rpn_float_t(b)) };
+    rpn_stack_push(ctxt, result);
+
     return true;
 }
 
 bool _rpn_cos(rpn_context & ctxt) {
-    rpn_float_t a;
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_push(ctxt, rpn_float_t(fs_cos(a)));
+    rpn_value a;
+    if (!rpn_stack_pop(ctxt, a)) {
+        return false;
+    }
+
+    rpn_value result { rpn_float_t(fs_cos(rpn_float_t(a))) };
+    rpn_stack_push(ctxt, result);
+
     return true;
 }
 
 bool _rpn_sin(rpn_context & ctxt) {
-    rpn_float_t a;
-    rpn_stack_pop(ctxt, a);
-    const double cos = fs_cos(a);
-    const double sin = fs_sqrt(1.0L - cos * cos);
-    rpn_stack_push(ctxt, rpn_float_t(sin));
+    rpn_value a;
+    if (!rpn_stack_pop(ctxt, a)) {
+        return false;
+    }
+
+    double cos = fs_cos(rpn_float_t(a));
+
+    rpn_value result { rpn_float_t(fs_sqrt(1.0 - cos * cos)) };
+    rpn_stack_push(ctxt, std::move(result));
+
     return true;
 }
 
 bool _rpn_tan(rpn_context & ctxt) {
-    rpn_float_t a;
-    rpn_stack_pop(ctxt, a);
-    const double cos = fs_cos(a);
-    if (0.0L == cos) {
+    rpn_value a;
+    if (!rpn_stack_pop(ctxt, a)) {
+        return false;
+    }
+
+    if (!a.isFloat()) {
+        return false;
+    }
+
+    double cos = fs_cos(rpn_float_t(a));
+    if (0.0 == cos) {
         rpn_error = RPN_ERROR_INVALID_ARGUMENT;
         return false;
     }
-    const double sin = fs_sqrt(1.0L - cos * cos);
-    rpn_stack_push(ctxt, rpn_float_t(sin / cos));
+
+    rpn_value result { rpn_float_t(fs_sqrt(1.0 - cos * cos) / cos) };
+    rpn_stack_push(ctxt, std::move(result));
+
     return true;
 }
 

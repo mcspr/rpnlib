@@ -285,7 +285,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 const bool found = (var != ctxt.variables.end());
 
                 if (found) {
-                    ctxt.stack.emplace_back(RPN_STACK_TYPE_VARIABLE, (*var).value);
+                    ctxt.stack.emplace_back(rpn_stack_value::Type::Variable, (*var).value);
                     return true;
                 }
 
@@ -298,8 +298,12 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 // since we don't have the variable yet, push uninitialized one
                 if (!found) {
                     auto null = std::make_shared<rpn_value>();
-                    ctxt.variables.emplace_back(token, null);
-                    ctxt.stack.emplace_back(RPN_STACK_TYPE_VARIABLE, null);
+                    ctxt.variables.emplace_back(
+                        String(token), null
+                    );
+                    ctxt.stack.emplace_back(
+                        rpn_stack_value::Type::Variable, null
+                    );
                     return true;
                 }
             }

@@ -25,27 +25,23 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <rpnlib.h>
 
 void dump_stack(rpn_context & ctxt) {
-    bool value;
     auto index = rpn_stack_size(ctxt) - 1;
     Serial.printf("Stack\n--------------------\n");
+
+    rpn_value value;
     while (rpn_stack_get(ctxt, index, value)) {
-        Serial.printf("[%02u] %s\n", index--, value ? "true" : "false");
+        Serial.printf("[%02u] %s\n", index--, bool(value) ? "true" : "false");
     }
+
     Serial.println();
 }
 
 void dump_variables(rpn_context & ctxt) {
-    rpn_float_t value;
-
-    size_t index = 0;
-    const char* name = nullptr;
-
     Serial.printf("Variables\n--------------------\n");
-    while ((name = rpn_variable_name(ctxt, index))) {
-        rpn_variable_get(ctxt, name, value);
-        Serial.printf("$%s = %.2f\n", name, value);
-        index++;
-    }
+    rpn_variable_foreach(ctxt, [](const String& name, const rpn_value& value) {
+        Serial.printf("$%s = %.2f\n", name.c_str(), rpn_float_t(value));
+    });
+
     Serial.println();
 }
 
@@ -72,8 +68,10 @@ void setup() {
     });
 
     // Load variables
-    rpn_variable_set(ctxt, "temperature", (rpn_float_t)22.5);
-    rpn_variable_set(ctxt, "relay", true);
+    rpn_value temperature { 22.5 };
+    rpn_variable_set(ctxt, "temperature", temperature);
+
+    rpn_variable_set(ctxt, "relay", rpn_value(true));
 
     // Show variables
     dump_variables(ctxt);
@@ -92,9 +90,9 @@ void setup() {
 
     // Show result
     if (rpn_stack_size(ctxt) == 1) {
-        bool value;
+        rpn_value value;
         rpn_stack_pop(ctxt, value);
-        Serial.printf("Relay status should be: `%s`\n", value ? "true" : "false");
+        Serial.printf("Relay status should be: `%s`\n", bool(value) ? "true" : "false");
     } else {
         Serial.println("Stack should have only 1 value");
     }

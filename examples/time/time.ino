@@ -27,23 +27,13 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <rpnlib.h>
 
 void dump_stack(rpn_context & ctxt) {
-    rpn_int_t value;
+    rpn_value value;
     auto index = rpn_stack_size(ctxt) - 1;
     Serial.printf("Stack\n--------------------\n");
     while (rpn_stack_get(ctxt, index, value)) {
-        Serial.printf("[%02u] %d\n", index--, value);
+        Serial.printf("[%02u] %d\n", index--, rpn_int_t(value));
     }
     Serial.println();
-}
-
-template<>
-bool rpn_stack_pop(rpn_context& ctxt, time_t& value) {
-    return rpn_stack_pop(ctxt, reinterpret_cast<rpn_int_t&>(value));
-}
-
-template<>
-bool rpn_stack_push(rpn_context& ctxt, time_t&& value) {
-    return rpn_stack_push(ctxt, reinterpret_cast<const rpn_int_t&>(value));
 }
 
 void setup() {
@@ -87,39 +77,59 @@ void setup() {
 
     // Add custom time functions
     rpn_operator_set(ctxt, "now", 0, [](rpn_context & ctxt) {
-        rpn_stack_push(ctxt, time(nullptr));
+        rpn_value result { static_cast<rpn_int_t>(time(nullptr)) };
+        rpn_stack_push(ctxt, result);
         return true;
     });
     rpn_operator_set(ctxt, "dow", 1, [](rpn_context & ctxt) {
-        time_t ts;
-        rpn_stack_pop(ctxt, ts);
+        rpn_value value;
+        rpn_stack_pop(ctxt, value);
+        time_t ts = rpn_int_t(ts);
+
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        //rpn_stack_push(ctxt, (rpn_int_t) tm_from_ts.tm_wday);
-        rpn_stack_push(ctxt, tm_from_ts.tm_wday);
+
+        rpn_value result { rpn_int_t(tm_from_ts.tm_wday) };
+        rpn_stack_push(ctxt, result);
+
         return true;
     });
     rpn_operator_set(ctxt, "hour", 1, [](rpn_context & ctxt) {
-        time_t ts;
-        rpn_stack_pop(ctxt, ts);
+        rpn_value value;
+        rpn_stack_pop(ctxt, value);
+        time_t ts = rpn_int_t(ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_stack_push(ctxt, (rpn_int_t) tm_from_ts.tm_hour);
+        rpn_value result { rpn_int_t(tm_from_ts.tm_hour) };
+        rpn_stack_push(ctxt, result);
         return true;
     });
     rpn_operator_set(ctxt, "minute", 1, [](rpn_context & ctxt) {
-        time_t ts;
-        rpn_stack_pop(ctxt, ts);
+        rpn_value value;
+        rpn_stack_pop(ctxt, value);
+        time_t ts = rpn_int_t(ts);
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_stack_push(ctxt, (rpn_int_t) tm_from_ts.tm_min);
+        rpn_value result { rpn_int_t(tm_from_ts.tm_min) };
+        rpn_stack_push(ctxt, result);
         return true;
     });
 
+    rpn_variable_set(
+        ctxt, F("time"),
+        rpn_value(static_cast<rpn_int_t>(time(nullptr)))
+    );
+
+    rpn_variable_foreach(ctxt, [](const String& name, const rpn_value& value) {
+        Serial.println(name);
+        Serial.println(String(value));
+    });
 
     // Process command
     Serial.println("Push `day of week`, `hour` and `minute` to the stack");
-    rpn_process(ctxt, "now dup dup dow rot hour rot minute ");
+    if (!rpn_process(ctxt, "$time dup dup dow rot hour rot minute ")) {
+        Serial.println("...Failed!");
+    }
     
     // Show final stack
     dump_stack(ctxt);

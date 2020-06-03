@@ -50,37 +50,36 @@ void highlight_stack_index(rpn_context& ctxt, unsigned char match, rpn_float_t v
     );
     TEST_MESSAGE(buffer);
 
-    size_t index = ctxt.stack.size() - 1;
-    for (auto& stack_value : ctxt.stack) {
+    size_t index = rpn_stack_size(ctxt);
+    rpn_stack_foreach(ctxt, [&index, &buffer, match](const rpn_stack_value::Type type, const rpn_value& value) {
         char highlight = (index == match) ? '*' : ' ';
-        switch (stack_value.value->type) {
-            case rpn_value::Type::Integer:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %d", highlight, index, stack_value.value->as_integer);
-                break;
-            case rpn_value::Type::Unsigned:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %u", highlight, index, stack_value.value->as_unsigned);
-                break;
-            case rpn_value::Type::Float:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %f", highlight, index, stack_value.value->as_float);
-                break;
-            case rpn_value::Type::String:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: \"%s\"", highlight, index, stack_value.value->as_string.c_str());
-                break;
-            case rpn_value::Type::Boolean:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %s", highlight, index, stack_value.value->as_boolean ? "true" : "false");
-                break;
-            case rpn_value::Type::Null:
-                snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: null", highlight, index);
-                break;
+        switch (value.type) {
+        case rpn_value::Type::Integer:
+            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %ld", highlight, index, rpn_int_t(value));
+            break;
+        case rpn_value::Type::Unsigned:
+            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %lu", highlight, index, rpn_uint_t(value));
+            break;
+        case rpn_value::Type::Float:
+            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %f", highlight, index, rpn_float_t(value));
+            break;
+        case rpn_value::Type::String:
+            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: \"%s\"", highlight, index, String(value).c_str());
+            break;
+        case rpn_value::Type::Boolean:
+            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %s", highlight, index, bool(value) ? "true" : "false");
+            break;
+        case rpn_value::Type::Null:
+            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: null", highlight, index);
+            break;
         }
         --index;
         TEST_MESSAGE(buffer);
-    }
+    });
 }
 
 void run_and_compare(const char * command, std::vector<rpn_float_t> expected) {
 
-    rpn_float_t value;
     rpn_context ctxt;
 
     TEST_MESSAGE(command);
@@ -90,14 +89,17 @@ void run_and_compare(const char * command, std::vector<rpn_float_t> expected) {
     TEST_ASSERT_EQUAL_INT8_MESSAGE(RPN_ERROR_OK, rpn_error, "There should be no rpn_error set");
 
     TEST_ASSERT_EQUAL_MESSAGE(expected.size(), rpn_stack_size(ctxt), "Stack size does not match the expected value");
+
+    rpn_value value;
     for (unsigned char i=0; i<expected.size(); i++) {
         if (!rpn_stack_get(ctxt, i, value)) {
-            highlight_stack_index(ctxt, i, value, expected[i]);
+            highlight_stack_index(ctxt, i, rpn_float_t(value), expected[i]);
             TEST_MESSAGE(command);
             TEST_FAIL_MESSAGE("Can't get stack value at specified index");
         }
-        if (std::fabs(expected[i] - value) > std::numeric_limits<rpn_float_t>::epsilon()) {
-            highlight_stack_index(ctxt, i, value, expected[i]);
+        rpn_float_t number = static_cast<rpn_float_t>(value);
+        if (std::fabs(expected[i] - number) > std::numeric_limits<rpn_float_t>::epsilon()) {
+            highlight_stack_index(ctxt, i, number, expected[i]);
             TEST_MESSAGE(command);
             TEST_FAIL_MESSAGE("Stack value does not match the expected value");
         }
@@ -182,15 +184,18 @@ void test_boolean(void) {
 
 void test_variable(void) {
 
-    rpn_float_t value;
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", (rpn_float_t)25));
+
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", rpn_value { static_cast<rpn_float_t>(25.0) }));
     TEST_ASSERT_TRUE(rpn_process(ctxt, "$tmp 5 /"));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+
+    rpn_value value;
     TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_FLOAT(5, value);
+    TEST_ASSERT_EQUAL_FLOAT(5.0, static_cast<rpn_float_t>(value));
+
     TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
     TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
@@ -199,33 +204,36 @@ void test_variable(void) {
 
 void test_variable_operator(void) {
 
-    rpn_float_t value = 0.0L;
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_TRUE(rpn_process(ctxt, "25 $tmp ="));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+
+    rpn_value value;
     TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_FLOAT(25, value);
+    TEST_ASSERT_EQUAL_FLOAT(25, static_cast<rpn_float_t>(value));
     TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
 
-    value = 0.0L;
+    value = rpn_value{};
     TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "tmp", value));
-    TEST_ASSERT_EQUAL_FLOAT(25, value);
+    TEST_ASSERT_EQUAL_FLOAT(25, static_cast<rpn_float_t>(value));
+
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
     TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
 }
 
 void test_variable_cleanup(void) {
 
-    rpn_float_t value;
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_TRUE(rpn_process(ctxt, "12.3 $tmp ="));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+
+    rpn_value value;
     TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_FLOAT(12.3, value);
+    TEST_ASSERT_EQUAL_FLOAT(12.3, static_cast<rpn_float_t>(value));
     TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
 
     TEST_ASSERT_TRUE(rpn_process(ctxt, "null $tmp ="));
@@ -235,20 +243,21 @@ void test_variable_cleanup(void) {
 
 void test_custom_operator(void) {
 
-    rpn_float_t value;
     rpn_context ctxt;
     
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_TRUE(rpn_operator_set(ctxt, "cube", 1, [](rpn_context & ctxt) {
-        rpn_float_t a;
+        rpn_value a;
         rpn_stack_pop(ctxt, a);
         rpn_stack_push(ctxt, a*a*a);
         return true;
     }));
     TEST_ASSERT_TRUE(rpn_process(ctxt, "3 cube"));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+
+    rpn_value value;
     TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_FLOAT(27, value);
+    TEST_ASSERT_EQUAL_FLOAT(27.0, static_cast<rpn_float_t>(value));
 
 }
 
@@ -267,19 +276,21 @@ void test_error_unknown_token(void) {
 void test_strings(void) {
     rpn_context ctxt;
     TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", "12345"));
+
+    rpn_value original { String("12345") };
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", original));
     TEST_ASSERT_TRUE(rpn_process(ctxt, "$value $value +"));
 
-    String result;
-    TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "value", result));
+    rpn_value value;
+    TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "value", value));
     TEST_ASSERT_EQUAL_STRING_MESSAGE(
-        "12345", result.c_str(),
+        "12345", String(value).c_str(),
         "Stack string value should remain intact"
     );
 
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, result));
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
     TEST_ASSERT_EQUAL_STRING_MESSAGE(
-        "1234512345", result.c_str(),
+        "1234512345", String(value).c_str(),
         "Stack string value should contain concatenated string"
     );
 
@@ -292,19 +303,21 @@ void test_parse_bool(void) {
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_TRUE(rpn_process(ctxt, "true true and"));
 
-    bool result;
+    rpn_value value;
     TEST_ASSERT_TRUE_MESSAGE(
-        rpn_stack_pop(ctxt, result),
+        rpn_stack_pop(ctxt, value),
         "Stack should contain `true` value"
     );
-    TEST_ASSERT_TRUE(result);
+    TEST_ASSERT_TRUE(value.isBoolean());
+    TEST_ASSERT_TRUE(static_cast<bool>(value));
 
     TEST_ASSERT_TRUE(rpn_process(ctxt, "false true and"));
     TEST_ASSERT_TRUE_MESSAGE(
-        rpn_stack_pop(ctxt, result),
+        rpn_stack_pop(ctxt, value),
         "Stack should contain `false` value"
     );
-    TEST_ASSERT_FALSE(result);
+    TEST_ASSERT_TRUE(value.isBoolean());
+    TEST_ASSERT_FALSE(static_cast<bool>(value));
 
     TEST_ASSERT_EQUAL(0, rpn_stack_size(ctxt));
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
@@ -315,22 +328,22 @@ void test_parse_string(void) {
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_FALSE(rpn_process(ctxt, "\"12345 +"));
 
-    String result;
+    rpn_value value;
     TEST_ASSERT_FALSE_MESSAGE(
-        rpn_stack_pop(ctxt, result),
+        rpn_stack_pop(ctxt, value),
         "Parser should fail without closing quote"
     );
 
     TEST_ASSERT_TRUE(rpn_process(ctxt, "\"12345\""));
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, result));
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
     TEST_ASSERT_EQUAL_STRING_MESSAGE(
-        "12345", result.c_str(),
+        "12345", String(value).c_str(),
         "Parser should put string value on the stack"
     );
 
     TEST_ASSERT_FALSE(rpn_process(ctxt, "12345\""));
     TEST_ASSERT_FALSE_MESSAGE(
-        rpn_stack_pop(ctxt, result),
+        rpn_stack_pop(ctxt, value),
         "Parser should fail without opening quote"
     );
 
@@ -353,7 +366,7 @@ void test_memory(void) {
     {
         rpn_context ctxt;
         TEST_ASSERT_TRUE(rpn_init(ctxt));
-        TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", (rpn_float_t) 5));
+        TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", static_cast<rpn_float_t>(5.0)));
         TEST_ASSERT_TRUE(rpn_process(ctxt, "$value dup 1 - dup 1 - dup 1 - dup 1 -"));
         TEST_ASSERT_TRUE(rpn_clear(ctxt));
     }

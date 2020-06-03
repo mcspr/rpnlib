@@ -24,60 +24,44 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include "rpnlib_stack.h"
 
 // ----------------------------------------------------------------------------
-// Internal struct implementation
-// ----------------------------------------------------------------------------
-
-rpn_stack_value::rpn_stack_value(rpn_stack_type_t type, std::shared_ptr<rpn_value> value) :
-    type(type),
-    value(value)
-{}
-
-rpn_stack_value::rpn_stack_value(std::shared_ptr<rpn_value> value) :
-    rpn_stack_value(RPN_STACK_TYPE_VALUE, value)
-{}
-
-rpn_stack_value::rpn_stack_value(rpn_stack_type_t type, const rpn_value& value) :
-    rpn_stack_value(type, std::make_shared<rpn_value>(value))
-{}
-
-rpn_stack_value::rpn_stack_value(rpn_stack_type_t type, rpn_value&& value) :
-    rpn_stack_value(type, std::make_shared<rpn_value>(std::move(value)))
-{}
-
-rpn_stack_value::rpn_stack_value(const rpn_value& value) :
-    rpn_stack_value(RPN_STACK_TYPE_VALUE, std::make_shared<rpn_value>(value))
-{}
-
-rpn_stack_value::rpn_stack_value(rpn_value&& value) :
-    rpn_stack_value(RPN_STACK_TYPE_VALUE, std::make_shared<rpn_value>(std::move(value)))
-{}
-
-// ----------------------------------------------------------------------------
 // Stack methods
 // ----------------------------------------------------------------------------
 
-bool rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& value) {
+bool rpn_stack_push(rpn_context & ctxt, const rpn_value& value) {
+    ctxt.stack.emplace_back(value);
+    return true;
+}
+
+bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value) {
+    ctxt.stack.emplace_back(std::move(value));
+    return true;
+}
+
+namespace {
+
+bool _rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& out) {
     const auto size = ctxt.stack.size();
     if (index >= size) return false;
 
     const auto& ref = ctxt.stack.at(size - index - 1);
-    if (!ref.value) return false;
+    if (ref.value == nullptr) return false;
 
-    value = *ref.value.get();
-
+    out = *ref.value.get();
     return true;
 }
 
-bool rpn_stack_pop(rpn_context & ctxt, rpn_value& value) {
-    if (!ctxt.stack.size()) return false;
+} // namespace
 
-    const auto& ref = ctxt.stack.back();
-    if (!ref.value) return false;
+bool rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& out) {
+    return _rpn_stack_get(ctxt, index, out);
+}
 
-    value = *ref.value.get();
-
-    ctxt.stack.pop_back();
-    return true;
+bool rpn_stack_pop(rpn_context & ctxt, rpn_value& out) {
+    if (_rpn_stack_get(ctxt, 0, out)) {
+        ctxt.stack.pop_back();
+        return true;
+    }
+    return false;
 }
 
 size_t rpn_stack_size(rpn_context & ctxt) {
@@ -89,7 +73,7 @@ bool rpn_stack_clear(rpn_context & ctxt) {
     return true;
 }
 
-rpn_stack_type_t rpn_stack_inspect(rpn_context & ctxt) {
-    if (!ctxt.stack.size()) return RPN_STACK_TYPE_NONE;
+rpn_stack_value::Type rpn_stack_inspect(rpn_context & ctxt) {
+    if (!ctxt.stack.size()) return rpn_stack_value::Type::None;
     return ctxt.stack.back().type;
 }

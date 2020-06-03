@@ -43,14 +43,14 @@ bool _rpn_can_divide_by(const rpn_value& value) {
                 rpn_error = RPN_ERROR_IEEE_754;
                 return result;
             }
-            result = as_float != 0.0L;
+            result = as_float != 0.0;
             break;
         }
         case rpn_value::Type::Null:
             rpn_error = RPN_ERROR_VALUE_IS_NULL;
             return result;
         case rpn_value::Type::Integer:
-            result = rpn_int_t(value) != 0L;
+            result = rpn_int_t(value) != 0;
             break;
         case rpn_value::Type::Unsigned:
             result = rpn_int_t(value) != 0UL;
@@ -64,18 +64,6 @@ bool _rpn_can_divide_by(const rpn_value& value) {
     }
 
     return result;
-}
-
-const char* _rpn_type(rpn_value::Type type) {
-    switch (type) {
-        case rpn_value::Type::Null: return "Null";
-        case rpn_value::Type::Boolean: return "Boolean";
-        case rpn_value::Type::Integer: return "Integer";
-        case rpn_value::Type::Unsigned: return "Unsigned";
-        case rpn_value::Type::Float: return "Float";
-        case rpn_value::Type::String: return "String";
-    }
-    return "(unknown)";
 }
 
 }
@@ -208,7 +196,7 @@ rpn_value::operator bool() const {
         case rpn_value::Type::Unsigned:
             return as_unsigned != 0UL;
         case rpn_value::Type::Float:
-            return as_float != 0.0L;
+            return as_float != 0.0;
         case rpn_value::Type::String:
             return as_string.length() > 0;
         case rpn_value::Type::Null:
@@ -254,7 +242,7 @@ rpn_value::operator rpn_uint_t() const {
 }
 
 rpn_value::operator rpn_float_t() const {
-    rpn_float_t result = 0.0L;
+    rpn_float_t result = 0.0;
 
     // return Null and set err flag when trying to convert Null
     if (isNull()) {
@@ -267,7 +255,7 @@ rpn_value::operator rpn_float_t() const {
             result = as_float;
             break;
         case rpn_value::Type::Boolean:
-            result = as_boolean ? 1.0L : 0.0L;
+            result = as_boolean ? 1.0 : 0.0;
             break;
         case rpn_value::Type::Integer:
             result = as_integer;
@@ -296,7 +284,7 @@ rpn_value::operator rpn_int_t() const {
             result = as_integer;
             break;
         case rpn_value::Type::Boolean:
-            result = as_boolean ? 1.0L : 0.0L;
+            result = as_boolean ? 1.0 : 0.0;
             break;
         case rpn_value::Type::Unsigned:
             if (static_cast<rpn_uint_t>(std::numeric_limits<rpn_int_t>::max()) < as_unsigned) {

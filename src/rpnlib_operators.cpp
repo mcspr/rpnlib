@@ -79,10 +79,6 @@ rpn_value& _rpn_stack_peek(rpn_context & ctxt, size_t offset = 1) {
     return *((ctxt.stack.end() - offset)->value.get());
 }
 
-rpn_value _rpn_stack_take(rpn_context & ctxt, size_t offset = 1) {
-    return _rpn_stack_peek(ctxt, offset);
-}
-
 void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
     ctxt.stack.erase(ctxt.stack.end() - size, ctxt.stack.end());
 }
@@ -138,12 +134,14 @@ rpn_int_t _rpn_stack_compare3(rpn_context & ctxt) {
 // TODO: should these be `$pi` and `$e` instead?
 
 bool _rpn_pi(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, rpn_float_t(RPN_CONST_PI));
+    static auto value = rpn_value { RPN_CONST_PI };
+    rpn_stack_push(ctxt, value);
     return true;
 }
 
 bool _rpn_e(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, rpn_float_t(RPN_CONST_E));
+    static auto value = rpn_value { RPN_CONST_E };
+    rpn_stack_push(ctxt, value);
     return true;
 }
 
@@ -195,9 +193,9 @@ bool _rpn_abs(rpn_context & ctxt) {
     if (!top.isNumber()) {
         return false;
     }
-    rpn_float_t result = rpn_float_t(top) * -1.0L;
+    rpn_value result { rpn_float_t(top) * -1.0 };
     _rpn_stack_eat(ctxt, 1);
-    rpn_stack_push(ctxt, result);
+    rpn_stack_push(ctxt, std::move(result));
     return true;
 }
 
@@ -210,42 +208,42 @@ bool _rpn_abs(rpn_context & ctxt) {
 // Eats both stack values
 
 bool _rpn_eq(rpn_context & ctxt) {
-    const bool result = _rpn_stack_peek(ctxt, 2) == _rpn_stack_peek(ctxt, 1);
+    rpn_value result { _rpn_stack_peek(ctxt, 2) == _rpn_stack_peek(ctxt, 1) };
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_ne(rpn_context & ctxt) {
-    const bool result = _rpn_stack_peek(ctxt, 2) != _rpn_stack_peek(ctxt, 1);
+    rpn_value result { _rpn_stack_peek(ctxt, 2) != _rpn_stack_peek(ctxt, 1) };
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_gt(rpn_context & ctxt) {
-    const bool result = _rpn_stack_compare(ctxt) == 1;
+    rpn_value result { _rpn_stack_compare(ctxt) == 1 };
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_ge(rpn_context & ctxt) {
-    const bool result = _rpn_stack_compare_or_eq(ctxt) == 1;
+    rpn_value result { _rpn_stack_compare_or_eq(ctxt) == 1 };
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_lt(rpn_context & ctxt) {
-    const bool result = _rpn_stack_compare(ctxt) == -1;
+    rpn_value result { _rpn_stack_compare(ctxt) == -1 };
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
 }
 
 bool _rpn_le(rpn_context & ctxt) {
-    const bool result = _rpn_stack_compare_or_eq(ctxt) == -1;
+    rpn_value result { _rpn_stack_compare_or_eq(ctxt) == -1 };
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
@@ -261,7 +259,7 @@ bool _rpn_le(rpn_context & ctxt) {
 // - 1 if `a` > `b`
 // - 0 if `a` == `b`
 bool _rpn_cmp(rpn_context & ctxt) {
-    const auto result = _rpn_stack_compare(ctxt);
+    rpn_value result { _rpn_stack_compare(ctxt) };
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, result);
     return true;
@@ -273,7 +271,7 @@ bool _rpn_cmp(rpn_context & ctxt) {
 // - 1 if `a` > `c`
 // - 0 if none of the above match
 bool _rpn_cmp3(rpn_context & ctxt) {
-    const auto result = _rpn_stack_compare3(ctxt);
+    rpn_value result { _rpn_stack_compare3(ctxt) };
     _rpn_stack_eat(ctxt, 3);
     rpn_stack_push(ctxt, result);
     return true;
@@ -366,7 +364,7 @@ bool _rpn_and(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
 
-    const bool result = (bool(top) && bool(prev));
+    rpn_value result {bool(top) && bool(prev)};
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
@@ -379,7 +377,7 @@ bool _rpn_or(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
 
-    const bool result = (bool(top) || bool(prev));
+    rpn_value result {bool(top) || bool(prev)};
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
@@ -392,7 +390,7 @@ bool _rpn_xor(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto& prev = _rpn_stack_peek(ctxt, 2);
 
-    const bool result = (bool(top) ^ bool(prev));
+    rpn_value result { bool(bool(top) ^ bool(prev)) };
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
@@ -403,7 +401,7 @@ bool _rpn_xor(rpn_context & ctxt) {
 // pushes inverse boolean value of `a`
 bool _rpn_not(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
-    const bool result = !bool(top);
+    rpn_value result { !bool(top) };
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
     return true;
@@ -424,15 +422,15 @@ bool _rpn_round(rpn_context & ctxt) {
         return false;
     }
     
-    rpn_float_t multiplier = 1.0L;
+    rpn_float_t multiplier = 1.0;
     for (int i = 0; i < round(rpn_float_t(decimals)); ++i) {
-        multiplier *= 10.0L;
+        multiplier *= 10.0;
     }
     
-    const auto result = rpn_float_t(int(rpn_float_t(value) * multiplier + 0.5L) / multiplier);
+    rpn_value result { rpn_float_t(int(rpn_float_t(value) * multiplier + 0.5) / multiplier) };
 
     _rpn_stack_eat(ctxt, 2);
-    rpn_stack_push(ctxt, result);
+    rpn_stack_push(ctxt, std::move(result));
 
     return true;
 
@@ -446,9 +444,9 @@ bool _rpn_ceil(rpn_context & ctxt) {
         return false;
     }
 
-    rpn_float_t result = ceil(rpn_float_t(value));
+    rpn_value result { ceil(rpn_float_t(value)) };
     _rpn_stack_eat(ctxt, 1);
-    rpn_stack_push(ctxt, result);
+    rpn_stack_push(ctxt, std::move(result));
     return true;
 }
 
@@ -460,9 +458,9 @@ bool _rpn_floor(rpn_context & ctxt) {
         return false;
     }
 
-    rpn_float_t result = floor(rpn_float_t(value));
+    rpn_value result { floor(rpn_float_t(value)) };
     _rpn_stack_eat(ctxt, 1);
-    rpn_stack_push(ctxt, result);
+    rpn_stack_push(ctxt, std::move(result));
     return true;
 }
 
@@ -478,7 +476,8 @@ bool _rpn_ifn(rpn_context & ctxt) {
     const auto a = _rpn_stack_peek(ctxt, 3);
 
     _rpn_stack_eat(ctxt, 3);
-    rpn_stack_push(ctxt, bool(a) ? b : c);
+    rpn_value result { bool(a) ? b : c };
+    rpn_stack_push(ctxt, result);
 
     return true;
 }
@@ -560,7 +559,9 @@ bool _rpn_drop(rpn_context & ctxt) {
 
 // [a b c] -> [a b c 3]
 bool _rpn_depth(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, rpn_uint_t(rpn_stack_size(ctxt)));
+    rpn_stack_push(ctxt, rpn_value(
+        static_cast<rpn_uint_t>(rpn_stack_size(ctxt))
+    ));
     return true;
 }
 
@@ -577,58 +578,6 @@ bool _rpn_assign(rpn_context & ctxt) {
     auto& prev = _rpn_stack_peek(ctxt, 2);
     top = prev;
     ctxt.stack.erase(ctxt.stack.end() - 2);
-    return true;
-}
-
-// [a b c] -> [a b c]
-// prints `c` using the debug callback
-bool _rpn_print(rpn_context & ctxt) {
-    auto top = ctxt.stack.back();
-
-    if (!_rpn_debug_callback) {
-        return false;
-    }
-
-    auto& val = *(top.value.get());
-
-    char buffer[128];
-    int offset = 0;
-
-    if (top.type == RPN_STACK_TYPE_VARIABLE) {
-        for (auto& v : ctxt.variables) {
-            if (v.value == top.value) {
-                offset = snprintf(buffer, sizeof(buffer) - 1, "$%s = ", v.name.c_str());
-                break;
-            }
-        }
-    }
-
-    switch (val.type) {
-        case rpn_value::Type::Null:
-            sprintf(buffer + offset, "null");
-            break;
-        case rpn_value::Type::Boolean:
-            sprintf(buffer + offset, "%s", bool(val) ? "true" : "false");
-            break;
-        case rpn_value::Type::Integer:
-            sprintf(buffer + offset, "%d", rpn_int_t(val));
-            break;
-        case rpn_value::Type::Unsigned:
-            sprintf(buffer + offset, "%u", rpn_uint_t(val));
-            break;
-        case rpn_value::Type::Float:
-            sprintf(buffer + offset, "%f", rpn_float_t(val));
-            break;
-        case rpn_value::Type::String:
-            sprintf(buffer + offset, "\"%s\"", String(val).c_str());
-            break;
-        default:
-            sprintf(buffer + offset, "(unknown)");
-            break;
-    }
-
-    _rpn_debug_callback(ctxt, buffer);
-
     return true;
 }
 
@@ -702,7 +651,6 @@ bool rpn_operators_init(rpn_context & ctxt) {
 
     rpn_operator_set(ctxt, "exists", 1, _rpn_exists);
     rpn_operator_set(ctxt, "=", 2, _rpn_assign);
-    rpn_operator_set(ctxt, "p", 1, _rpn_print);
 
     rpn_operator_set(ctxt, "ifn", 3, _rpn_ifn);
     rpn_operator_set(ctxt, "end", 1, _rpn_end);

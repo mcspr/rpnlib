@@ -27,45 +27,39 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <type_traits>
 
 struct rpn_variable {
-    rpn_variable(const rpn_variable& other);
-    rpn_variable(rpn_variable&& other);
+    template <typename Name>
+    rpn_variable(Name&& name, std::shared_ptr<rpn_value> value) :
+        name(std::forward<Name>(name)),
+        value(value)
+    {}
 
-    rpn_variable(const String& name);
-    rpn_variable(const char* name);
-
-    rpn_variable(const String& name, std::shared_ptr<rpn_value> value);
-    rpn_variable(const char* name, std::shared_ptr<rpn_value> value);
-
-    rpn_variable(const char* name, const rpn_value& value);
-    rpn_variable(const char* name, rpn_value&& value);
-
-    rpn_variable& operator =(const rpn_variable& other);
-    rpn_variable& operator =(rpn_variable&& other);
+    template <typename Name, typename Value>
+    rpn_variable(Name&& name, Value&& value) :
+        name(std::forward<Name>(name)),
+        value(std::make_shared<rpn_value>(std::forward<Value>(value)))
+    {}
 
     String name;
     std::shared_ptr<rpn_value> value;
 };
 
-const char * rpn_variable_name(rpn_context &, unsigned char);
-
-bool rpn_variable_set(rpn_context & ctxt, const char * name, rpn_value& value);
-bool rpn_variable_set(rpn_context & ctxt, const char * name, rpn_value&& value);
-
-bool rpn_variable_get(rpn_context & ctxt, const char * name, rpn_value& value);
-
-template<typename T>
-bool rpn_variable_get(rpn_context & ctxt, const char * name, T& value) {
-    rpn_value tmp;
-    if (rpn_variable_get(ctxt, name, tmp)) {
-        value = T(tmp);
-        return true;
+template <typename Callback>
+void rpn_variable_foreach(rpn_context & ctxt, Callback callback) {
+    for (auto& variable : ctxt.variables) {
+        callback(variable.name, *(variable.value.get()));
     }
-    return false;
 }
 
-bool rpn_variable_del(rpn_context &, const char *);
+bool rpn_variable_set(rpn_context &, const String& name, const rpn_value& value);
+bool rpn_variable_set(rpn_context &, const String& name, rpn_value&& value);
+
+bool rpn_variable_get(rpn_context &, const String& name, rpn_value& value);
+
+
+bool rpn_variable_del(rpn_context &, const String& name);
 
 size_t rpn_variables_size(rpn_context &);
 bool rpn_variables_clear(rpn_context &);
