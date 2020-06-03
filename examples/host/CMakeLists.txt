@@ -9,6 +9,8 @@ project(host-examples VERSION 1 LANGUAGES C CXX)
 
 # required for esp8266 host mocking
 set(COMMON_FLAGS
+    -Os
+    -g
     -fno-common
     -funsigned-char
     -DCORE_MOCK
