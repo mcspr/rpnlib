@@ -150,18 +150,27 @@ bool _rpn_token_is_null(const char* token) {
     return (strcmp(token, "null") == 0);
 }
 
+// XXX: using out param since we don't know the length beforehand, and out is re-used
+
+void _rpn_token_copy(const char* start, const char* stop, String& out) {
+    const char* ptr = start;
+    while (ptr != stop) {
+        out += *ptr;
+        ++ptr;
+    }
+}
+
 // TODO: check that we have this signature:
 // bool(rpn_token_t, const char* ptr)
 // One option is to use std::inplace_function / function_ref:
 // https://github.com/TartanLlama/function_ref
 
 template <typename CallbackType>
-void _rpn_tokenize(char* buffer, CallbackType callback) {
-    char *p = buffer;
-    char *start_of_word = nullptr;
+void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
+    const char *p = buffer;
+    const char *start_of_word = nullptr;
 
     char c = '\0';
-    char tmp = '\0';
 
     enum states_t {
         UNKNOWN,
@@ -222,13 +231,13 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
 
         case IN_STRING:
             if (c == '"') {
-                tmp = *p;
-                *p = '\0';
-                if (!callback(type, start_of_word)) {
+                token.reserve(p - start_of_word);
+                _rpn_token_copy(start_of_word, p, token);
+                if (!callback(type, token)) {
                     state = UNKNOWN;
                     break;
                 }
-                *p = tmp;
+                token = "";
                 state = UNKNOWN;
             }
             break;
@@ -247,13 +256,13 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
         case IN_VARIABLE:
         case IN_WORD:
             if (isspace(c)) {
-                tmp = *p;
-                *p = '\0';
-                if (!callback(type, start_of_word)) {
+                token.reserve(p - start_of_word);
+                _rpn_token_copy(start_of_word, p, token);
+                if (!callback(type, token)) {
                     state = UNKNOWN;
                     break;
                 }
-                *p = tmp;
+                token = "";
                 state = UNKNOWN;
             }
             break;
@@ -262,8 +271,11 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
         ++p;
     }
 
-    if ((state != UNKNOWN) && strlen(start_of_word)) {
-        callback(type, start_of_word);
+    if ((state != UNKNOWN) && (p - start_of_word)) {
+        token.reserve(p - start_of_word);
+        _rpn_token_copy(start_of_word, p, token);
+        callback(type, token);
+        token = "";
     }
 
 }
@@ -276,10 +288,10 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
 
 bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exist) {
 
-    ctxt.input_buffer = input;
     ctxt.error.reset();
+    ctxt.input_buffer = "";
 
-    _rpn_tokenize(const_cast<char*>(ctxt.input_buffer.c_str()), [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
+    _rpn_tokenize(input, ctxt.input_buffer, [&ctxt, variable_must_exist](rpn_token_t type, const String& token) {
 
         // Is token a string, bool, number, variable or null?
         switch (type) {
@@ -288,13 +300,13 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 return true;
 
             case RPN_TOKEN_BOOLEAN:
-                ctxt.stack.emplace_back(std::make_shared<rpn_value>(_rpn_token_as_bool(token)));
+                ctxt.stack.emplace_back(std::make_shared<rpn_value>(_rpn_token_as_bool(token.c_str())));
                 return true;
 
             case RPN_TOKEN_NUMBER: {
                 char* endptr = nullptr;
-                rpn_float_t value = strtod(token, &endptr);
-                if (endptr == token || endptr[0] != '\0') { 
+                rpn_float_t value = strtod(token.c_str(), &endptr);
+                if (endptr == token.c_str() || endptr[0] != '\0') {
                     break;
                 }
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(value));
@@ -302,10 +314,10 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             }
 
             case RPN_TOKEN_VARIABLE: {
-                if (!strlen(token)) {
+                if (!token.length()) {
                     break;
                 }
-                auto var = std::find_if(ctxt.variables.cbegin(), ctxt.variables.cend(), [token](const rpn_variable& v) {
+                auto var = std::find_if(ctxt.variables.cbegin(), ctxt.variables.cend(), [&token](const rpn_variable& v) {
                     return (v.name == token);
                 });
                 const bool found = (var != ctxt.variables.end());
@@ -324,9 +336,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 // since we don't have the variable yet, push uninitialized one
                 if (!found) {
                     auto null = std::make_shared<rpn_value>();
-                    ctxt.variables.emplace_back(
-                        String(token), null
-                    );
+                    ctxt.variables.emplace_back(token, null);
                     ctxt.stack.emplace_back(
                         rpn_stack_value::Type::Variable, null
                     );
@@ -335,7 +345,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             }
 
             case RPN_TOKEN_NULL:
-                if (_rpn_token_is_null(token)) {
+                if (_rpn_token_is_null(token.c_str())) {
                     ctxt.stack.emplace_back(std::make_shared<rpn_value>());
                     return true;
                 }
