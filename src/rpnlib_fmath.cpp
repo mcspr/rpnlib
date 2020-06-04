@@ -39,9 +39,7 @@ namespace {
 
 rpn_error _rpn_sqrt(rpn_context & ctxt) {
     rpn_value a;
-    if (!rpn_stack_pop(ctxt, a)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
+    rpn_stack_pop(ctxt, a);
 
     rpn_float_t value { fs_sqrt(rpn_float_t(a)) };
     rpn_value result { value };
@@ -52,13 +50,13 @@ rpn_error _rpn_sqrt(rpn_context & ctxt) {
 
 rpn_error _rpn_log(rpn_context & ctxt) {
     rpn_value a;
-    if (!rpn_stack_pop(ctxt, a)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
+    rpn_stack_pop(ctxt, a);
+
     rpn_float_t a_val { a };
     if (0 >= a_val) {
         return RPN_ERROR_INVALID_ARGUMENT;
     }
+
     rpn_value result { rpn_float_t(fs_log(a_val)) };
     rpn_stack_push(ctxt, result);
     return RPN_ERROR_OK;
@@ -66,9 +64,7 @@ rpn_error _rpn_log(rpn_context & ctxt) {
 
 rpn_error _rpn_log10(rpn_context & ctxt) {
     rpn_value a;
-    if (!rpn_stack_pop(ctxt, a)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
+    rpn_stack_pop(ctxt, a);
 
     rpn_float_t a_val { a };
     if (0.0 >= a_val) {
@@ -83,9 +79,7 @@ rpn_error _rpn_log10(rpn_context & ctxt) {
 
 rpn_error _rpn_exp(rpn_context & ctxt) {
     rpn_value a;
-    if (!rpn_stack_pop(ctxt, a)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
+    rpn_stack_pop(ctxt, a);
 
     rpn_float_t a_val { a };
     rpn_value result { rpn_float_t(fs_exp(a_val)) };
@@ -98,13 +92,8 @@ rpn_error _rpn_fmod(rpn_context & ctxt) {
     rpn_value a;
     rpn_value b;
 
-    if (!rpn_stack_pop(ctxt, a)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
-
-    if (!rpn_stack_pop(ctxt, b)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
+    rpn_stack_pop(ctxt, a);
+    rpn_stack_pop(ctxt, b);
 
     rpn_float_t a_val { a };
     rpn_float_t b_val { b };
@@ -122,13 +111,8 @@ rpn_error _rpn_pow(rpn_context & ctxt) {
     rpn_value a;
     rpn_value b;
 
-    if (!rpn_stack_pop(ctxt, a)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
-
-    if (!rpn_stack_pop(ctxt, b)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
+    rpn_stack_pop(ctxt, a);
+    rpn_stack_pop(ctxt, b);
 
     rpn_value result { fs_pow(rpn_float_t(a), rpn_float_t(b)) };
     rpn_stack_push(ctxt, result);
@@ -138,9 +122,7 @@ rpn_error _rpn_pow(rpn_context & ctxt) {
 
 rpn_error _rpn_cos(rpn_context & ctxt) {
     rpn_value a;
-    if (!rpn_stack_pop(ctxt, a)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
+    rpn_stack_pop(ctxt, a);
 
     rpn_value result { rpn_float_t(fs_cos(rpn_float_t(a))) };
     rpn_stack_push(ctxt, result);
@@ -150,9 +132,7 @@ rpn_error _rpn_cos(rpn_context & ctxt) {
 
 rpn_error _rpn_sin(rpn_context & ctxt) {
     rpn_value a;
-    if (!rpn_stack_pop(ctxt, a)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
+    rpn_stack_pop(ctxt, a);
 
     double cos = fs_cos(rpn_float_t(a));
 
@@ -164,13 +144,7 @@ rpn_error _rpn_sin(rpn_context & ctxt) {
 
 rpn_error _rpn_tan(rpn_context & ctxt) {
     rpn_value a;
-    if (!rpn_stack_pop(ctxt, a)) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
-
-    if (!a.isFloat()) {
-        return RPN_ERROR_INVALID_ARGUMENT;
-    }
+    rpn_stack_pop(ctxt, a);
 
     double cos = fs_cos(rpn_float_t(a));
     if (0.0 == cos) {
