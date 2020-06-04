@@ -35,10 +35,40 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <cctype>
 
 // ----------------------------------------------------------------------------
-// Globals
+// Errors
 // ----------------------------------------------------------------------------
 
-rpn_debug_callback_f _rpn_debug_callback = nullptr;
+rpn_error::rpn_error() :
+    category(rpn_error_category::Unknown),
+    code(0)
+{}
+
+rpn_error::rpn_error(rpn_processing_error error) :
+    category(rpn_error_category::Processing),
+    code(static_cast<int>(error))
+{}
+
+rpn_error::rpn_error(rpn_value_error error) :
+    category(rpn_error_category::Value),
+    code(static_cast<int>(error))
+{}
+
+rpn_error& rpn_error::operator =(rpn_processing_error error) {
+    category = rpn_error_category::Processing;
+    code = static_cast<int>(error);
+    return *this;
+}
+
+rpn_error& rpn_error::operator =(rpn_value_error error) {
+    category = rpn_error_category::Value;
+    code = static_cast<int>(error);
+    return *this;
+}
+
+void rpn_error::reset() {
+    category = rpn_error_category::Unknown;
+    code = 0;
+}
 
 // ----------------------------------------------------------------------------
 // Utils
@@ -247,7 +277,7 @@ void _rpn_tokenize(char* buffer, CallbackType callback) {
 bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exist) {
 
     ctxt.input_buffer = input;
-    ctxt.error = RPN_ERROR_OK;
+    ctxt.error.reset();
 
     _rpn_tokenize(const_cast<char*>(ctxt.input_buffer.c_str()), [&ctxt, variable_must_exist](rpn_token_t type, const char* token) {
 
@@ -334,7 +364,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                     break;
                 }
             }
-            if (RPN_ERROR_OK != ctxt.error) return false;
+            if (ctxt.error.code) return false;
             if (found) return true;
         }
 
@@ -352,12 +382,12 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         ctxt.variables.end()
     );
 
-    return (RPN_ERROR_OK == ctxt.error);
+    return (!ctxt.error.code);
 
 }
 
-bool rpn_debug(rpn_debug_callback_f callback) {
-    _rpn_debug_callback = callback;
+bool rpn_debug(rpn_context & ctxt, rpn_debug_callback_f callback) {
+    ctxt.debug_callback = callback;
     return true;
 }
 

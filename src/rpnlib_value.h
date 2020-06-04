@@ -27,15 +27,6 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <limits>
 
-enum class rpn_value_error {
-    OK,
-    InvalidOperation,
-    TypeMismatch,
-    DivideByZero,
-    IEEE754,
-    IsNull
-};
-
 struct rpn_value {
     enum class Type {
         Null,

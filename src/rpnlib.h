@@ -31,7 +31,22 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <vector>
 
-enum rpn_error {
+enum class rpn_error_category {
+    Unknown,
+    Processing,
+    Value
+};
+
+enum class rpn_value_error {
+    OK,
+    InvalidOperation,
+    TypeMismatch,
+    DivideByZero,
+    IEEE754,
+    IsNull
+};
+
+enum rpn_processing_error {
     RPN_ERROR_OK,
     RPN_ERROR_UNKNOWN_TOKEN,
     RPN_ERROR_ARGUMENT_COUNT_MISMATCH,
@@ -42,6 +57,20 @@ enum rpn_error {
     RPN_ERROR_VALUE
 };
 
+struct rpn_error {
+    rpn_error();
+    rpn_error(rpn_processing_error);
+    rpn_error(rpn_value_error);
+
+    rpn_error& operator =(rpn_processing_error);
+    rpn_error& operator =(rpn_value_error);
+
+    void reset();
+
+    rpn_error_category category;
+    int code;
+};
+
 using rpn_int_t = RPNLIB_INT_TYPE;
 using rpn_float_t = RPNLIB_FLOAT_TYPE;
 using rpn_uint_t = RPNLIB_UINT_TYPE;
@@ -49,17 +78,19 @@ using rpn_uint_t = RPNLIB_UINT_TYPE;
 struct rpn_variable;
 struct rpn_operator;
 struct rpn_stack_value;
+struct rpn_context;
+
+using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 
 struct rpn_context {
     std::vector<rpn_variable> variables;
     std::vector<rpn_operator> operators;
     std::vector<rpn_stack_value> stack;
 
+    rpn_debug_callback_f debug_callback;
     String input_buffer;
     rpn_error error;
 };
-
-using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 
 #include <cstdint>
 
@@ -72,15 +103,11 @@ using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 
 // ----------------------------------------------------------------------------
 
-extern rpn_debug_callback_f _rpn_debug_callback;
-
-// ----------------------------------------------------------------------------
-
 bool rpn_process(rpn_context &, const char *, bool variable_must_exist = false);
 bool rpn_init(rpn_context &);
 bool rpn_clear(rpn_context &);
 
-bool rpn_debug(rpn_debug_callback_f);
+bool rpn_debug(rpn_context &, rpn_debug_callback_f);
 
 // ----------------------------------------------------------------------------
 

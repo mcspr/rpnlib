@@ -92,34 +92,45 @@ void test_sum(rpn_context & ctxt) {
     rpn_stack_clear(ctxt);
 }
 
-std::string _rpn_value_error_describe(rpn_value_error error) {
-    std::string out;
-
-    switch (error) {
-    }
-
-    return out;
-}
-
 std::string _rpn_error_describe(rpn_error error) {
     std::string out;
 
-    switch (error) {
-    case RPN_ERROR_OK:
-        out = "OK";
-        break;
-    case RPN_ERROR_UNKNOWN_TOKEN:
-        out = "Unknown token";
-        break;
-    case RPN_ERROR_ARGUMENT_COUNT_MISMATCH:
-        out = "Argument mismatch";
-        break;
-    case RPN_ERROR_INVALID_ARGUMENT:
-        out = "Invalid argument";
-        break;
-    case RPN_ERROR_VARIABLE_DOES_NOT_EXIST:
-        out = "Variable does not exist";
-        break;
+    switch (error.category) {
+
+    case rpn_error_category::Processing: {
+       switch (static_cast<rpn_processing_error>(error.code)) {
+       case RPN_ERROR_OK:
+           out = "OK";
+           break;
+       case RPN_ERROR_UNKNOWN_TOKEN:
+           out = "Unknown token";
+           break;
+       case RPN_ERROR_ARGUMENT_COUNT_MISMATCH:
+           out = "Argument mismatch";
+           break;
+       case RPN_ERROR_INVALID_ARGUMENT:
+           out = "Invalid argument";
+           break;
+       case RPN_ERROR_VARIABLE_DOES_NOT_EXIST:
+           out = "Variable does not exist";
+           break;
+       }
+       break;
+    }
+
+    case rpn_error_category::Value:
+       break;
+
+    case rpn_error_category::Unknown:
+       break;
+
+    }
+
+    if (!out.length()) {
+        out = "Category ";
+        out += std::to_string(static_cast<int>(error.category));
+        out += ", Code ";
+        out += std::to_string(error.code);
     }
 
     return out;
@@ -128,31 +139,32 @@ std::string _rpn_error_describe(rpn_error error) {
 int main(int argc, char** argv) {
     rpn_context ctxt;
     rpn_init(ctxt);
-    rpn_operator_set(ctxt, "time", 0, [](rpn_context& c) {
+    rpn_operator_set(ctxt, "time", 0, [](rpn_context& c) -> rpn_error {
         rpn_value ts { rpn_int_t(time(nullptr)) };
         rpn_stack_push(c, ts);
         return RPN_ERROR_OK;
     });
     rpn_operator_set(ctxt, "dump", 0, dump_stack);
     rpn_operator_set(ctxt, "vars", 0, dump_variables);
-    rpn_operator_set(ctxt, "clear", 0, [](rpn_context& c) {
+    rpn_operator_set(ctxt, "clear", 0, [](rpn_context& c) -> rpn_error {
         return rpn_stack_clear(c) ? RPN_ERROR_OK : RPN_ERROR_VALUE;
     });
-    rpn_operator_set(ctxt, "cast", 1, [](rpn_context& c) {
+    rpn_operator_set(ctxt, "cast", 1, [](rpn_context& c) -> rpn_error {
         auto val = c.stack.back();
         c.stack.pop_back();
         rpn_value upd { rpn_float_t(*val.value.get()) };
         c.stack.push_back(upd);
         return RPN_ERROR_OK;
     });
-    rpn_operator_set(ctxt, "test", 0, [](rpn_context& c) {
+    rpn_operator_set(ctxt, "test", 0, [](rpn_context& c) -> rpn_error {
         test_concat(c);
         test_and(c);
         test_or(c);
         test_sum(c);
         return RPN_ERROR_OK;
     });
-    rpn_debug([](rpn_context&, const char* message) {
+
+    rpn_debug(ctxt, [](rpn_context&, const char* message) {
         std::cout << "DEBUG: " << message << std::endl;
     });
 
