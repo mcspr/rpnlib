@@ -200,6 +200,24 @@ void rpn_value::assign(const rpn_value& other) {
     type = other.type;
 }
 
+rpn_value::operator rpn_error() const {
+    rpn_error result;
+
+    switch (type) {
+    case rpn_value::Type::Error:
+        result = as_error;
+        break;
+    case rpn_value::Type::Boolean:
+    case rpn_value::Type::Integer:
+    case rpn_value::Type::Unsigned:
+    case rpn_value::Type::Float:
+    case rpn_value::Type::String:
+    case rpn_value::Type::Null:
+        break;
+    }
+
+    return result;
+}
 
 rpn_value::operator bool() const {
     switch (type) {

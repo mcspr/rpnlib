@@ -69,6 +69,7 @@ struct rpn_value {
     rpn_value operator /(const rpn_value&);
     rpn_value operator %(const rpn_value&);
 
+    explicit operator rpn_error() const;
     explicit operator bool() const;
     explicit operator rpn_int_t() const;
     explicit operator rpn_uint_t() const;

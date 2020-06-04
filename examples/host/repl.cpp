@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
     rpn_operator_set(ctxt, "dump", 0, dump_stack);
     rpn_operator_set(ctxt, "vars", 0, dump_variables);
     rpn_operator_set(ctxt, "clear", 0, [](rpn_context& c) -> rpn_error {
-        return rpn_stack_clear(c) ? RPN_ERROR_OK : RPN_ERROR_VALUE;
+        return rpn_stack_clear(c) ? RPN_ERROR_OK : RPN_ERROR_STOP_PROCESSING;
     });
     rpn_operator_set(ctxt, "cast", 1, [](rpn_context& c) -> rpn_error {
         auto val = c.stack.back();

@@ -377,7 +377,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
     // clean-up temporaries
     ctxt.variables.erase(
         std::remove_if(ctxt.variables.begin(), ctxt.variables.end(), [](const rpn_variable& var) {
-            return ((var.value.use_count() == 1) && var.value->isNull());
+            return ((var.value.use_count() == 1) && (var.value->isNull() || var.value->isError()));
         }),
         ctxt.variables.end()
     );
