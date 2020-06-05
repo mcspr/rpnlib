@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Add null type, parse `null` in expressions
 - Add integer and unsigned integer type, used in operators
 - Allow to configure underlying types from rpnlib\_config.h and -D... flags
+- Return `rpn_error` from operators, split error types into categories
 
 ### Changed
 - Stack structure no longer holds raw `float`, but internal `rpn_value` type
@@ -25,7 +26,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Proper value for `e` constant
 - Allow to use multiple contexts simultaniously, replace `rpn_error` and `rpn_debug_callback`
-  with the current `rpn_context` members `error` and `debug_callback`
+  with the current `rpn_context` members `error` and `debug_callback` respectively
 
 ## [0.3.0] 2019-05-24
 ### Added
