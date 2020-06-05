@@ -107,16 +107,6 @@ ceil    ( a -> b ) where b is a rounded to the closes greater or equal integer
 floor   ( a -> b ) where b is a rounded to the closes lesser or equal integer
 int     ( a -> b ) alias for "floor"
 
-sqrt    ( a -> sqrt(a) ) *
-log     ( a -> log(a) ) *
-log10   ( a -> log10(a) ) *
-exp     ( a -> e^a ) *
-fmod    ( a b -> a\b ) returns the reminder for the a/b division as real numbers *
-pow     ( a b -> a^b ) *
-cos     ( a -> cos(a) ) a in radians *
-sin     ( a -> sin(a) ) a in radians *
-tan     ( a -> tan(a) ) a in radians *
-
 eq      ( a b -> a==b )
 ne      ( a b -> a!=b )
 gt      ( a b -> a>b )
@@ -146,13 +136,24 @@ depth   ( a b c ... -> a b c ... n ) where n is the number of elements in the st
 
 ifn     ( a b c -> d ) if a!=0 then b else c
 end     ( a -> ...) ends execution if a resolves to false
-changed ( $a -> $a ) ends execution if $a changed since the last time
 
-=       ( a $var = -> $var ) sets $var to the value of a and keeps $var on the stack
+=       ( a $var = -> $var ) sets $var to the value of a and keeps $var reference on the stack
 
 ```
 
-Operators flagged with an asterisk (*) are only available if compiled with RPNLIB_ADVANCED_MATH build flag.
+In addition, when ussing `RPNLIB_ADVANCED_MATH` flag:
+```
+sqrt    ( a -> sqrt(a) )
+log     ( a -> log(a) )
+log10   ( a -> log10(a) )
+exp     ( a -> e^a )
+fmod    ( a b -> a\b ) returns the reminder for the a/b division as real numbers
+pow     ( a b -> a^b )
+cos     ( a -> cos(a) ) a in radians
+sin     ( a -> sin(a) ) a in radians
+tan     ( a -> tan(a) ) a in radians
+
+```
 
 ## License
 
