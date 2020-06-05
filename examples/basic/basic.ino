@@ -25,12 +25,14 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <rpnlib.h>
 
 void dump_stack(rpn_context & ctxt) {
-    rpn_value value;
-    auto index = rpn_stack_size(ctxt) - 1;
     Serial.printf("Stack\n--------------------\n");
+
+    auto index = rpn_stack_size(ctxt) - 1;
+    rpn_value value;
     while (rpn_stack_get(ctxt, index, value)) {
-        Serial.printf("[%02u] %.2f\n", index--, rpn_float_t(value));
+        Serial.printf("[%02u] %.2f\n", index--, value.toFloat());
     }
+
     Serial.println();
 }
 

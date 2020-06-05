@@ -30,6 +30,14 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 #include <vector>
 
+#if defined(UNIX_HOST_DUINO) || HOST_MOCK
+#warning HOST
+#define RPNLIB_PIOTEST_HOST_TEST 1
+#else
+#warning NOT
+#define RPNLIB_PIOTEST_HOST_TEST 0
+#endif
+
 // -----------------------------------------------------------------------------
 // Helper methods
 // -----------------------------------------------------------------------------
@@ -376,7 +384,11 @@ void test_parse_number(void) {
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
-#if not HOST_MOCK
+#if RPNLIB_PIOTEST_HOST_TEST
+void test_memory(void) {
+    TEST_IGNORE_MESSAGE("running on host");
+}
+#else
 void test_memory(void) {
 
     unsigned long start = ESP.getFreeHeap();
@@ -391,10 +403,6 @@ void test_memory(void) {
 
     TEST_ASSERT_EQUAL_INT32(start, ESP.getFreeHeap());
 
-}
-#else
-void test_memory(void) {
-    TEST_IGNORE_MESSAGE("running on host");
 }
 #endif
 
@@ -433,9 +441,9 @@ int run_tests() {
     return UNITY_END();
 }
 
-#if HOST_MOCK
+#if RPNLIB_PIOTEST_HOST_TEST
 
-int main() {
+int main(int argc, char** argv) {
     return run_tests();
 }
 

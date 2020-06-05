@@ -31,7 +31,7 @@ void dump_stack(rpn_context & ctxt) {
     auto index = rpn_stack_size(ctxt) - 1;
     Serial.printf("Stack\n--------------------\n");
     while (rpn_stack_get(ctxt, index, value)) {
-        Serial.printf("[%02u] %d\n", index--, rpn_int_t(value));
+        Serial.printf("[%02u] %d\n", index--, value.toInt());
     }
     Serial.println();
 }
@@ -55,7 +55,7 @@ void setup() {
     current_time.tm_mon = 11;
     current_time.tm_year = 2018 - 1900;
     time_t timestamp = mktime(&current_time);
-    Serial.printf("Timestamp is %d\n", timestamp);
+    Serial.printf("Timestamp is %ld\n", timestamp);
 
     // Set global timestamp value, so we can call time() later
     struct timeval tv { timestamp, 0 };
@@ -67,7 +67,7 @@ void setup() {
 
     Serial.println("Time set to:");
     Serial.println(asctime(&current_time));
-    Serial.printf("Timestamp is %d\n", time(nullptr));
+    Serial.printf("Timestamp is %ld\n", time(nullptr));
 
     // Create context
     rpn_context ctxt;
@@ -76,15 +76,15 @@ void setup() {
     rpn_init(ctxt);
 
     // Add custom time functions
-    rpn_operator_set(ctxt, "now", 0, [](rpn_context & ctxt) {
+    rpn_operator_set(ctxt, "now", 0, [](rpn_context & ctxt) -> rpn_error {
         rpn_value result { static_cast<rpn_int_t>(time(nullptr)) };
         rpn_stack_push(ctxt, result);
-        return true;
+        return 0;
     });
-    rpn_operator_set(ctxt, "dow", 1, [](rpn_context & ctxt) {
+    rpn_operator_set(ctxt, "dow", 1, [](rpn_context & ctxt) -> rpn_error {
         rpn_value value;
         rpn_stack_pop(ctxt, value);
-        time_t ts = rpn_int_t(ts);
+        time_t ts = value.toInt();
 
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
@@ -92,37 +92,36 @@ void setup() {
         rpn_value result { rpn_int_t(tm_from_ts.tm_wday) };
         rpn_stack_push(ctxt, result);
 
-        return true;
+        return 0;
     });
-    rpn_operator_set(ctxt, "hour", 1, [](rpn_context & ctxt) {
+    rpn_operator_set(ctxt, "hour", 1, [](rpn_context & ctxt) -> rpn_error {
         rpn_value value;
         rpn_stack_pop(ctxt, value);
-        time_t ts = rpn_int_t(ts);
+        time_t ts = value.toInt();
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
         rpn_value result { rpn_int_t(tm_from_ts.tm_hour) };
         rpn_stack_push(ctxt, result);
-        return true;
+        return 0;
     });
-    rpn_operator_set(ctxt, "minute", 1, [](rpn_context & ctxt) {
+    rpn_operator_set(ctxt, "minute", 1, [](rpn_context & ctxt) -> rpn_error {
         rpn_value value;
         rpn_stack_pop(ctxt, value);
-        time_t ts = rpn_int_t(ts);
+        time_t ts = value.toInt();
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
         rpn_value result { rpn_int_t(tm_from_ts.tm_min) };
         rpn_stack_push(ctxt, result);
-        return true;
+        return 0;
     });
 
-    rpn_variable_set(
-        ctxt, F("time"),
+    rpn_variable_set(ctxt, F("time"),
         rpn_value(static_cast<rpn_int_t>(time(nullptr)))
     );
 
     rpn_variable_foreach(ctxt, [](const String& name, const rpn_value& value) {
         Serial.println(name);
-        Serial.println(String(value));
+        Serial.println(value.toInt());
     });
 
     // Process command
