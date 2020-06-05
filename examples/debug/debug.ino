@@ -22,7 +22,9 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <Arduino.h>
+
 #include <rpnlib.h>
+#include <rpnlib_util.h>
 
 void dump_stack(rpn_context & ctxt) {
     auto index = rpn_stack_size(ctxt) - 1;
@@ -44,80 +46,6 @@ void dump_variables(rpn_context & ctxt) {
 
     Serial.println();
 }
-
-struct decode_rpn_errors {
-
-    using callback_type = void (*)(const String&);
-
-    decode_rpn_errors(callback_type callback) :
-        callback(callback)
-    {}
-
-    void operator ()(rpn_processing_error error) {
-        switch (error) {
-        case rpn_processing_error::Ok:
-            callback("No error");
-            break;
-        case rpn_processing_error::UnknownToken:
-            callback("Unknown token");
-            break;
-        case rpn_processing_error::VariableDoesNotExist:
-            callback("Variable does not exist");
-            break;
-        }
-    }
-
-    void operator ()(rpn_operator_error error) {
-        switch (error) {
-        case rpn_operator_error::Ok:
-            callback("No error");
-            break;
-        case rpn_operator_error::ArgumentCountMismatch:
-            callback("Operator argument count mismatch");
-            break;
-        case rpn_operator_error::InvalidType:
-            callback("Invalid operation type");
-            break;
-        case rpn_operator_error::InvalidArgument:
-            callback("Invalid argument");
-            break;
-        case rpn_operator_error::CannotContinue:
-            callback("Processing was stopped, cannot continue");
-            break;
-        }
-    }
-
-    void operator ()(rpn_value_error error) {
-        switch (error) {
-        case rpn_value_error::Ok:
-            callback("No error");
-            break;
-        case rpn_value_error::InvalidOperation:
-            callback("Invalid value operation");
-            break;
-        case rpn_value_error::TypeMismatch:
-            callback("Value type mismatch");
-            break;
-        case rpn_value_error::DivideByZero:
-            callback("Value division by zero");
-            break;
-        case rpn_value_error::IEEE754:
-            callback("Value floating point exception");
-            break;
-        case rpn_value_error::IsNull:
-            callback("Value is null");
-            break;
-        }
-    }
-
-    void operator ()(int code) {
-        callback(String("Unknown error #") + String(code));
-    }
-
-    callback_type callback;
-
-};
-
 
 void setup() {
     
@@ -158,7 +86,7 @@ void setup() {
     // Last parameter in rpn_process forces variable check,
     // the execution will fail if the variable does not exist
     if (!rpn_process(ctxt, "$temperatue 18 21 cmp3 1 + 1 $relay 0 3 index", true)) {
-        rpn_handle_error(ctxt.error, decode_rpn_errors([](const String& decoded) {
+        rpn_handle_error(ctxt.error, rpn_decode_errors([](const String& decoded) {
             Serial.println("rpn_process stopped after an error: ");
             Serial.println(decoded);
         }));
