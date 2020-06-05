@@ -170,6 +170,10 @@ bool _rpn_token_is_null(const char* token) {
     return (strcmp(token, "null") == 0);
 }
 
+bool _rpn_token_is_bool(const char* token) {
+    return (strcmp(token, "true") == 0) || (strcmp(token, "false") == 0);
+}
+
 // XXX: using out param since we don't know the length beforehand, and out is re-used
 
 void _rpn_token_copy(const char* start, const char* stop, String& out) {
@@ -313,13 +317,15 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
         // Is token a string, bool, number, variable or null?
         switch (type) {
-            case RPN_TOKEN_STRING:
-                ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
-                return true;
-
-            case RPN_TOKEN_BOOLEAN:
-                ctxt.stack.emplace_back(std::make_shared<rpn_value>(_rpn_token_as_bool(token.c_str())));
-                return true;
+            case RPN_TOKEN_BOOLEAN: {
+                if (_rpn_token_is_bool(token.c_str())) {
+                    ctxt.stack.emplace_back(std::make_shared<rpn_value>(
+                        _rpn_token_as_bool(token.c_str())
+                    ));
+                    return true;
+                }
+                break;
+            }
 
             case RPN_TOKEN_NUMBER: {
                 char* endptr = nullptr;
@@ -330,6 +336,10 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 ctxt.stack.emplace_back(std::make_shared<rpn_value>(value));
                 return true;
             }
+
+            case RPN_TOKEN_STRING:
+                ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
+                return true;
 
             case RPN_TOKEN_VARIABLE: {
                 if (!token.length()) {

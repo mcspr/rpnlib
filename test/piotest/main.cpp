@@ -31,10 +31,8 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 
 #if defined(UNIX_HOST_DUINO) || HOST_MOCK
-#warning HOST
 #define RPNLIB_PIOTEST_HOST_TEST 1
 #else
-#warning NOT
 #define RPNLIB_PIOTEST_HOST_TEST 0
 #endif
 
@@ -313,6 +311,7 @@ void test_parse_bool(void) {
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
+
     TEST_ASSERT_TRUE(rpn_process(ctxt, "true true and"));
 
     rpn_value value;
@@ -330,6 +329,9 @@ void test_parse_bool(void) {
     );
     TEST_ASSERT_TRUE(value.isBoolean());
     TEST_ASSERT_FALSE(value.toBoolean());
+
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "trrr"));
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "fllll"));
 
     TEST_ASSERT_EQUAL(0, rpn_stack_size(ctxt));
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
