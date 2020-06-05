@@ -81,6 +81,10 @@ rpn_error& rpn_error::operator =(rpn_value_error error) {
     return *this;
 }
 
+bool rpn_error::operator ==(const rpn_error& other) {
+    return (category == other.category) && (code == other.code);
+}
+
 void rpn_error::reset() {
     category = rpn_error_category::Unknown;
     code = 0;

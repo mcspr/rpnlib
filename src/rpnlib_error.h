@@ -64,6 +64,8 @@ struct rpn_error {
     rpn_error& operator =(rpn_operator_error);
     rpn_error& operator =(rpn_value_error);
 
+    bool operator ==(const rpn_error&);
+
     void reset();
 
     rpn_error_category category;
