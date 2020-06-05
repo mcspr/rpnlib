@@ -55,6 +55,8 @@ struct rpn_value {
     void assign(const rpn_value&);
     rpn_value& operator=(const rpn_value&);
 
+    explicit operator bool() const;
+
     bool operator >(const rpn_value&) const;
     bool operator <(const rpn_value&) const;
     bool operator ==(const rpn_value&) const;
@@ -69,12 +71,12 @@ struct rpn_value {
     rpn_value operator /(const rpn_value&);
     rpn_value operator %(const rpn_value&);
 
-    explicit operator rpn_error() const;
-    explicit operator bool() const;
-    explicit operator rpn_int_t() const;
-    explicit operator rpn_uint_t() const;
-    explicit operator rpn_float_t() const;
-    explicit operator String() const;
+    rpn_error toError() const;
+    bool toBoolean() const;
+    rpn_int_t toInt() const;
+    rpn_uint_t toUint() const;
+    rpn_float_t toFloat() const;
+    String toString() const;
 
     bool is(Type) const;
     bool isError() const;

@@ -30,7 +30,7 @@ void dump_stack(rpn_context & ctxt) {
 
     rpn_value value;
     while (rpn_stack_get(ctxt, index, value)) {
-        Serial.printf("[%02u] %s\n", index--, bool(value) ? "true" : "false");
+        Serial.printf("[%02u] %s\n", index--, value.toBoolean() ? "true" : "false");
     }
 
     Serial.println();
@@ -39,7 +39,7 @@ void dump_stack(rpn_context & ctxt) {
 void dump_variables(rpn_context & ctxt) {
     Serial.printf("Variables\n--------------------\n");
     rpn_variable_foreach(ctxt, [](const String& name, const rpn_value& value) {
-        Serial.printf("$%s = %.2f\n", name.c_str(), rpn_float_t(value));
+        Serial.printf("$%s = %.2f\n", name.c_str(), value.toFloat());
     });
 
     Serial.println();
