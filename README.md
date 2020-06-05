@@ -11,9 +11,9 @@ RPNlib is a **Reverse Polish Notation** calculator for ESP8266 & ESP32 microcont
 The library accepts a c-string with commands to execute and provides methods to evaluate the output.
 It is meant to be embedded into third party software as a way to provide the user a simple to implement scripting language.
 
-[![version](https://img.shields.io/github/release/mcspr/rpnlib.svg?label=Latest%20Release)](https://github.com/mcspr/rpnlib/blob/master/CHANGELOG.md)
+[![version](https://img.shields.io/github/v/tag/mcspr/rpnlib)](https://github.com/mcspr/rpnlib/blob/master/CHANGELOG.md)
 [![CI](https://github.com/mcspr/rpnlib/workflows/PlatformIO%20CI/badge.svg?branch=master)](https://github.com/mcspr/rpnlib/actions?query=workflow%3A%22PlatformIO+CI%22)
-[![license](https://img.shields.io/github/license/mcspr/rpnlib.svg)](LICENSE)
+[![license](https://img.shields.io/github/license/mcspr/rpnlib)](LICENSE)
 <br />
 <br />
 Original library by **[@xoseperez](https://github.com/xoseperez)**:
@@ -58,18 +58,18 @@ Using the library is pretty easy. Follow this steps:
 
 A simple code would be:
 
-```
+```cpp
 rpn_context ctxt;
 rpn_init(ctxt);
 rpn_process(ctxt, "4 2 - 5 * 1 +");
 
 auto size = rpn_stack_size(ctxt);
-Serial.printf("Stack size: %d\n", size);
+Serial.printf("Stack size: %zu\n", size);
 
 rpn_value value;
 for (unsigned char i=0; i < size; i++) {
-    rpn_stack_pop(ctxt, value.toFloat());
-    Serial.printf("Stack level #%u value: %f\n", i, value);
+    rpn_stack_pop(ctxt, value);
+    Serial.printf("Stack level #%u value: %f\n", i, value.toFloat());
 }
 
 rpn_clear(ctxt);
@@ -140,7 +140,7 @@ end     ( a -> ...) ends execution if a resolves to false
 
 ```
 
-In addition, when ussing `RPNLIB_ADVANCED_MATH` flag:
+In addition, when using `RPNLIB_ADVANCED_MATH` flag:
 ```
 sqrt    ( a -> sqrt(a) )
 log     ( a -> log(a) )
