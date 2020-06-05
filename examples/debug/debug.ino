@@ -45,6 +45,75 @@ void dump_variables(rpn_context & ctxt) {
     Serial.println();
 }
 
+struct decode_rpn_errors {
+
+    using callback_type = void (*)(const String&);
+
+    decode_rpn_errors(callback_type callback) :
+        callback(callback)
+    {}
+
+    void operator ()(rpn_processing_error error) {
+        switch (error) {
+        case RPN_ERROR_OK:
+            callback("No error");
+            break;
+        case RPN_ERROR_UNKNOWN_TOKEN:
+            callback("Unknown token");
+            break;
+        case RPN_ERROR_ARGUMENT_COUNT_MISMATCH:
+            callback("Operator argument count mismatch");
+            break;
+        case RPN_ERROR_DIVIDE_BY_ZERO:
+            callback("Division by zero");
+            break;
+        case RPN_ERROR_INVALID_OPERATION:
+            callback("Invalid operation");
+            break;
+        case RPN_ERROR_INVALID_ARGUMENT:
+            callback("Invalid argument");
+            break;
+        case RPN_ERROR_VARIABLE_DOES_NOT_EXIST:
+            callback("Variable does not exist");
+            break;
+        case RPN_ERROR_STOP_PROCESSING:
+            callback("Processing was stopped");
+            break;
+        }
+    }
+
+    void operator ()(rpn_value_error error) {
+        switch (error) {
+        case rpn_value_error::OK:
+            callback("No error");
+            break;
+        case rpn_value_error::InvalidOperation:
+            callback("Invalid value operation");
+            break;
+        case rpn_value_error::TypeMismatch:
+            callback("Value type mismatch");
+            break;
+        case rpn_value_error::DivideByZero:
+            callback("Value division by zero");
+            break;
+        case rpn_value_error::IEEE754:
+            callback("Value floating point exception");
+            break;
+        case rpn_value_error::IsNull:
+            callback("Value is null");
+            break;
+        }
+    }
+
+    void operator ()(int code) {
+        callback(String("Unknown error #") + String(code));
+    }
+
+    callback_type callback;
+
+};
+
+
 void setup() {
     
     // Init serial communication with the computer
@@ -62,7 +131,7 @@ void setup() {
     // Define debug callback
     // The callback returns the current context and
     // the token that is going to be processed next
-    rpn_debug([](rpn_context & ctxt, const char * token) {
+    rpn_debug(ctxt, [](rpn_context & ctxt, const char * token) {
         dump_stack(ctxt);
         Serial.printf("Processing: %s\n\n", token);
     });
@@ -83,8 +152,13 @@ void setup() {
     // This is a simple hysteresis behaviour.
     // Last parameter in rpn_process forces variable check,
     // the execution will fail if the variable does not exist
-    rpn_process(ctxt, "$temperature 18 21 cmp3 1 + 1 $relay 0 3 index", true);
-    
+    if (!rpn_process(ctxt, "$temperatue 18 21 cmp3 1 + 1 $relay 0 3 index", true)) {
+        rpn_handle_error(ctxt.error, decode_rpn_errors([](const String& decoded) {
+            Serial.println("rpn_process stopped after an error: ");
+            Serial.println(decoded);
+        }));
+    }
+
     // Show final stack
     dump_stack(ctxt);
 
