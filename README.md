@@ -11,13 +11,12 @@ RPNlib is a **Reverse Polish Notation** calculator for ESP8266 & ESP32 microcont
 The library accepts a c-string with commands to execute and provides methods to evaluate the output.
 It is meant to be embedded into third party software as a way to provide the user a simple to implement scripting language.
 
-[![version](https://img.shields.io/badge/version-0.4.0--pre9-brightgreen.svg)](CHANGELOG.md)
-[![codacy](https://img.shields.io/codacy/grade/dca10aead98240db83c23ef550b591dc/master.svg)](https://www.codacy.com/app/mcspr/rpnlib/dashboard)
-[![travis](https://travis-ci.org/mcspr/rpnlib.svg?branch=master)](https://travis-ci.org/mcspr/rpnlib)
+[![version](https://img.shields.io/github/release/mcspr/rpnlib.svg?label=Latest%20Release)](https://github.com/mcspr/rpnlib/blob/master/CHANGELOG.md)
+[![CI](https://github.com/mcspr/rpnlib/workflows/PlatformIO%20CI/badge.svg?branch=master)](https://github.com/mcspr/rpnlib/actions?query=workflow%3A%22PlatformIO+CI%22)
 [![license](https://img.shields.io/github/license/mcspr/rpnlib.svg)](LICENSE)
 <br />
 <br />
-**[@xoseperez](https://github.com/xoseperez)**:
+Original library by **[@xoseperez](https://github.com/xoseperez)**:
 <br />
 [![donate](https://img.shields.io/badge/donate-PayPal-blue.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=xose%2eperez%40gmail%2ecom&lc=US&no_note=0&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHostedGuest)
 [![twitter](https://img.shields.io/twitter/follow/xoseperez.svg?style=social)](https://twitter.com/intent/follow?screen_name=xoseperez)
