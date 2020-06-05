@@ -2,19 +2,30 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-rpn_context
+rpn_int_t
+rpn_uint_t
+rpn_float_t
 
 #######################################
 # Classes (KEYWORD1)
 #######################################
 
+rpn_error
+rpn_context
+rpn_value
+rpn_stack_value
+rpn_variable
+rpn_operator
+rpn_decode_errors
+
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
 
-rpn_functions_init
-rpn_function_set
-rpn_functions_clear
+rpn_operators_fmath_init
+rpn_operators_init
+rpn_operators_clear
+rpn_operator_set
 
 rpn_variable_set
 rpn_variable_get
@@ -31,10 +42,8 @@ rpn_stack_get
 
 rpn_process
 rpn_init
-
+rpn_clear
 rpn_debug
-
-rpn_error
 
 #######################################
 # Instances (KEYWORD2)
@@ -44,7 +53,24 @@ rpn_error
 # Constants (LITERAL1)
 #######################################
 
-RPN_ERROR_OK
-RPN_ERROR_UNKNOWN_TOKEN
-RPN_ERROR_ARGUMENT_COUNT_MISMATCH
-RPN_ERROR_DIVIDE_BY_ZERO
+rpn_error_category::Unknown
+rpn_error_category::Processing
+rpn_error_category::Operator
+rpn_error_category::Value
+
+rpn_processing_error::Ok,
+rpn_processing_error::UnknownToken,
+rpn_processing_error::VariableDoesNotExist
+
+rpn_operator_error::Ok
+rpn_operator_error::CannotContinue
+rpn_operator_error::ArgumentCountMismatch
+rpn_operator_error::InvalidType
+rpn_operator_error::InvalidArgument
+
+rpn_value_error::Ok
+rpn_value_error::InvalidOperation
+rpn_value_error::TypeMismatch
+rpn_value_error::DivideByZero
+rpn_value_error::IEEE754
+rpn_value_error::IsNull
