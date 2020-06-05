@@ -64,12 +64,12 @@ rpn_context ctxt;
 rpn_init(ctxt);
 rpn_process(ctxt, "4 2 - 5 * 1 +");
 
-const auto size = rpn_stack_size(ctxt);
+auto size = rpn_stack_size(ctxt);
 Serial.printf("Stack size: %d\n", size);
 
-double value;
+rpn_value value;
 for (unsigned char i=0; i < size; i++) {
-    rpn_stack_pop(ctxt, value);
+    rpn_stack_pop(ctxt, value.toFloat());
     Serial.printf("Stack level #%u value: %f\n", i, value);
 }
 
