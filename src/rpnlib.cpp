@@ -153,6 +153,7 @@ bool _rpn_token_is_null(const char* token) {
 // XXX: using out param since we don't know the length beforehand, and out is re-used
 
 void _rpn_token_copy(const char* start, const char* stop, String& out) {
+    out = "";
     const char* ptr = start;
     while (ptr != stop) {
         out += *ptr;
@@ -237,7 +238,6 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
                     state = UNKNOWN;
                     break;
                 }
-                token = "";
                 state = UNKNOWN;
             }
             break;
@@ -262,7 +262,6 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
                     state = UNKNOWN;
                     break;
                 }
-                token = "";
                 state = UNKNOWN;
             }
             break;
@@ -275,7 +274,6 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
         token.reserve(p - start_of_word);
         _rpn_token_copy(start_of_word, p, token);
         callback(type, token);
-        token = "";
     }
 
 }
