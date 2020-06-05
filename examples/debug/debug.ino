@@ -55,36 +55,41 @@ struct decode_rpn_errors {
 
     void operator ()(rpn_processing_error error) {
         switch (error) {
-        case RPN_ERROR_OK:
+        case rpn_processing_error::Ok:
             callback("No error");
             break;
-        case RPN_ERROR_UNKNOWN_TOKEN:
+        case rpn_processing_error::UnknownToken:
             callback("Unknown token");
             break;
-        case RPN_ERROR_ARGUMENT_COUNT_MISMATCH:
-            callback("Operator argument count mismatch");
-            break;
-        case RPN_ERROR_DIVIDE_BY_ZERO:
-            callback("Division by zero");
-            break;
-        case RPN_ERROR_INVALID_OPERATION:
-            callback("Invalid operation");
-            break;
-        case RPN_ERROR_INVALID_ARGUMENT:
-            callback("Invalid argument");
-            break;
-        case RPN_ERROR_VARIABLE_DOES_NOT_EXIST:
+        case rpn_processing_error::VariableDoesNotExist:
             callback("Variable does not exist");
             break;
-        case RPN_ERROR_STOP_PROCESSING:
-            callback("Processing was stopped");
+        }
+    }
+
+    void operator ()(rpn_operator_error error) {
+        switch (error) {
+        case rpn_operator_error::Ok:
+            callback("No error");
+            break;
+        case rpn_operator_error::ArgumentCountMismatch:
+            callback("Operator argument count mismatch");
+            break;
+        case rpn_operator_error::InvalidType:
+            callback("Invalid operation type");
+            break;
+        case rpn_operator_error::InvalidArgument:
+            callback("Invalid argument");
+            break;
+        case rpn_operator_error::CannotContinue:
+            callback("Processing was stopped, cannot continue");
             break;
         }
     }
 
     void operator ()(rpn_value_error error) {
         switch (error) {
-        case rpn_value_error::OK:
+        case rpn_value_error::Ok:
             callback("No error");
             break;
         case rpn_value_error::InvalidOperation:

@@ -25,11 +25,26 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 enum class rpn_error_category {
     Unknown,
     Processing,
+    Operator,
     Value
 };
 
+enum class rpn_processing_error {
+    Ok,
+    UnknownToken,
+    VariableDoesNotExist
+};
+
+enum class rpn_operator_error {
+    Ok,
+    CannotContinue,
+    ArgumentCountMismatch,
+    InvalidType,
+    InvalidArgument
+};
+
 enum class rpn_value_error {
-    OK,
+    Ok,
     InvalidOperation,
     TypeMismatch,
     DivideByZero,
@@ -37,23 +52,16 @@ enum class rpn_value_error {
     IsNull
 };
 
-enum rpn_processing_error {
-    RPN_ERROR_OK,
-    RPN_ERROR_UNKNOWN_TOKEN,
-    RPN_ERROR_ARGUMENT_COUNT_MISMATCH,
-    RPN_ERROR_DIVIDE_BY_ZERO,
-    RPN_ERROR_INVALID_OPERATION,
-    RPN_ERROR_INVALID_ARGUMENT,
-    RPN_ERROR_VARIABLE_DOES_NOT_EXIST,
-    RPN_ERROR_STOP_PROCESSING
-};
-
 struct rpn_error {
     rpn_error();
+
+    rpn_error(int);
     rpn_error(rpn_processing_error);
+    rpn_error(rpn_operator_error);
     rpn_error(rpn_value_error);
 
     rpn_error& operator =(rpn_processing_error);
+    rpn_error& operator =(rpn_operator_error);
     rpn_error& operator =(rpn_value_error);
 
     void reset();
@@ -67,6 +75,9 @@ void rpn_handle_error(const rpn_error& error, Visitor&& visitor) {
     switch (error.category) {
     case rpn_error_category::Processing:
        visitor(static_cast<rpn_processing_error>(error.code));
+       break;
+    case rpn_error_category::Operator:
+       visitor(static_cast<rpn_operator_error>(error.code));
        break;
     case rpn_error_category::Value:
        visitor(static_cast<rpn_value_error>(error.code));

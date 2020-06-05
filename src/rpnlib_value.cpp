@@ -34,7 +34,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 namespace {
 
 rpn_value_error _rpn_can_divide_by(const rpn_value& value) {
-    rpn_value_error result = rpn_value_error::OK;
+    rpn_value_error result = rpn_value_error::Ok;
 
     switch (value.type) {
     case rpn_value::Type::Float: {
@@ -605,7 +605,7 @@ rpn_value rpn_value::operator /(const rpn_value& other) {
     // avoid division by zero (previously, RPN_ERROR_DIVIDE_BY_ZERO)
     // technically, we will get either inf or nan with floating point math, but we need operator to do the conversion for this `val` to make sense to the user
     auto err = _rpn_can_divide_by(other);
-    if (err != rpn_value_error::OK) {
+    if (err != rpn_value_error::Ok) {
         val = rpn_value(err);
         return val;
     }
@@ -646,7 +646,7 @@ rpn_value rpn_value::operator %(const rpn_value& other) {
     // avoid division by zero (previously, RPN_ERROR_DIVIDE_BY_ZERO)
     // technically, we will get either inf or nan with floating point math, but we need operator to do the conversion for this `val` to make sense to the user
     auto err = _rpn_can_divide_by(other);
-    if (err != rpn_value_error::OK) {
+    if (err != rpn_value_error::Ok) {
         val = rpn_value(err);
         return val;
     }

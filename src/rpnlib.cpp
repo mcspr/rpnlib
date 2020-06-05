@@ -43,8 +43,18 @@ rpn_error::rpn_error() :
     code(0)
 {}
 
+rpn_error::rpn_error(int code) :
+    category(rpn_error_category::Unknown),
+    code(code)
+{}
+
 rpn_error::rpn_error(rpn_processing_error error) :
     category(rpn_error_category::Processing),
+    code(static_cast<int>(error))
+{}
+
+rpn_error::rpn_error(rpn_operator_error error) :
+    category(rpn_error_category::Operator),
     code(static_cast<int>(error))
 {}
 
@@ -55,6 +65,12 @@ rpn_error::rpn_error(rpn_value_error error) :
 
 rpn_error& rpn_error::operator =(rpn_processing_error error) {
     category = rpn_error_category::Processing;
+    code = static_cast<int>(error);
+    return *this;
+}
+
+rpn_error& rpn_error::operator =(rpn_operator_error error) {
+    category = rpn_error_category::Operator;
     code = static_cast<int>(error);
     return *this;
 }
@@ -327,7 +343,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
                 // no reason to continue
                 if (!found && variable_must_exist) {
-                    ctxt.error = RPN_ERROR_VARIABLE_DOES_NOT_EXIST;
+                    ctxt.error = rpn_processing_error::VariableDoesNotExist;
                     return false;
                 }
 
@@ -350,7 +366,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 break;
 
             case RPN_TOKEN_UNKNOWN:
-                ctxt.error = RPN_ERROR_UNKNOWN_TOKEN;
+                ctxt.error = rpn_processing_error::UnknownToken;
                 break;
 
             case RPN_TOKEN_WORD:
@@ -364,7 +380,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             for (auto & f : ctxt.operators) {
                 if (f.name == token) {
                     if (rpn_stack_size(ctxt) < f.argc) {
-                        ctxt.error = RPN_ERROR_ARGUMENT_COUNT_MISMATCH;
+                        ctxt.error = rpn_operator_error::ArgumentCountMismatch;
                         break;
                     }
                     ctxt.error = (f.callback)(ctxt);
@@ -377,7 +393,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         }
 
         // Don't know the token
-        ctxt.error = RPN_ERROR_UNKNOWN_TOKEN;
+        ctxt.error = rpn_processing_error::UnknownToken;
         return false;
 
     });

@@ -136,13 +136,13 @@ rpn_int_t _rpn_stack_compare3(rpn_context & ctxt) {
 rpn_error _rpn_pi(rpn_context & ctxt) {
     static auto value = rpn_value { RPN_CONST_PI };
     rpn_stack_push(ctxt, value);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_e(rpn_context & ctxt) {
     static auto value = rpn_value { RPN_CONST_E };
     rpn_stack_push(ctxt, value);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -160,7 +160,7 @@ rpn_error _rpn_sum(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, std::move(result));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_substract(rpn_context & ctxt) {
@@ -170,7 +170,7 @@ rpn_error _rpn_substract(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, std::move(result));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_times(rpn_context & ctxt) {
@@ -180,7 +180,7 @@ rpn_error _rpn_times(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, std::move(result));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_divide(rpn_context & ctxt) {
@@ -190,7 +190,7 @@ rpn_error _rpn_divide(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, std::move(result));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_mod(rpn_context & ctxt) {
@@ -200,13 +200,13 @@ rpn_error _rpn_mod(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, std::move(result));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_abs(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     if (!top.isNumber()) {
-        return RPN_ERROR_INVALID_OPERATION;
+        return rpn_operator_error::InvalidType;
     }
     rpn_value result { rpn_float_t(top) * -1.0 };
     _rpn_stack_eat(ctxt, 1);
@@ -214,7 +214,7 @@ rpn_error _rpn_abs(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, std::move(result));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -232,7 +232,7 @@ rpn_error _rpn_eq(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_ne(rpn_context & ctxt) {
@@ -242,7 +242,7 @@ rpn_error _rpn_ne(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_gt(rpn_context & ctxt) {
@@ -252,7 +252,7 @@ rpn_error _rpn_gt(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_ge(rpn_context & ctxt) {
@@ -262,7 +262,7 @@ rpn_error _rpn_ge(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_lt(rpn_context & ctxt) {
@@ -272,7 +272,7 @@ rpn_error _rpn_lt(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 rpn_error _rpn_le(rpn_context & ctxt) {
@@ -282,7 +282,7 @@ rpn_error _rpn_le(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -301,7 +301,7 @@ rpn_error _rpn_cmp(rpn_context & ctxt) {
         return static_cast<rpn_error>(result);
     }
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 };    
 
 // [a b c] -> [d]
@@ -317,7 +317,7 @@ rpn_error _rpn_cmp3(rpn_context & ctxt) {
     }
 
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 };    
 
 // [a ... x] -> [y]
@@ -332,16 +332,16 @@ rpn_error _rpn_index(rpn_context & ctxt) {
     const auto& top = _rpn_stack_peek(ctxt, 1);
     const auto size = rpn_float_t(top);
     if (size < 0) {
-        return RPN_ERROR_INVALID_ARGUMENT;
+        return rpn_operator_error::InvalidArgument;
     }
     if (stack_size < size + 1) {
-        return RPN_ERROR_INVALID_ARGUMENT;
+        return rpn_operator_error::InvalidArgument;
     }
 
     const auto& bottom = _rpn_stack_peek(ctxt, size + 2);
     const auto index = rpn_float_t(bottom);
     if ((index + 1) > size) {
-        return RPN_ERROR_INVALID_ARGUMENT;
+        return rpn_operator_error::InvalidArgument;
     }
 
     const auto pick = _rpn_stack_peek(ctxt, size + 1 - index);
@@ -349,7 +349,7 @@ rpn_error _rpn_index(rpn_context & ctxt) {
 
     rpn_stack_push(ctxt, pick);
 
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a b c d e] -> [x]
@@ -363,7 +363,7 @@ rpn_error _rpn_map(rpn_context & ctxt) {
     auto to_high = _rpn_stack_peek(ctxt, 1);
 
     if (from_high == from_low) {
-        return RPN_ERROR_INVALID_ARGUMENT;
+        return rpn_operator_error::InvalidArgument;
     }
     if (value < from_low) value = from_low;
     if (value > from_high) value = from_high;
@@ -376,7 +376,7 @@ rpn_error _rpn_map(rpn_context & ctxt) {
 
     rpn_stack_push(ctxt, value);
 
-    return RPN_ERROR_OK;
+    return 0;
 };
 
 // [a b c] -> [d]
@@ -395,7 +395,7 @@ rpn_error _rpn_constrain(rpn_context & ctxt) {
         rpn_stack_push(ctxt, value);
     }
 
-    return RPN_ERROR_OK;
+    return 0;
 };    
 
 // ----------------------------------------------------------------------------
@@ -417,7 +417,7 @@ rpn_error _rpn_and(rpn_context & ctxt) {
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a b] -> [c]
@@ -430,7 +430,7 @@ rpn_error _rpn_or(rpn_context & ctxt) {
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a b] -> [c]
@@ -443,7 +443,7 @@ rpn_error _rpn_xor(rpn_context & ctxt) {
     _rpn_stack_eat(ctxt, 2);
 
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a] -> [b]
@@ -453,7 +453,7 @@ rpn_error _rpn_not(rpn_context & ctxt) {
     rpn_value result { !bool(top) };
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, result);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -468,7 +468,7 @@ rpn_error _rpn_round(rpn_context & ctxt) {
     const auto& value = _rpn_stack_peek(ctxt, 2);
 
     if (!decimals.isNumber() || !value.isNumber()) {
-        return RPN_ERROR_INVALID_ARGUMENT;
+        return rpn_operator_error::InvalidType;
     }
     
     rpn_float_t multiplier = 1.0;
@@ -481,7 +481,7 @@ rpn_error _rpn_round(rpn_context & ctxt) {
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, std::move(result));
 
-    return RPN_ERROR_OK;
+    return 0;
 
 }
 
@@ -490,13 +490,13 @@ rpn_error _rpn_round(rpn_context & ctxt) {
 rpn_error _rpn_ceil(rpn_context & ctxt) {
     auto& value = _rpn_stack_peek(ctxt, 1);
     if (!value.isNumber()) {
-        return RPN_ERROR_INVALID_ARGUMENT;
+        return rpn_operator_error::InvalidType;
     }
 
     rpn_value result { ceil(rpn_float_t(value)) };
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, std::move(result));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a] -> [b], where b is equal to floor(a)
@@ -504,13 +504,13 @@ rpn_error _rpn_ceil(rpn_context & ctxt) {
 rpn_error _rpn_floor(rpn_context & ctxt) {
     auto& value = _rpn_stack_peek(ctxt, 1);
     if (!value.isNumber()) {
-        return RPN_ERROR_INVALID_ARGUMENT;
+        return rpn_operator_error::InvalidType;
     }
 
     rpn_value result { floor(rpn_float_t(value)) };
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, std::move(result));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -528,7 +528,7 @@ rpn_error _rpn_ifn(rpn_context & ctxt) {
     rpn_value result { bool(a) ? b : c };
     rpn_stack_push(ctxt, result);
 
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a] -> []
@@ -536,7 +536,9 @@ rpn_error _rpn_ifn(rpn_context & ctxt) {
 rpn_error _rpn_end(rpn_context & ctxt) {
     const auto value = _rpn_stack_peek(ctxt, 1);
     _rpn_stack_eat(ctxt, 1);
-    return bool(value) ? RPN_ERROR_OK : RPN_ERROR_STOP_PROCESSING;
+    return bool(value)
+        ? rpn_operator_error::Ok
+        : rpn_operator_error::CannotContinue;
 }
 
 // ----------------------------------------------------------------------------
@@ -546,20 +548,20 @@ rpn_error _rpn_end(rpn_context & ctxt) {
 // [a] -> [a a]
 rpn_error _rpn_dup(rpn_context & ctxt) {
     rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 1));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a b] -> [a b a b]
 rpn_error _rpn_dup2(rpn_context & ctxt) {
     rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 1));
     rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 3));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a b] -> [a b a]
 rpn_error _rpn_over(rpn_context & ctxt) {
     rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 2));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a b] -> [b a]
@@ -567,7 +569,7 @@ rpn_error _rpn_swap(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     std::swap(top, prev);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a b c] -> [c a b]
@@ -582,7 +584,7 @@ rpn_error _rpn_unrot(rpn_context & ctxt) {
     rpn_stack_push(ctxt, a);
     rpn_stack_push(ctxt, b);
 
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a b c] -> [b c a]
@@ -597,13 +599,13 @@ rpn_error _rpn_rot(rpn_context & ctxt) {
     rpn_stack_push(ctxt, c);
     rpn_stack_push(ctxt, a);
 
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a b c] -> [a b]
 rpn_error _rpn_drop(rpn_context & ctxt) {
     _rpn_stack_eat(ctxt, 1);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a b c] -> [a b c 3]
@@ -611,7 +613,7 @@ rpn_error _rpn_depth(rpn_context & ctxt) {
     rpn_stack_push(ctxt, rpn_value(
         static_cast<rpn_uint_t>(rpn_stack_size(ctxt))
     ));
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [$var exists] -> [$var]
@@ -619,14 +621,14 @@ rpn_error _rpn_depth(rpn_context & ctxt) {
 rpn_error _rpn_exists(rpn_context & ctxt) {
     auto& ref = ctxt.stack.back();
     if (ref.type != rpn_stack_value::Type::Variable) {
-        return RPN_ERROR_STOP_PROCESSING;
+        return rpn_operator_error::InvalidType;
     }
 
     if (ref.value->isNull() || ref.value->isError()) {
-        return RPN_ERROR_STOP_PROCESSING;
+        return rpn_operator_error::CannotContinue;
     }
 
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 // [a $var] -> [$var]
@@ -636,7 +638,7 @@ rpn_error _rpn_assign(rpn_context & ctxt) {
     auto& prev = _rpn_stack_peek(ctxt, 2);
     top = prev;
     ctxt.stack.erase(ctxt.stack.end() - 2);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 } // namespace anonymous
@@ -653,17 +655,21 @@ rpn_operator::rpn_operator(const char* name, unsigned char argc, rpn_operator_ca
 
 bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, rpn_operator_callback_f callback) {
     ctxt.operators.emplace_back(name, argc, callback);
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 bool rpn_operators_clear(rpn_context & ctxt) {
     ctxt.operators.clear();
-    return RPN_ERROR_OK;
+    return 0;
 }
 
 bool rpn_operators_init(rpn_context & ctxt) {
 
+    bool operators_set = false;
+
     #if RPNLIB_BUILTIN_OPERATORS
+
+    operators_set = true;
 
     rpn_operator_set(ctxt, "pi", 0, _rpn_pi);
     rpn_operator_set(ctxt, "e", 0, _rpn_e);
@@ -719,6 +725,6 @@ bool rpn_operators_init(rpn_context & ctxt) {
 
     #endif // RPNLIB_BUILTIN_OPERATORS
 
-    return RPN_ERROR_OK;
+    return operators_set;
 }
 
