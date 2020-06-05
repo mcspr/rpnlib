@@ -655,12 +655,12 @@ rpn_operator::rpn_operator(const char* name, unsigned char argc, rpn_operator_ca
 
 bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, rpn_operator_callback_f callback) {
     ctxt.operators.emplace_back(name, argc, callback);
-    return 0;
+    return true;
 }
 
 bool rpn_operators_clear(rpn_context & ctxt) {
     ctxt.operators.clear();
-    return 0;
+    return true;
 }
 
 bool rpn_operators_init(rpn_context & ctxt) {
