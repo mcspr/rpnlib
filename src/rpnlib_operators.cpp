@@ -365,8 +365,12 @@ rpn_error _rpn_map(rpn_context & ctxt) {
     if (from_high == from_low) {
         return rpn_operator_error::InvalidArgument;
     }
-    if (value < from_low) value = from_low;
-    if (value > from_high) value = from_high;
+    if (value < from_low) {
+        value = from_low;
+    }
+    if (value > from_high) {
+        value = from_high;
+    }
     value = to_low + (value - from_low) * (to_high - to_low) / (from_high - from_low);
 
     _rpn_stack_eat(ctxt, 5);
