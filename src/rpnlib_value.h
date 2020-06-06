@@ -48,11 +48,11 @@ struct rpn_value {
     explicit rpn_value(const String&);
     explicit rpn_value(String&&);
 
-    rpn_value(rpn_value&&);
+    rpn_value(rpn_value&&) noexcept;
     rpn_value(const rpn_value&);
     ~rpn_value();
 
-    void assign(const rpn_value&);
+    void assign(const rpn_value&) noexcept;
     rpn_value& operator=(const rpn_value&);
 
     explicit operator bool() const;
@@ -88,7 +88,11 @@ struct rpn_value {
     bool isNumber() const;
     bool isString() const;
 
+    Type type;
+
     private:
+
+    void assignPrimitive(const rpn_value&) noexcept;
 
     union {
         rpn_value_error as_error;
@@ -98,10 +102,6 @@ struct rpn_value {
         rpn_float_t as_float;
         String as_string;
     };
-
-    public:
-
-    Type type;
 
 };
 

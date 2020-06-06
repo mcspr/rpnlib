@@ -130,7 +130,18 @@ void run_and_error(const char * command, rpn_error error) {
 // Tests
 // -----------------------------------------------------------------------------
 
-void test_math(void) {
+void test_rpn_value() {
+    rpn_value rpn_float(1.0);
+    TEST_ASSERT(rpn_float.isFloat());
+
+    rpn_value rpn_int(rpn_int_t(1));
+    TEST_ASSERT(rpn_int.isInt());
+
+    rpn_value rpn_uint(1UL);
+    TEST_ASSERT(rpn_uint.isUint());
+}
+
+void test_math() {
     run_and_compare("5 2 * 3 + 5 mod", {3.0});
 }
 
@@ -414,6 +425,7 @@ void test_memory(void) {
 
 int run_tests() {
     UNITY_BEGIN();
+    RUN_TEST(test_rpn_value);
     RUN_TEST(test_math);
     RUN_TEST(test_math_advanced);
     RUN_TEST(test_trig);

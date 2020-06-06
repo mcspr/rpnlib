@@ -76,68 +76,52 @@ rpn_value::rpn_value() :
 {}
 
 rpn_value::rpn_value(const rpn_value& other) {
-    switch (other.type) {
-    case rpn_value::Type::Null:
-        break;
-    case rpn_value::Type::Error:
-        as_error = other.as_error;
-        break;
-    case rpn_value::Type::Boolean:
-        as_boolean = other.as_boolean;
-        break;
-    case rpn_value::Type::Integer:
-        as_integer = other.as_integer;
-        break;
-    case rpn_value::Type::Unsigned:
-        as_unsigned = other.as_unsigned;
-        break;
-    case rpn_value::Type::Float:
-        as_float = other.as_float;
-        break;
-    case rpn_value::Type::String:
+    if (other.type == rpn_value::Type::String) {
         new (&as_string) String(other.as_string);
-        break;
+        type = Type::String;
+    } else {
+        assignPrimitive(other);
     }
-    type = other.type;
 }
 
 // TODO: global flag RPNLIB_STRING_IMPLEMENTATION, default String
 //       implement `template <T> _rpn_value_destroy_string(rpn_value&) { ... }`
 //       - ~basic_string() for std::String to test on host
 //       - ~String() for Arduino String
-rpn_value::rpn_value(rpn_value&& other) :
-    type(rpn_value::Type::Null)
-{
-    assign(other);
+rpn_value::rpn_value(rpn_value&& other) noexcept {
     if (other.type == rpn_value::Type::String) {
+        type = Type::String;
+        new (&as_string) String(std::move(other.as_string));
         other.as_string.~String();
+    } else {
+        assignPrimitive(other);
     }
     other.type = rpn_value::Type::Null;
 }
 
 rpn_value::rpn_value(bool value) :
-    as_boolean(value),
-    type(rpn_value::Type::Boolean)
+    type(rpn_value::Type::Boolean),
+    as_boolean(value)
 {}
 
 rpn_value::rpn_value(rpn_value_error value) :
-    as_error(value),
-    type(rpn_value::Type::Error)
+    type(rpn_value::Type::Error),
+    as_error(value)
 {}
 
 rpn_value::rpn_value(rpn_int_t value) :
-    as_integer(value),
-    type(rpn_value::Type::Integer)
+    type(rpn_value::Type::Integer),
+    as_integer(value)
 {}
 
 rpn_value::rpn_value(rpn_uint_t value) :
-    as_unsigned(value),
-    type(rpn_value::Type::Unsigned)
+    type(rpn_value::Type::Unsigned),
+    as_unsigned(value)
 {}
 
 rpn_value::rpn_value(rpn_float_t value) :
-    as_float(value),
-    type(rpn_value::Type::Float)
+    type(rpn_value::Type::Float),
+    as_float(value)
 {}
 
 rpn_value::rpn_value(const char* value) :
@@ -164,17 +148,12 @@ rpn_value::~rpn_value() {
     }
 }
 
-void rpn_value::assign(const rpn_value& other) {
-
-    if ((type != other.type) && (type == rpn_value::Type::String)) {
-        as_string.~String();
-    }
-
+void rpn_value::assignPrimitive(const rpn_value& other) noexcept {
     switch (other.type) {
+    case rpn_value::Type::Null:
+        break;
     case rpn_value::Type::Error:
         as_error = other.as_error;
-        break;
-    case rpn_value::Type::Null:
         break;
     case rpn_value::Type::Boolean:
         as_boolean = other.as_boolean;
@@ -189,14 +168,21 @@ void rpn_value::assign(const rpn_value& other) {
         as_float = other.as_float;
         break;
     case rpn_value::Type::String:
+        break;
+    }
+    type = other.type;
+}
+
+void rpn_value::assign(const rpn_value& other) noexcept {
+    if (other.type == Type::String) {
         if (type == rpn_value::Type::String) {
             as_string = other.as_string;
         } else {
             new (&as_string) String(other.as_string);
         }
-        break;
+    } else {
+        assignPrimitive(other);
     }
-
     type = other.type;
 }
 
