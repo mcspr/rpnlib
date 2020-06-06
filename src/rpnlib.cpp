@@ -137,7 +137,7 @@ bool _rpn_token_still_number(char c) {
     case '+':
         return true;
     default:
-        return isdigit(c);
+        return isdigit(c) != 0;
     }
 }
 
@@ -422,7 +422,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         ctxt.variables.end()
     );
 
-    return (!ctxt.error.code);
+    return (0 == ctxt.error.code);
 
 }
 
