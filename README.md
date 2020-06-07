@@ -125,13 +125,13 @@ rpn_clear(ctxt);
 |`+`|( a b -> a+b ) | |
 |`-`|( a b -> a-b ) | |
 |`*`|( a b -> a*b ) | |
-|`/`|( a b -> a/b ) |  throws error if b==0|
-|`mod`|( a b -> a\b ) |  returns the reminder for the a/b division as integers|
-|`abs`|( a -> a ) | absolute value of floating-point number |
+|`/`|( a b -> a/b ) | (note: ends execution if b equals 0) |
+|`mod`|( a b -> a\b ) |  returns the reminder for the a/b division as integers |
+|`abs`|( a -> a ) | absolute value of the number. throws an error when a is not float, int or uint |
 |`round`|( a n -> b ) |  where b is a rounded to the n-th decimal|
-|`ceil`|( a -> b ) |  where b is a rounded to the closes greater or equal integer|
-|`floor`|( a -> b ) |  where b is a rounded to the closes lesser or equal integer|
-|`int`|( a -> b ) |  alias for "floor"|
+|`ceil`|( a -> b ) |  where b is the smallest integral value not less than a |
+|`floor`|( a -> b ) |  where b is the largest integral value not greater than a |
+|`int`|( a -> b ) |  alias for "floor" |
 |`eq`|( a b -> a==b ) | |
 |`ne`|( a b -> a!=b ) | |
 |`gt`|( a b -> a>b ) | |
@@ -142,9 +142,9 @@ rpn_clear(ctxt);
 |`cmp3`|( a b c -> d ) |  d is -1 if a<b, 1 if a>c and 0 if equals to b or c or in the middle|
 |`index`|( a v1 v2 ... b -> c ) |  returns the a-nth value from the v# list, b is the number of values in the v# list|
 |`map`|    ( a b c d e -> f ) |  performs a rule of 3 mapping value a which goes from b to c to d to e|
-|`constrain`|(a b c -> d) |  ensures a is between (and included) b and c|
-|`and`|( a b -> c ) |  where c is 1 if both a and b are different from 0|
-|`or`|( a b -> c ) |  where c is 1 if a or b are different from 0|
+|`constrain`|(a b c -> d) |  ensures a is between the range of b and c (inlusive) |
+|`and`|( a b -> c ) |  where c is 1 if both a and b are different from 0 |
+|`or`|( a b -> c ) |  where c is 1 if a or b are different from 0 |
 |`xor`|( a b -> c ) |  where c is 1 if either a or b are different from 0, but not both|
 |`not`|( a -> !a ) |  where b is 1 if a is 0, 0 otherwise|
 |`dup`|( a -> a a ) | |
