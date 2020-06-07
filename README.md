@@ -1,5 +1,9 @@
 # RPNlib
 
+[![version](https://img.shields.io/github/v/tag/mcspr/rpnlib)](https://github.com/mcspr/rpnlib/blob/master/CHANGELOG.md)
+[![CI](https://github.com/mcspr/rpnlib/workflows/PlatformIO%20CI/badge.svg?branch=master)](https://github.com/mcspr/rpnlib/actions?query=workflow%3A%22PlatformIO+CI%22)
+[![license](https://img.shields.io/github/license/mcspr/rpnlib)](LICENSE)
+
 **Notice** this is the fork of the original [rpnlib](https://github.com/xoseperez/rpnlib) by **[@xoseperez](https://github.com/xoseperez)**
 
 Main differences are:
@@ -12,10 +16,6 @@ Main differences are:
 RPNlib is a **Reverse Polish Notation** calculator for ESP8266 & ESP32 microcontrollers.  
 The library accepts a c-string with commands to execute and provides methods to evaluate the output.
 It is meant to be embedded into third party software as a way to provide the user with a simple way of implementing a scripting language.
-
-[![version](https://img.shields.io/github/v/tag/mcspr/rpnlib)](https://github.com/mcspr/rpnlib/blob/master/CHANGELOG.md)
-[![CI](https://github.com/mcspr/rpnlib/workflows/PlatformIO%20CI/badge.svg?branch=master)](https://github.com/mcspr/rpnlib/actions?query=workflow%3A%22PlatformIO+CI%22)
-[![license](https://img.shields.io/github/license/mcspr/rpnlib)](LICENSE)
 
 ## RPN
 
