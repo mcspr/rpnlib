@@ -30,6 +30,11 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 #include <vector>
 
+// XXX: we still need printf for format
+#define __STDC_FORMAT_MACROS
+#include <cinttypes>
+
+// Detect when running on host. Either in `pio test` or via `examples/host`
 #if defined(UNIX_HOST_DUINO) || HOST_MOCK
 #define RPNLIB_PIOTEST_HOST_TEST 1
 #else
@@ -61,10 +66,10 @@ void highlight_stack_index(rpn_context& ctxt, unsigned char match, rpn_float_t v
         char highlight = (index == match) ? '*' : ' ';
         switch (value.type) {
         case rpn_value::Type::Integer:
-            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %ld", highlight, index, value.toInt());
+            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %" PRId32, highlight, index, value.toInt());
             break;
         case rpn_value::Type::Unsigned:
-            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %lu", highlight, index, value.toUint());
+            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %" PRIu32, highlight, index, value.toUint());
             break;
         case rpn_value::Type::Float:
             snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %f", highlight, index, value.toFloat());
