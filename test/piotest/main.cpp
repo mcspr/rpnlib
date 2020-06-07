@@ -166,6 +166,7 @@ void test_rpn_value() {
 
 void test_math() {
     run_and_compare("5 2 * 3 + 5 mod", {3.0});
+    run_and_compare("-5 -2 -1 * * abs", {10.0});
 }
 
 void test_math_advanced(void) {

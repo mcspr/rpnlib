@@ -212,13 +212,20 @@ rpn_error _rpn_abs(rpn_context & ctxt) {
         return 0;
     }
 
-    rpn_value result { fabs(top.toFloat()) };
-    _rpn_stack_eat(ctxt, 1);
+    rpn_value result;
+    if (top.isFloat()) {
+        result = rpn_value { std::abs(top.toFloat()) };
+    } else if (top.isInt()) {
+        result = rpn_value { std::abs(top.toInt()) };
+    }
+
     if (result.isError()) {
         return result.toError();
     }
 
+    _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, std::move(result));
+
     return 0;
 }
 
