@@ -108,13 +108,13 @@ enum rpn_token_t {
 // Changes from the answer:
 // - rework inner loop to call external function with token arg
 // - rework interal types. add variables, booleans and numbers
-// - special condition for bool
+// - special condition for null
+// - special condition for bool (true or false)
 // - special condition for scientific notation
-// String is modified in-place by inserting '\0', allowing to use callback on the resulting pointer directly.
-// Perhaps, there is a way to not do that and pass some string-like struct with length from start_of_word to nullptr.
+// - don't copy the string to insert '\0', just copy chars into a String
 //
 // TODO: support '\'' and '"' at the same time, we must have different branches for each one. (likely to be solved with goto, also reducing nesting)
-// TODO: re2c could generate more efficient code
+// TODO: re2c could generate more efficient code for types, we don't have to check 3 times for bool
 
 namespace {
 
