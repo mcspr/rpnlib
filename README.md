@@ -83,8 +83,18 @@ rpn_process(ctxt, "4 2 - 5 * 1 +");
 Serial.printf("Stack size: %zu\n", rpn_stack_size(ctxt));
 
 size_t index = 0;
-rpn_stack_foreach(ctxt, [&index](rpn_value& value) { // NOTE: direct access to the stack value object
+rpn_stack_foreach(ctxt, [&index](rpn_stack_value::Type, rpn_value& value) { // NOTE: direct access to the stack value object
     Serial.printf("Stack level #%u value: %f\n", index++, value.toFloat());
+});
+```
+
+* *Optional* Inspect variables
+```cpp
+Serial.printf("Variables: %zu\n", rpn_variables_size(ctxt));
+
+size_t index = 0;
+rpn_variables_foreach(ctxt, [&index](const String& name, const rpn_value& value) {
+    Serial.printf("Variable #%u, %s = %f\n", index++, name.c_str(), value.toFloat());
 });
 ```
 
