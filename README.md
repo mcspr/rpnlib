@@ -1,11 +1,11 @@
 # RPNlib
 
-**Notice** this is the fork of the original [rpnlib](https://github.com/xoseperez/rpnlib) by **[@xoseperez](https://github.com/xoseperez)**: [![twitter](https://img.shields.io/twitter/follow/xoseperez.svg?style=social)](https://twitter.com/intent/follow?screen_name=xoseperez)
+**Notice** this is the fork of the original [rpnlib](https://github.com/xoseperez/rpnlib) by **[@xoseperez](https://github.com/xoseperez)**
 
 Main differences are:
 - Configurable floating point type, can replace `float` (old value type) with `double` (new default)
-- String support in expressions and variables, using double quotation marks
-- Variable assignment / deletion in expressions
+- String support in expressions and variables
+- Variable manipulation in expressions
 
 ## Description
 
@@ -99,10 +99,12 @@ rpn_clear(ctxt);
 
 ### Default types
 
-* Keyword `null` is reserved for the internal `Null` type.
+* Keyword `null` is reserved for the internal 'Null' type.
 * Keywords `true` and `false` are reserved for the internal 'Boolean' type.
-* All numbers in the stack are represented as `rpn_float_t` (configurable type, either `float` or `double`).
-* All strings in the stack are repesented as `String` (Arduino class).
+* Numbers in expressions are represented as `rpn_float_t` (configurable type, either `float` or `double`).
+* Integer values are represented as `rpn_int_t`, can be used in operators.
+* Unsigned integer values are represented as `rpn_uint_t`, can be used in operators.
+* All strings are repesented as `String` (Arduino class). Strings in expressions are surrounded by double quotation marks.
 
 ### Variables
 
