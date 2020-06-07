@@ -208,11 +208,16 @@ rpn_error _rpn_abs(rpn_context & ctxt) {
     if (!top.isNumber()) {
         return rpn_operator_error::InvalidType;
     }
-    rpn_value result { top.toFloat() * -1.0 };
+    if (top.isUint()) {
+        return 0;
+    }
+
+    rpn_value result { fabs(top.toFloat()) };
     _rpn_stack_eat(ctxt, 1);
     if (result.isError()) {
         return result.toError();
     }
+
     rpn_stack_push(ctxt, std::move(result));
     return 0;
 }

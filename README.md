@@ -9,7 +9,7 @@ Main differences are:
 
 ## Description
 
-RPNlib is a **Reverse Polish Notation** calculator for ESP8266 & ESP32 microcontrollers. 
+RPNlib is a **Reverse Polish Notation** calculator for ESP8266 & ESP32 microcontrollers.  
 The library accepts a c-string with commands to execute and provides methods to evaluate the output.
 It is meant to be embedded into third party software as a way to provide the user with a simple way of implementing a scripting language.
 
@@ -19,7 +19,7 @@ It is meant to be embedded into third party software as a way to provide the use
 
 ## RPN
 
-First you should familiarize yourself with RPN calculation. 
+First, you should familiarize yourself with RPN calculation.  
 [Reverse Polish notation (RPN)](https://en.wikipedia.org/wiki/Reverse_Polish_notation), also known as Polish postfix notation or simply postfix notation, is a mathematical notation in which operators follow their operands, in contrast to Polish notation (PN), in which operators precede their operands. It does not need any parentheses as long as each operator has a fixed number of operands. The description "Polish" refers to the nationality of logician Jan Łukasiewicz, who invented Polish notation in 1924.
 
 A simple calculation in infix notation might look like this:
@@ -35,8 +35,6 @@ The same calculation in RPN (postfix) will look like this:
 ```
 
 It results in a shorter expression since parenthesis are unnecessary. Also the equals sign is not needed since all results are stored in the stack. From the computer point of view is much simpler to evaluate since it doesn't have to look forward for the operands.
-
-Check this [wiki page on the topic](https://en.wikipedia.org/wiki/Reverse_Polish_notation).
 
 ## Library usage
 
@@ -104,7 +102,7 @@ rpn_clear(ctxt);
 * Numbers in expressions are represented as `rpn_float_t` (configurable type, either `float` or `double`).
 * Integer values are represented as `rpn_int_t`, can be used in operators.
 * Unsigned integer values are represented as `rpn_uint_t`, can be used in operators.
-* All strings are repesented as `String` (Arduino class). Strings in expressions are surrounded by double quotation marks.
+* All strings are represented as `String` (Arduino class). Strings in expressions are surrounded by double quotation marks.
 
 ### Variables
 
@@ -120,76 +118,68 @@ rpn_clear(ctxt);
 * Some operators may return different results depending on the type of elements.
 * Some operators perform an automatic cast of the elements taken from the stack.
 
-```
-
-pi      ( -> a ) where a is the value of PI
-e       ( -> a ) where a is the value of e (base of the neperian logarithms)
-
-+       ( a b -> a+b )
--       ( a b -> a-b )
-*       ( a b -> a*b )
-/       ( a b -> a/b ) throws error if b==0
-mod     ( a b -> a\b ) returns the reminder for the a/b division as integers
-
-round   ( a n -> b ) where b is a rounded to the n-th decimal
-ceil    ( a -> b ) where b is a rounded to the closes greater or equal integer
-floor   ( a -> b ) where b is a rounded to the closes lesser or equal integer
-int     ( a -> b ) alias for "floor"
-
-eq      ( a b -> a==b )
-ne      ( a b -> a!=b )
-gt      ( a b -> a>b )
-ge      ( a b -> a>=b )
-lt      ( a b -> a<b )
-le      ( a b -> a<=b )
-
-cmp     ( a b -> c ) c is -1 if a<b, 0 if a==b and 1 if a>b
-cmp3    ( a b c -> d ) d is -1 if a<b, 1 if a>c and 0 if equals to b or c or in the middle
-index   ( a v1 v2 ... b -> c ) returns the a-nth value from the v# list, b is the number of values in the v# list
-map     ( a b c d e -> f ) performs a rule of 3 mapping value a which goes from b to c to d to e
-constrain   (a b c -> d) ensures a is between (and included) b and c
-
-and     ( a b -> c ) where c is 1 if both a and b are different from 0
-or      ( a b -> c ) where c is 1 if a or b are different from 0
-xor     ( a b -> c ) where c is 1 if either a or b are different from 0, but not both
-not     ( a -> !a ) where b is 1 if a is 0, 0 otherwise
-
-dup     ( a -> a a )
-dup2    ( a b -> a b a b )
-swap    ( a b -> b a )
-rot     ( a b c -> b c a )
-unrot   ( a b c -> c a b )
-drop    ( a ->  )
-over    ( a b -> a b a )
-depth   ( a b c ... -> a b c ... n ) where n is the number of elements in the stack
-
-ifn     ( a b c -> d ) if a!=0 then b else c
-end     ( a -> ...) ends execution if a resolves to false
-
-=       ( a $var = -> $var ) sets $var to the value of a and keeps $var reference on the stack
-
-```
+|Name|Stack operation|Description|
+|-|-|-|
+|`pi`|( -> a ) |  where a is the value of PI|
+|`e`|( -> a ) |  where a is the value of e (base of the Napierian (Naperian) logarithm)|
+|`+`|( a b -> a+b ) | |
+|`-`|( a b -> a-b ) | |
+|`*`|( a b -> a*b ) | |
+|`/`|( a b -> a/b ) |  throws error if b==0|
+|`mod`|( a b -> a\b ) |  returns the reminder for the a/b division as integers|
+|`abs`|( a -> a ) | absolute value of floating-point number |
+|`round`|( a n -> b ) |  where b is a rounded to the n-th decimal|
+|`ceil`|( a -> b ) |  where b is a rounded to the closes greater or equal integer|
+|`floor`|( a -> b ) |  where b is a rounded to the closes lesser or equal integer|
+|`int`|( a -> b ) |  alias for "floor"|
+|`eq`|( a b -> a==b ) | |
+|`ne`|( a b -> a!=b ) | |
+|`gt`|( a b -> a>b ) | |
+|`ge`|( a b -> a>=b ) | |
+|`lt`|( a b -> a<b ) | |
+|`le`|( a b -> a<=b ) | |
+|`cmp`|( a b -> c ) |  c is -1 if a<b, 0 if a==b and 1 if a>b|
+|`cmp3`|( a b c -> d ) |  d is -1 if a<b, 1 if a>c and 0 if equals to b or c or in the middle|
+|`index`|( a v1 v2 ... b -> c ) |  returns the a-nth value from the v# list, b is the number of values in the v# list|
+|`map`|    ( a b c d e -> f ) |  performs a rule of 3 mapping value a which goes from b to c to d to e|
+|`constrain`|(a b c -> d) |  ensures a is between (and included) b and c|
+|`and`|( a b -> c ) |  where c is 1 if both a and b are different from 0|
+|`or`|( a b -> c ) |  where c is 1 if a or b are different from 0|
+|`xor`|( a b -> c ) |  where c is 1 if either a or b are different from 0, but not both|
+|`not`|( a -> !a ) |  where b is 1 if a is 0, 0 otherwise|
+|`dup`|( a -> a a ) | |
+|`dup2`|( a b -> a b a b ) | |
+|`swap`|( a b -> b a ) | |
+|`rot`|( a b c -> b c a ) | |
+|`unrot`|( a b c -> c a b ) | |
+|`drop`|( a ->  ) | |
+|`over`|( a b -> a b a ) | |
+|`depth`|( a b c ... -> a b c ... n ) |  where n is the number of elements in the stack|
+|`exists`| (a -> ...) | ends execution if a isn't an active variable |
+|`=`|( a $var = -> $var ) |  sets $var to the value of a and keeps $var reference on the stack|
+|`ifn`|( a b c -> d ) |  if a!=0 then b else c|
+|`end`|( a -> ...) |  ends execution if a resolves to false|
 
 In addition, when using `RPNLIB_ADVANCED_MATH` flag:
-```
-sqrt    ( a -> sqrt(a) )
-log     ( a -> log(a) )
-log10   ( a -> log10(a) )
-exp     ( a -> e^a )
-fmod    ( a b -> a\b ) returns the reminder for the a/b division as real numbers
-pow     ( a b -> a^b )
-cos     ( a -> cos(a) ) a in radians
-sin     ( a -> sin(a) ) a in radians
-tan     ( a -> tan(a) ) a in radians
+|Name|Stack operation|Description|
+|-|-|-|
+|`sqrt`|  ( a -> sqrt(a) ) | |
+|`log`|  ( a -> log(a) ) | |
+|`log10`|  ( a -> log10(a) ) | |
+|`exp`|  ( a -> e^a ) | |
+|`fmod`|  ( a b -> a\b ) | returns the reminder for the a/b division as real numbers |
+|`pow`|  ( a b -> a^b ) | |
+|`cos`|  ( a -> cos(a) ) | a in radians |
+|`sin`|  ( a -> sin(a) ) | a in radians |
+|`tan`|  ( a -> tan(a) ) | a in radians |
 
-```
 
 ## License
 
 Copyright (C) 2018-2019 by Xose Pérez <xose dot perez at gmail dot com>  
 Copyright (C) 2020 by Maxim Prokhorov <prokhorov dot max at outlook dot com>
 
-The rpnlib library is free software: you can redistribute it and/or modify
+ The rpnlib library is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
