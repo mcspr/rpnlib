@@ -1,30 +1,26 @@
 # RPNlib
 
-> **Notice** this is the fork of the original rpnlib
-> 
-> Main differences are:
-> - double instead of float as number type
-> - String support in expressions and variables
-> - variable assignment in expressions
+**Notice** this is the fork of the original [rpnlib](https://github.com/xoseperez/rpnlib) by **[@xoseperez](https://github.com/xoseperez)**: [![twitter](https://img.shields.io/twitter/follow/xoseperez.svg?style=social)](https://twitter.com/intent/follow?screen_name=xoseperez)
+
+Main differences are:
+- Configurable floating point type, can replace `float` (old value type) with `double` (new default)
+- String support in expressions and variables, using double quotation marks
+- Variable assignment / deletion in expressions
+
+## Description
 
 RPNlib is a **Reverse Polish Notation** calculator for ESP8266 & ESP32 microcontrollers. 
 The library accepts a c-string with commands to execute and provides methods to evaluate the output.
-It is meant to be embedded into third party software as a way to provide the user a simple to implement scripting language.
+It is meant to be embedded into third party software as a way to provide the user with a simple way of implementing a scripting language.
 
 [![version](https://img.shields.io/github/v/tag/mcspr/rpnlib)](https://github.com/mcspr/rpnlib/blob/master/CHANGELOG.md)
 [![CI](https://github.com/mcspr/rpnlib/workflows/PlatformIO%20CI/badge.svg?branch=master)](https://github.com/mcspr/rpnlib/actions?query=workflow%3A%22PlatformIO+CI%22)
 [![license](https://img.shields.io/github/license/mcspr/rpnlib)](LICENSE)
-<br />
-<br />
-Original library by **[@xoseperez](https://github.com/xoseperez)**:
-<br />
-[![donate](https://img.shields.io/badge/donate-PayPal-blue.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=xose%2eperez%40gmail%2ecom&lc=US&no_note=0&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHostedGuest)
-[![twitter](https://img.shields.io/twitter/follow/xoseperez.svg?style=social)](https://twitter.com/intent/follow?screen_name=xoseperez)
 
 ## RPN
 
 First you should familiarize yourself with RPN calculation. 
-Reverse Polish notation (RPN), also known as Polish postfix notation or simply postfix notation, is a mathematical notation in which operators follow their operands, in contrast to Polish notation (PN), in which operators precede their operands. It does not need any parentheses as long as each operator has a fixed number of operands. The description "Polish" refers to the nationality of logician Jan Łukasiewicz, who invented Polish notation in 1924.
+[Reverse Polish notation (RPN)](https://en.wikipedia.org/wiki/Reverse_Polish_notation), also known as Polish postfix notation or simply postfix notation, is a mathematical notation in which operators follow their operands, in contrast to Polish notation (PN), in which operators precede their operands. It does not need any parentheses as long as each operator has a fixed number of operands. The description "Polish" refers to the nationality of logician Jan Łukasiewicz, who invented Polish notation in 1924.
 
 A simple calculation in infix notation might look like this:
 
@@ -46,49 +42,81 @@ Check this [wiki page on the topic](https://en.wikipedia.org/wiki/Reverse_Polish
 
 The RPNlib is not an object-based (OOP) library but a context-based set of methods. This means you don't instantiate a library object but instead, you create a data context object that is passed along to all methods in the library.
 
-Using the library is pretty easy. Follow this steps:
+A simple code would be:
 
 * Create the context (where stack, variables and operators are stored)
-* Initialize the context (loads default operators)
-* Add any required variables (optional)
-* Add any additional custom operators (optional)
-* Process a command
-* Inspect stack
-* Clear context
-
-A simple code would be:
 
 ```cpp
 rpn_context ctxt;
+```
+
+* Initialize the context. Loads default operators via `rpn_init(ctxt)` or `rpn_operators_init(ctxt)`. Operator functions are not shared between contexts.
+```cpp
 rpn_init(ctxt);
-rpn_process(ctxt, "4 2 - 5 * 1 +");
+```
 
-auto size = rpn_stack_size(ctxt);
-Serial.printf("Stack size: %zu\n", size);
+* *Optional* Add any required variables.
+```cpp
+rpn_value variable { static_cast<rpn_int_t>(12345) };
+rpn_variable_set(ctxt, "variable", variable);
+```
 
-rpn_value value;
-for (unsigned char i=0; i < size; i++) {
+* *Optional* Add a custom operator. Note that operator functions return `rpn_error` object.
+```cpp
+// takes 1 `<integer>` argument and pushes back `<integer> + 5`
+rpn_operator_set(ctxt, "operator", 1, [](rpn_context& ctxt) -> rpn_error {
+    rpn_value value;
     rpn_stack_pop(ctxt, value);
-    Serial.printf("Stack level #%u value: %f\n", i, value.toFloat());
-}
 
+    value = rpn_value { static_cast<rpn_int_t>(5) + value.toInt() };
+    rpn_stack_push(ctxt, value);
+
+    return 0; // generic integer success code
+});
+```
+
+* Process an expression string.
+```cpp
+rpn_process(ctxt, "4 2 - 5 * 1 +");
+```
+
+* Inspect stack
+```cpp
+Serial.printf("Stack size: %zu\n", rpn_stack_size(ctxt));
+
+size_t index = 0;
+rpn_stack_foreach(ctxt, [&index](rpn_value& value) { // NOTE: direct access to the stack value object
+    Serial.printf("Stack level #%u value: %f\n", index++, value.toFloat());
+});
+```
+
+* Clear the context object. This removes everything on the stack, clears variables and all known operators.
+```cpp
 rpn_clear(ctxt);
 ```
 
-## Supported operators
+## Expressions
 
-This is a list of supported operators with their stack behaviour. 
+### Default types
 
-* Operators (and variables) are case-sensitive.
-* All operators will throw an error if the number of available elements in the stack is less than the required parameters.
-* All stack elements are stored in heap.
-* All numbers in the stack are repesente `double` (fundamental type).
+* Keyword `null` is reserved for the internal `Null` type.
+* Keywords `true` and `false` are reserved for the internal 'Boolean' type.
+* All numbers in the stack are represented as `rpn_float_t` (configurable type, either `float` or `double`).
 * All strings in the stack are repesented as `String` (Arduino class).
-* Some operators may return different results depending on the type of elements.
-* Some operators perform an automatic cast of the elements poped from the stack.
-* A boolean cast will be false if the element is 0, true otherwise.
-* True is represented as 1, whilst false is represented as 0. It is possible to directly access boolean value, without the cast.
 
+### Variables
+
+* All newly created variables are set to 'Null'.
+* When variable set to 'Null' is finally removed from the stack it will be removed from the heap too.
+
+### Operators
+
+* Operator and variable names are case-sensitive.
+* Logical operations assume 'Boolean' and will cast every other type into it. Numeric values not equal to 0 are `true`, and `false` otherwise.
+* All operators will throw an error if the number of available elements in the stack is less than the expected value.
+* Some operators may throw an error when given argument type does not match the expected type
+* Some operators may return different results depending on the type of elements.
+* Some operators perform an automatic cast of the elements taken from the stack.
 
 ```
 
