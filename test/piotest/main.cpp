@@ -131,14 +131,32 @@ void run_and_error(const char * command, rpn_error error) {
 // -----------------------------------------------------------------------------
 
 void test_rpn_value() {
-    rpn_value rpn_float(1.0);
-    TEST_ASSERT(rpn_float.isFloat());
+    rpn_value rpn_default;
+    TEST_ASSERT(rpn_default.isNull());
+    TEST_ASSERT_EQUAL(false, rpn_default.toInt());
+    TEST_ASSERT_EQUAL(0, rpn_default.toInt());
+    TEST_ASSERT_EQUAL(0UL, rpn_default.toUint());
+    TEST_ASSERT_EQUAL_FLOAT(0.0, rpn_default.toFloat());
 
-    rpn_value rpn_int(rpn_int_t(1));
+    rpn_value rpn_bool { true };
+    TEST_ASSERT(rpn_bool.isBoolean());
+    TEST_ASSERT(rpn_bool.toBoolean());
+
+    rpn_value rpn_int { static_cast<rpn_int_t>(2) };
     TEST_ASSERT(rpn_int.isInt());
+    TEST_ASSERT_EQUAL(2, rpn_int.toInt());
 
-    rpn_value rpn_uint(1UL);
+    rpn_value rpn_uint { static_cast<rpn_uint_t>(3) };
     TEST_ASSERT(rpn_uint.isUint());
+    TEST_ASSERT_EQUAL(3UL, rpn_uint.toUint());
+
+    rpn_value rpn_float { static_cast<rpn_float_t>(1.0) };
+    TEST_ASSERT(rpn_float.isFloat());
+    TEST_ASSERT_EQUAL_FLOAT(1.0, rpn_float.toFloat());
+
+    rpn_value rpn_str { "12345" };
+    TEST_ASSERT(rpn_str.isString());
+    TEST_ASSERT_EQUAL_STRING("12345", rpn_str.toString().c_str());
 }
 
 void test_math() {
