@@ -216,7 +216,9 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
             if (state == IN_STRING) {
                 state = UNKNOWN;
                 type = RPN_TOKEN_UNKNOWN;
-                callback(type, start_of_word);
+                if (!callback(type, start_of_word)) {
+                    goto stop_parsing;
+                }
             }
             break;
         }
@@ -258,11 +260,10 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
             if (c == '"') {
                 token.reserve(p - start_of_word);
                 _rpn_token_copy(start_of_word, p, token);
-                if (!callback(type, token)) {
-                    state = UNKNOWN;
-                    break;
-                }
                 state = UNKNOWN;
+                if (!callback(type, token)) {
+                    goto stop_parsing;
+                }
             }
             break;
 
@@ -282,17 +283,18 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
             if (isspace(c)) {
                 token.reserve(p - start_of_word);
                 _rpn_token_copy(start_of_word, p, token);
-                if (!callback(type, token)) {
-                    state = UNKNOWN;
-                    break;
-                }
                 state = UNKNOWN;
+                if (!callback(type, token)) {
+                    goto stop_parsing;
+                }
             }
             break;
         }
 
         ++p;
     }
+
+stop_parsing:
 
     if ((state != UNKNOWN) && (p - start_of_word)) {
         token.reserve(p - start_of_word);
@@ -402,7 +404,9 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                     break;
                 }
             }
-            if (ctxt.error.code) return false;
+            if (ctxt.error.code) {
+                return false;
+            }
             if (found) return true;
         }
 

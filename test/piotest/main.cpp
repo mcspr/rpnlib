@@ -210,8 +210,17 @@ void test_cmp3_above(void) {
     run_and_compare("25 18 24 cmp3", {1.0});
 }
 
-void test_conditional(void) {
-    run_and_compare("1 2 3 ifn", {2.0});
+void test_conditionals(void) {
+    rpn_context ctxt;
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "1 2 eq end \"test\""));
+    TEST_ASSERT_EQUAL(0, rpn_stack_size(ctxt));
+
+    rpn_value value;
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "1 2 3 ifn"));
+    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
+    TEST_ASSERT_EQUAL_FLOAT(2.0, value.toFloat());
 }
 
 void test_stack(void) {
@@ -459,7 +468,7 @@ int run_tests() {
     RUN_TEST(test_cmp3_below);
     RUN_TEST(test_cmp3_between);
     RUN_TEST(test_cmp3_above);
-    RUN_TEST(test_conditional);
+    RUN_TEST(test_conditionals);
     RUN_TEST(test_stack);
     RUN_TEST(test_logic);
     RUN_TEST(test_boolean);
