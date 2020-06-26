@@ -60,13 +60,12 @@ rpn_error dump_variables(rpn_context & ctxt) {
 }
 
 rpn_error dump_stack(rpn_context & ctxt) {
-    //std::cout << "stack: " << ctxt.stack.size() << std::endl;
-    auto index = ctxt.stack.size();
-    for (auto it = ctxt.stack.rbegin() ; it != ctxt.stack.rend(); ++it) {
+    size_t index = rpn_stack_size(ctxt);
+    rpn_stack_foreach(ctxt, [&index](rpn_stack_value::Type, const rpn_value& value) {
         std::cout << std::setfill('0') << std::setw(3) << --index << ": ";
-        dump_value(*((*it).value.get()));
-        std::cout << " (" << get_value_type(*it) << ")" << std::endl;
-    }
+        dump_value(value);
+        std::cout << " (" << get_value_type(value) << ")" << std::endl;
+    });
     return 0;
 }
 
