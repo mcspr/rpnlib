@@ -22,6 +22,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <cstdlib>
 #include <cstdint>
 #include <cstring>
 

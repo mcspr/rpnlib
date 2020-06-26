@@ -28,8 +28,6 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include "rpnlib_config.h"
 #include "rpnlib_error.h"
 
-#include <array>
-#include <memory>
 #include <vector>
 
 using rpn_int_t = RPNLIB_INT_TYPE;
@@ -52,8 +50,6 @@ struct rpn_context {
     String input_buffer;
     rpn_error error;
 };
-
-#include <cstdint>
 
 // ----------------------------------------------------------------------------
 

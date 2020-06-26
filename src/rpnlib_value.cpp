@@ -294,7 +294,7 @@ rpn_int_t rpn_value::toInt() const {
         case rpn_value::Type::Float:
             if ((std::numeric_limits<rpn_int_t>::min() <= as_float)
                 && (std::numeric_limits<rpn_int_t>::max() > as_float)) {
-                result = lround(as_float);
+                result = std::round(as_float);
             }
             break;
         default:

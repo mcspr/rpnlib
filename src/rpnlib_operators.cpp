@@ -28,11 +28,20 @@ extern "C" {
     #include "fs_math.h"
 }
 
-#include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <algorithm>
 #include <utility>
 #include <cstdio>
 #include <utility>
+
+#ifdef round
+#undef round
+#endif
+
+#ifdef abs
+#undef abs
+#endif
 
 // These are from <cmath>
 #ifdef M_PI
@@ -212,12 +221,10 @@ rpn_error _rpn_abs(rpn_context & ctxt) {
         return 0;
     }
 
-    rpn_value result;
-    if (top.isFloat()) {
-        result = rpn_value { std::abs(top.toFloat()) };
-    } else if (top.isInt()) {
-        result = rpn_value { std::abs(top.toInt()) };
-    }
+    rpn_value result =
+        (top.isFloat()) ? rpn_value(std::abs(top.toFloat())) :
+        (top.isInt()) ? rpn_value(std::abs(top.toInt())) :
+        (rpn_value{});
 
     if (result.isError()) {
         return result.toError();
@@ -243,7 +250,7 @@ rpn_error _rpn_eq(rpn_context & ctxt) {
     if (result.isError()) {
         return result.toError();
     }
-    rpn_stack_push(ctxt, result);
+    rpn_stack_push(ctxt, std::move(result));
     return 0;
 }
 
@@ -253,7 +260,7 @@ rpn_error _rpn_ne(rpn_context & ctxt) {
     if (result.isError()) {
         return result.toError();
     }
-    rpn_stack_push(ctxt, result);
+    rpn_stack_push(ctxt, std::move(result));
     return 0;
 }
 
@@ -263,7 +270,7 @@ rpn_error _rpn_gt(rpn_context & ctxt) {
     if (result.isError()) {
         return result.toError();
     }
-    rpn_stack_push(ctxt, result);
+    rpn_stack_push(ctxt, std::move(result));
     return 0;
 }
 
@@ -488,7 +495,7 @@ rpn_error _rpn_round(rpn_context & ctxt) {
     }
     
     rpn_float_t multiplier = 1.0;
-    for (int i = 0; i < round(decimals.toFloat()); ++i) {
+    for (int i = 0; i < std::round(decimals.toFloat()); ++i) {
         multiplier *= 10.0;
     }
     
@@ -523,7 +530,7 @@ rpn_error _rpn_floor(rpn_context & ctxt) {
         return rpn_operator_error::InvalidType;
     }
 
-    rpn_value result { floor(value.toFloat()) };
+    rpn_value result { std::floor(value.toFloat()) };
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, std::move(result));
     return 0;
