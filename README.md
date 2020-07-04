@@ -183,6 +183,17 @@ In addition, when using `RPNLIB_ADVANCED_MATH` flag:
 |`sin`|  ( a -> sin(a) ) | a in radians |
 |`tan`|  ( a -> tan(a) ) | a in radians |
 
+## Maintainer's notice
+
+To upload a new release:
+
+```shell
+$ # modify library.* to include a new version
+$ git add library.*
+$ git commit -m "Version $VERSION"
+$ git tag -a -m $VERSION $VERSION
+$ git push --follow-tags
+```
 
 ## License
 
