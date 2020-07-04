@@ -119,7 +119,7 @@ void setup() {
         rpn_value(static_cast<rpn_int>(time(nullptr)))
     );
 
-    rpn_variable_foreach(ctxt, [](const String& name, const rpn_value& value) {
+    rpn_variables_foreach(ctxt, [](const String& name, const rpn_value& value) {
         Serial.println(name);
         Serial.println(value.toInt());
     });

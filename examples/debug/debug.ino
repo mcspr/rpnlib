@@ -40,7 +40,7 @@ void dump_stack(rpn_context & ctxt) {
 
 void dump_variables(rpn_context & ctxt) {
     Serial.printf("Variables\n--------------------\n");
-    rpn_variable_foreach(ctxt, [](const String& name, const rpn_value& value) {
+    rpn_variables_foreach(ctxt, [](const String& name, const rpn_value& value) {
         Serial.printf("$%s = %.2f\n", name.c_str(), value.toFloat());
     });
 
