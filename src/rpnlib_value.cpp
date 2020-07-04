@@ -26,8 +26,10 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 
 #include <cstring>
-#include <cstdlib>
 #include <cmath>
+#include <cstdlib>
+
+#include "rpnlib_compat.h"
 
 // TODO: implement fs_math operations
 
@@ -294,7 +296,7 @@ rpn_int_t rpn_value::toInt() const {
         case rpn_value::Type::Float:
             if ((std::numeric_limits<rpn_int_t>::min() <= as_float)
                 && (std::numeric_limits<rpn_int_t>::max() > as_float)) {
-                result = std::round(as_float);
+                result = rpnlib_round(as_float);
             }
             break;
         default:

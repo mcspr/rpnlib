@@ -28,20 +28,14 @@ extern "C" {
     #include "fs_math.h"
 }
 
+#include "rpnlib_compat.h"
+
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
 #include <utility>
 #include <cstdio>
 #include <utility>
-
-#ifdef round
-#undef round
-#endif
-
-#ifdef abs
-#undef abs
-#endif
 
 // These are from <cmath>
 #ifdef M_PI
@@ -222,8 +216,8 @@ rpn_error _rpn_abs(rpn_context & ctxt) {
     }
 
     rpn_value result =
-        (top.isFloat()) ? rpn_value(std::abs(top.toFloat())) :
-        (top.isInt()) ? rpn_value(std::abs(top.toInt())) :
+        (top.isFloat()) ? rpn_value(rpnlib_abs(top.toFloat())) :
+        (top.isInt()) ? rpn_value(rpnlib_abs(top.toInt())) :
         (rpn_value{});
 
     if (result.isError()) {
@@ -495,7 +489,7 @@ rpn_error _rpn_round(rpn_context & ctxt) {
     }
     
     rpn_float_t multiplier = 1.0;
-    for (int i = 0; i < std::round(decimals.toFloat()); ++i) {
+    for (int i = 0; i < rpnlib_round(decimals.toFloat()); ++i) {
         multiplier *= 10.0;
     }
     
