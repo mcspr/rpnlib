@@ -45,7 +45,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 // Helper methods
 // -----------------------------------------------------------------------------
 
-void highlight_stack_index(rpn_context& ctxt, unsigned char match, rpn_float_t value, rpn_float_t match_value) {
+void highlight_stack_index(rpn_context& ctxt, unsigned char match, rpn_float value, rpn_float match_value) {
     char buffer[256] = {0};
 
     snprintf(buffer, sizeof(buffer) - 1, "Stack size = %zu", ctxt.stack.size());
@@ -57,7 +57,7 @@ void highlight_stack_index(rpn_context& ctxt, unsigned char match, rpn_float_t v
         3, match_value,
         3, value,
         3, std::fabs(match_value - value),
-        (std::fabs(match_value - value) < std::numeric_limits<rpn_float_t>::epsilon()) ? "less than epsilon" : "more than epsilon"
+        (std::fabs(match_value - value) < std::numeric_limits<rpn_float>::epsilon()) ? "less than epsilon" : "more than epsilon"
     );
     TEST_MESSAGE(buffer);
 
@@ -92,7 +92,7 @@ void highlight_stack_index(rpn_context& ctxt, unsigned char match, rpn_float_t v
     });
 }
 
-void run_and_compare(const char * command, std::vector<rpn_float_t> expected) {
+void run_and_compare(const char * command, std::vector<rpn_float> expected) {
 
     rpn_context ctxt;
 
@@ -112,7 +112,7 @@ void run_and_compare(const char * command, std::vector<rpn_float_t> expected) {
             TEST_FAIL_MESSAGE("Can't get stack value at specified index");
         }
         auto number = value.toFloat();
-        if (std::fabs(expected[i] - number) > std::numeric_limits<rpn_float_t>::epsilon()) {
+        if (std::fabs(expected[i] - number) > std::numeric_limits<rpn_float>::epsilon()) {
             highlight_stack_index(ctxt, i, number, expected[i]);
             TEST_MESSAGE(command);
             TEST_FAIL_MESSAGE("Stack value does not match the expected value");
@@ -147,15 +147,15 @@ void test_rpn_value() {
     TEST_ASSERT(rpn_bool.isBoolean());
     TEST_ASSERT(rpn_bool.toBoolean());
 
-    rpn_value rpn_int { static_cast<rpn_int_t>(2) };
+    rpn_value rpn_int { static_cast<rpn_int>(2) };
     TEST_ASSERT(rpn_int.isInt());
     TEST_ASSERT_EQUAL(2, rpn_int.toInt());
 
-    rpn_value rpn_uint { static_cast<rpn_uint_t>(3) };
+    rpn_value rpn_uint { static_cast<rpn_uint>(3) };
     TEST_ASSERT(rpn_uint.isUint());
     TEST_ASSERT_EQUAL(3UL, rpn_uint.toUint());
 
-    rpn_value rpn_float { static_cast<rpn_float_t>(1.0) };
+    rpn_value rpn_float { static_cast<rpn_float>(1.0) };
     TEST_ASSERT(rpn_float.isFloat());
     TEST_ASSERT_EQUAL_FLOAT(1.0, rpn_float.toFloat());
 

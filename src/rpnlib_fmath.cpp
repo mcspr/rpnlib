@@ -41,7 +41,7 @@ rpn_error _rpn_sqrt(rpn_context & ctxt) {
     rpn_value a;
     rpn_stack_pop(ctxt, a);
 
-    rpn_float_t value { fs_sqrt(a.toFloat()) };
+    rpn_float value { fs_sqrt(a.toFloat()) };
     rpn_value result { value };
     rpn_stack_push(ctxt, result);
 
@@ -57,7 +57,7 @@ rpn_error _rpn_log(rpn_context & ctxt) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    rpn_value result { rpn_float_t(fs_log(a_val)) };
+    rpn_value result { rpn_float(fs_log(a_val)) };
     rpn_stack_push(ctxt, result);
     return 0;
 }
@@ -71,7 +71,7 @@ rpn_error _rpn_log10(rpn_context & ctxt) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    rpn_value result { rpn_float_t(fs_log10(a_val)) };
+    rpn_value result { rpn_float(fs_log10(a_val)) };
     rpn_stack_push(ctxt, result);
 
     return 0;
@@ -82,7 +82,7 @@ rpn_error _rpn_exp(rpn_context & ctxt) {
     rpn_stack_pop(ctxt, a);
 
     auto a_val { a.toFloat() };
-    rpn_value result { rpn_float_t(fs_exp(a_val)) };
+    rpn_value result { rpn_float(fs_exp(a_val)) };
     rpn_stack_push(ctxt, result);
 
     return 0;
@@ -124,7 +124,7 @@ rpn_error _rpn_cos(rpn_context & ctxt) {
     rpn_value a;
     rpn_stack_pop(ctxt, a);
 
-    rpn_value result { rpn_float_t(fs_cos(a.toFloat())) };
+    rpn_value result { rpn_float(fs_cos(a.toFloat())) };
     rpn_stack_push(ctxt, result);
 
     return 0;
@@ -136,7 +136,7 @@ rpn_error _rpn_sin(rpn_context & ctxt) {
 
     auto cos = fs_cos(a.toFloat());
 
-    rpn_value result { rpn_float_t(fs_sqrt(1.0 - cos * cos)) };
+    rpn_value result { rpn_float(fs_sqrt(1.0 - cos * cos)) };
     rpn_stack_push(ctxt, std::move(result));
 
     return 0;
@@ -151,7 +151,7 @@ rpn_error _rpn_tan(rpn_context & ctxt) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    rpn_value result { rpn_float_t(fs_sqrt(1.0 - cos * cos) / cos) };
+    rpn_value result { rpn_float(fs_sqrt(1.0 - cos * cos) / cos) };
     rpn_stack_push(ctxt, std::move(result));
 
     return 0;

@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
     rpn_context ctxt;
     rpn_init(ctxt);
     rpn_operator_set(ctxt, "time", 0, [](rpn_context& c) -> rpn_error {
-        rpn_value ts { rpn_int_t(time(nullptr)) };
+        rpn_value ts { rpn_int(time(nullptr)) };
         rpn_stack_push(c, ts);
         return 0;
     });

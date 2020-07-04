@@ -77,7 +77,7 @@ void setup() {
 
     // Add custom time functions
     rpn_operator_set(ctxt, "now", 0, [](rpn_context & ctxt) -> rpn_error {
-        rpn_value result { static_cast<rpn_int_t>(time(nullptr)) };
+        rpn_value result { static_cast<rpn_int>(time(nullptr)) };
         rpn_stack_push(ctxt, result);
         return 0;
     });
@@ -89,7 +89,7 @@ void setup() {
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
 
-        rpn_value result { rpn_int_t(tm_from_ts.tm_wday) };
+        rpn_value result { rpn_int(tm_from_ts.tm_wday) };
         rpn_stack_push(ctxt, result);
 
         return 0;
@@ -100,7 +100,7 @@ void setup() {
         time_t ts = value.toInt();
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_value result { rpn_int_t(tm_from_ts.tm_hour) };
+        rpn_value result { rpn_int(tm_from_ts.tm_hour) };
         rpn_stack_push(ctxt, result);
         return 0;
     });
@@ -110,13 +110,13 @@ void setup() {
         time_t ts = value.toInt();
         struct tm tm_from_ts;
         localtime_r(&ts, &tm_from_ts);
-        rpn_value result { rpn_int_t(tm_from_ts.tm_min) };
+        rpn_value result { rpn_int(tm_from_ts.tm_min) };
         rpn_stack_push(ctxt, result);
         return 0;
     });
 
     rpn_variable_set(ctxt, F("time"),
-        rpn_value(static_cast<rpn_int_t>(time(nullptr)))
+        rpn_value(static_cast<rpn_int>(time(nullptr)))
     );
 
     rpn_variable_foreach(ctxt, [](const String& name, const rpn_value& value) {

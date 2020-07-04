@@ -30,9 +30,9 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <vector>
 
-using rpn_int_t = RPNLIB_INT_TYPE;
-using rpn_float_t = RPNLIB_FLOAT_TYPE;
-using rpn_uint_t = RPNLIB_UINT_TYPE;
+using rpn_int = RPNLIB_INT_TYPE;
+using rpn_float = RPNLIB_FLOAT_TYPE;
+using rpn_uint = RPNLIB_UINT_TYPE;
 
 struct rpn_variable;
 struct rpn_operator;

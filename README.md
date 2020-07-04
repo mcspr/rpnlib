@@ -55,7 +55,7 @@ rpn_init(ctxt);
 
 * *Optional* Add any required variables.
 ```cpp
-rpn_value variable { static_cast<rpn_int_t>(12345) };
+rpn_value variable { static_cast<rpn_int>(12345) };
 rpn_variable_set(ctxt, "variable", variable);
 ```
 
@@ -66,7 +66,7 @@ rpn_operator_set(ctxt, "operator", 1, [](rpn_context& ctxt) -> rpn_error {
     rpn_value value;
     rpn_stack_pop(ctxt, value);
 
-    value = rpn_value { static_cast<rpn_int_t>(5) + value.toInt() };
+    value = rpn_value { static_cast<rpn_int>(5) + value.toInt() };
     rpn_stack_push(ctxt, value);
 
     return 0; // generic integer success code
@@ -109,9 +109,9 @@ rpn_clear(ctxt);
 
 * Keyword `null` is reserved for the internal 'Null' type.
 * Keywords `true` and `false` are reserved for the internal 'Boolean' type.
-* Numbers in expressions are represented as `rpn_float_t` (configurable type, either `float` or `double`).
-* Integer values are represented as `rpn_int_t`, can be used in operators.
-* Unsigned integer values are represented as `rpn_uint_t`, can be used in operators.
+* Numbers in expressions are represented as `rpn_float` (configurable type, either `float` or `double`).
+* Integer values are represented as `rpn_int`, can be used in operators.
+* Unsigned integer values are represented as `rpn_uint`, can be used in operators.
 * All strings are represented as `String` (Arduino class). Strings in expressions are surrounded by double quotation marks.
 
 ### Variables

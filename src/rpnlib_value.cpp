@@ -111,17 +111,17 @@ rpn_value::rpn_value(rpn_value_error value) :
     as_error(value)
 {}
 
-rpn_value::rpn_value(rpn_int_t value) :
+rpn_value::rpn_value(rpn_int value) :
     type(rpn_value::Type::Integer),
     as_integer(value)
 {}
 
-rpn_value::rpn_value(rpn_uint_t value) :
+rpn_value::rpn_value(rpn_uint value) :
     type(rpn_value::Type::Unsigned),
     as_unsigned(value)
 {}
 
-rpn_value::rpn_value(rpn_float_t value) :
+rpn_value::rpn_value(rpn_float value) :
     type(rpn_value::Type::Float),
     as_float(value)
 {}
@@ -227,8 +227,8 @@ bool rpn_value::toBoolean() const {
     return false;
 }
 
-rpn_uint_t rpn_value::toUint() const {
-    rpn_uint_t result = 0UL;
+rpn_uint rpn_value::toUint() const {
+    rpn_uint result = 0UL;
 
     switch (type) {
     case rpn_value::Type::Unsigned:
@@ -243,9 +243,9 @@ rpn_uint_t rpn_value::toUint() const {
         }
         break;
     case rpn_value::Type::Float:
-        if ((std::numeric_limits<rpn_uint_t>::min() <= as_float)
-            && (std::numeric_limits<rpn_uint_t>::max() > as_float)) {
-            result = static_cast<rpn_uint_t>(as_float);
+        if ((std::numeric_limits<rpn_uint>::min() <= as_float)
+            && (std::numeric_limits<rpn_uint>::max() > as_float)) {
+            result = static_cast<rpn_uint>(as_float);
         }
         break;
     default:
@@ -255,8 +255,8 @@ rpn_uint_t rpn_value::toUint() const {
     return result;
 }
 
-rpn_float_t rpn_value::toFloat() const {
-    rpn_float_t result = 0.0;
+rpn_float rpn_value::toFloat() const {
+    rpn_float result = 0.0;
 
     switch (type) {
     case rpn_value::Type::Float:
@@ -278,8 +278,8 @@ rpn_float_t rpn_value::toFloat() const {
     return result;
 }
 
-rpn_int_t rpn_value::toInt() const {
-    rpn_int_t result = 0;
+rpn_int rpn_value::toInt() const {
+    rpn_int result = 0;
 
     switch (type) {
         case rpn_value::Type::Integer:
@@ -289,13 +289,13 @@ rpn_int_t rpn_value::toInt() const {
             result = as_boolean ? 1.0 : 0.0;
             break;
         case rpn_value::Type::Unsigned:
-            if (static_cast<rpn_uint_t>(std::numeric_limits<rpn_int_t>::max()) < as_unsigned) {
+            if (static_cast<rpn_uint>(std::numeric_limits<rpn_int>::max()) < as_unsigned) {
                 result = as_unsigned;
             }
             break;
         case rpn_value::Type::Float:
-            if ((std::numeric_limits<rpn_int_t>::min() <= as_float)
-                && (std::numeric_limits<rpn_int_t>::max() > as_float)) {
+            if ((std::numeric_limits<rpn_int>::min() <= as_float)
+                && (std::numeric_limits<rpn_int>::max() > as_float)) {
                 result = rpnlib_round(as_float);
             }
             break;
@@ -651,11 +651,11 @@ rpn_value rpn_value::operator %(const rpn_value& other) {
             break;
         case rpn_value::Type::Integer:
             val.type = rpn_value::Type::Integer;
-            val.as_integer = as_integer - (floor(as_integer / rpn_float_t(other.as_integer)) * other.as_integer);
+            val.as_integer = as_integer - (floor(as_integer / rpn_float(other.as_integer)) * other.as_integer);
             break;
         case rpn_value::Type::Unsigned:
             val.type = rpn_value::Type::Unsigned;
-            val.as_unsigned = as_unsigned - (floor(as_unsigned / rpn_float_t(other.as_unsigned)) * other.as_unsigned);
+            val.as_unsigned = as_unsigned - (floor(as_unsigned / rpn_float(other.as_unsigned)) * other.as_unsigned);
             break;
         case rpn_value::Type::Float:
             val.type = rpn_value::Type::Float;

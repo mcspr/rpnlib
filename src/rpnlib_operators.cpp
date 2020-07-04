@@ -92,7 +92,7 @@ void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
 // rpn_value::operator >=()
 // rpn_value::operator <=()
 
-rpn_int_t _rpn_stack_compare(rpn_context & ctxt) {
+rpn_int _rpn_stack_compare(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     if (prev < top) {
@@ -104,7 +104,7 @@ rpn_int_t _rpn_stack_compare(rpn_context & ctxt) {
     }
 }
 
-rpn_int_t _rpn_stack_compare_or_eq(rpn_context & ctxt) {
+rpn_int _rpn_stack_compare_or_eq(rpn_context & ctxt) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     if (prev <= top) {
@@ -116,7 +116,7 @@ rpn_int_t _rpn_stack_compare_or_eq(rpn_context & ctxt) {
     }
 }
 
-rpn_int_t _rpn_stack_compare3(rpn_context & ctxt) {
+rpn_int _rpn_stack_compare3(rpn_context & ctxt) {
     auto& upper = _rpn_stack_peek(ctxt, 1);
     auto& lower = _rpn_stack_peek(ctxt, 2);
     auto& value = _rpn_stack_peek(ctxt, 3);
@@ -488,12 +488,12 @@ rpn_error _rpn_round(rpn_context & ctxt) {
         return rpn_operator_error::InvalidType;
     }
     
-    rpn_float_t multiplier = 1.0;
+    rpn_float multiplier = 1.0;
     for (int i = 0; i < rpnlib_round(decimals.toFloat()); ++i) {
         multiplier *= 10.0;
     }
     
-    rpn_value result { rpn_float_t(int(value.toFloat() * multiplier + 0.5) / multiplier) };
+    rpn_value result { rpn_float(int(value.toFloat() * multiplier + 0.5) / multiplier) };
 
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, std::move(result));
@@ -628,7 +628,7 @@ rpn_error _rpn_drop(rpn_context & ctxt) {
 // [a b c] -> [a b c 3]
 rpn_error _rpn_depth(rpn_context & ctxt) {
     rpn_stack_push(ctxt, rpn_value(
-        static_cast<rpn_uint_t>(rpn_stack_size(ctxt))
+        static_cast<rpn_uint>(rpn_stack_size(ctxt))
     ));
     return 0;
 }

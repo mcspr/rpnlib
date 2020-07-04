@@ -42,9 +42,9 @@ struct rpn_value {
     rpn_value();
     explicit rpn_value(rpn_value_error);
     explicit rpn_value(bool);
-    explicit rpn_value(rpn_int_t);
-    explicit rpn_value(rpn_uint_t);
-    explicit rpn_value(rpn_float_t);
+    explicit rpn_value(rpn_int);
+    explicit rpn_value(rpn_uint);
+    explicit rpn_value(rpn_float);
     explicit rpn_value(const char*);
     explicit rpn_value(const String&);
     explicit rpn_value(String&&);
@@ -74,9 +74,9 @@ struct rpn_value {
 
     rpn_error toError() const;
     bool toBoolean() const;
-    rpn_int_t toInt() const;
-    rpn_uint_t toUint() const;
-    rpn_float_t toFloat() const;
+    rpn_int toInt() const;
+    rpn_uint toUint() const;
+    rpn_float toFloat() const;
     String toString() const;
 
     bool is(Type) const;
@@ -98,9 +98,9 @@ struct rpn_value {
     union {
         rpn_value_error as_error;
         bool as_boolean;
-        rpn_int_t as_integer;
-        rpn_uint_t as_unsigned;
-        rpn_float_t as_float;
+        rpn_int as_integer;
+        rpn_uint as_unsigned;
+        rpn_float as_float;
         String as_string;
     };
 

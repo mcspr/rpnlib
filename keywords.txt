@@ -2,9 +2,9 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-rpn_int_t
-rpn_uint_t
-rpn_float_t
+rpn_int
+rpn_uint
+rpn_float
 
 #######################################
 # Classes (KEYWORD1)
