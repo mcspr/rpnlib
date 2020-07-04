@@ -23,6 +23,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include "rpnlib.h"
 #include "rpnlib_variable.h"
 
+#include <algorithm>
 #include <memory>
 
 // ----------------------------------------------------------------------------
@@ -35,6 +36,16 @@ size_t rpn_variables_size(rpn_context & ctxt) {
 
 bool rpn_variables_clear(rpn_context & ctxt) {
     ctxt.variables.clear();
+    return true;
+}
+
+bool rpn_variables_unref(rpn_context & ctxt) {
+    ctxt.variables.erase(
+        std::remove_if(ctxt.variables.begin(), ctxt.variables.end(), [](const rpn_variable& var) {
+            return (var.value.use_count() == 1) && (!static_cast<bool>(*var.value));
+        }),
+        ctxt.variables.end()
+    );
     return true;
 }
 

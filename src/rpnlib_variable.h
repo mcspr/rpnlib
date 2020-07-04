@@ -64,3 +64,4 @@ bool rpn_variable_del(rpn_context &, const String& name);
 size_t rpn_variables_size(rpn_context &);
 bool rpn_variables_clear(rpn_context &);
 
+bool rpn_variables_unref(rpn_context &);
