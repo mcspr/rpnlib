@@ -465,7 +465,12 @@ void test_substacks_operator() {
     TEST_ASSERT_FALSE(rpn_process(ctxt, "] ] ] ] ] ] ] ]"));
     TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
 
-    // existing operator `index` supports the following construct
+    // stack pop should always place it's size
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "[ ]"));
+    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+    TEST_ASSERT_EQUAL(0u, rpn_stack_pop(ctxt).toUint());
+
+    // we can handle contents via operators that accept specific stack contents
     TEST_ASSERT_TRUE(rpn_process(ctxt, "1 [ 1 2 3 ] index"));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
 

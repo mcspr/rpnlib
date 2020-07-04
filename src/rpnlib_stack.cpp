@@ -97,23 +97,16 @@ rpn_stack_value::Type rpn_stack_inspect(rpn_context & ctxt) {
 }
 
 void rpn_nested_stack::stacks_merge() {
-    if (_stacks.size() > 1) {
-        if (!(*_current).size()) {
-            stacks_pop();
-            return;
-        }
+    auto& prev = *(_stacks.end() - 2);
+    prev.insert(
+        prev.end(),
+        (*_current).begin(),
+        (*_current).end()
+    );
+    prev.emplace_back(
+        rpn_stack_value::Type::Array,
+        rpn_value(static_cast<rpn_uint>((*_current).size()))
+    );
 
-        auto& prev = *(_stacks.end() - 2);
-        prev.insert(
-            prev.end(),
-            (*_current).begin(),
-            (*_current).end()
-        );
-        prev.emplace_back(
-            rpn_stack_value::Type::Array,
-            rpn_value(static_cast<rpn_uint>((*_current).size()))
-        );
-
-        stacks_pop();
-    }
+    stacks_pop();
 }
