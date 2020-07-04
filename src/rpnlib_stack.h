@@ -80,6 +80,9 @@ bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value);
 bool rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& out);
 bool rpn_stack_pop(rpn_context & ctxt, rpn_value& out);
 
+rpn_value rpn_stack_pop(rpn_context & ctxt);
+rpn_value rpn_stack_get(rpn_context & ctxt, unsigned char index);
+
 template <typename Callback>
 void rpn_stack_foreach(rpn_context & ctxt, Callback callback) {
     for (auto it = ctxt.stack.rbegin(); it != ctxt.stack.rend(); ++it) {

@@ -56,12 +56,24 @@ bool rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& out) {
     return _rpn_stack_get(ctxt, index, out);
 }
 
+rpn_value rpn_stack_pop(rpn_context & ctxt, unsigned char index) {
+    rpn_value result;
+    rpn_stack_get(ctxt, index, result);
+    return result;
+}
+
 bool rpn_stack_pop(rpn_context & ctxt, rpn_value& out) {
     if (_rpn_stack_get(ctxt, 0, out)) {
         ctxt.stack.pop_back();
         return true;
     }
     return false;
+}
+
+rpn_value rpn_stack_pop(rpn_context & ctxt) {
+    rpn_value result;
+    rpn_stack_pop(ctxt, result);
+    return result;
 }
 
 size_t rpn_stack_size(rpn_context & ctxt) {
