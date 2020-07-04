@@ -110,13 +110,6 @@ int main(int argc, char** argv) {
             ? rpn_operator_error::Ok
             : rpn_operator_error::CannotContinue;
     });
-    rpn_operator_set(ctxt, "cast", 1, [](rpn_context& c) -> rpn_error {
-        auto val = c.stack.back();
-        c.stack.pop_back();
-        rpn_value upd { (*val.value.get()).toFloat() };
-        c.stack.push_back(upd);
-        return 0;
-    });
     rpn_operator_set(ctxt, "test", 0, [](rpn_context& c) -> rpn_error {
         test_concat(c);
         test_and(c);

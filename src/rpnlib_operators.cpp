@@ -79,11 +79,12 @@ namespace {
 // TODO: move to core API?
 
 rpn_value& _rpn_stack_peek(rpn_context & ctxt, size_t offset = 1) {
-    return *((ctxt.stack.end() - offset)->value.get());
+    return *((ctxt.stack.get().end() - offset)->value.get());
 }
 
 void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
-    ctxt.stack.erase(ctxt.stack.end() - size, ctxt.stack.end());
+    auto& stack = ctxt.stack.get();
+    stack.erase(stack.end() - size, stack.end());
 }
 
 // libc cmp interface, depends on implementation of:
@@ -636,12 +637,12 @@ rpn_error _rpn_depth(rpn_context & ctxt) {
 // [$var exists] -> [$var]
 // stops execution when $var is null
 rpn_error _rpn_exists(rpn_context & ctxt) {
-    auto& ref = ctxt.stack.back();
+    auto& ref = ctxt.stack.get().back();
     if (ref.type != rpn_stack_value::Type::Variable) {
         return rpn_operator_error::InvalidType;
     }
 
-    if (!static_cast<bool>(*ref.value)) {
+    if ((*ref.value).isNull() || (*ref.value).isError()) {
         return rpn_operator_error::CannotContinue;
     }
 
@@ -651,10 +652,17 @@ rpn_error _rpn_exists(rpn_context & ctxt) {
 // [a $var] -> [$var]
 // $var is persisted and set to the value of a
 rpn_error _rpn_assign(rpn_context & ctxt) {
+    if (rpn_stack_inspect(ctxt) != rpn_stack_value::Type::Variable) {
+        return rpn_operator_error::InvalidType;
+    }
+
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
     top = prev;
-    ctxt.stack.erase(ctxt.stack.end() - 2);
+
+    auto& stack = ctxt.stack.get();
+    stack.erase(stack.end() - 2);
+
     return 0;
 }
 

@@ -114,6 +114,11 @@ rpn_clear(ctxt);
 * Unsigned integer values are represented as `rpn_uint`, can be used in operators.
 * All strings are represented as `String` (Arduino class). Strings in expressions are surrounded by double quotation marks.
 
+### Substacks
+
+* Keyword `[` creates a new stack, stores the current stack and replaces it with the new one
+* Keyword `]` appends current stack contents to the previous stack (staring from the bottom of the stack) and appends it's size at the top.
+
 ### Variables
 
 * All newly created variables are set to 'Null'.
@@ -150,7 +155,7 @@ rpn_clear(ctxt);
 |`le`|( a b -> a<=b ) | |
 |`cmp`|( a b -> c ) |  c is -1 if a<b, 0 if a==b and 1 if a>b|
 |`cmp3`|( a b c -> d ) |  d is -1 if a<b, 1 if a>c and 0 if equals to b or c or in the middle|
-|`index`|( a v1 v2 ... b -> c ) |  returns the a-nth value from the v# list, b is the number of values in the v# list|
+|`index`|( a v1 v2 ... b -> c ) |  returns the a-nth value from the v# list, b is the number of values in the v# list |
 |`map`|    ( a b c d e -> f ) |  performs a rule of 3 mapping value a which goes from b to c to d to e|
 |`constrain`|(a b c -> d) |  ensures a is between the range of b and c (inlusive) |
 |`and`|( a b -> c ) |  where c is 1 if both a and b are different from 0 |

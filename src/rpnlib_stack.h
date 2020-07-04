@@ -37,7 +37,8 @@ struct rpn_stack_value {
     enum class Type {
         None,
         Value,
-        Variable
+        Variable,
+        Array
     };
 
     rpn_stack_value() = delete;
@@ -69,6 +70,71 @@ struct rpn_stack_value {
     ValuePtr value;
 };
 
+struct rpn_nested_stack {
+    using stack_type = std::vector<rpn_stack_value>;
+    using stacks_type = std::vector<stack_type>;
+
+    rpn_nested_stack() :
+        _stacks({{}}),
+        _current(&_stacks.back())
+    {}
+
+    stack_type& get() {
+        return *_current;
+    }
+
+    size_t size() {
+        return (*_current).size();
+    }
+
+    void pop() {
+        (*_current).pop_back();
+    }
+
+    void clear() {
+        (*_current).clear();
+    }
+
+    rpn_stack_value& back() {
+        return (*_current).back();
+    }
+
+    // notice that we clear the whole chain, not just the current stack
+    void stacks_clear() {
+        _stacks.resize(1);
+        _current = &_stacks.back();
+        (*_current).clear();
+    }
+
+    // pop out of the stack without changing anything
+    void stacks_pop() {
+        if (_stacks.size() > 1) {
+            _stacks.pop_back();
+            _current = &_stacks.back();
+        }
+    }
+
+    // create a new stack and select it as the current one
+    void stacks_push() {
+        _stacks.resize(_stacks.size() + 1);
+        _current = &_stacks.back();
+    }
+
+    // create a new stack and select it as the current one
+    size_t stacks_size() {
+        return _stacks.size();
+    }
+
+    // merge current stack with the previous one + insert size value
+    // then, pop out of the stack
+    void stacks_merge();
+
+    private:
+
+    stacks_type _stacks;
+    stack_type* _current;
+};
+
 rpn_stack_value::Type rpn_stack_inspect(rpn_context & ctxt);
 
 size_t rpn_stack_size(rpn_context &);
@@ -82,10 +148,3 @@ bool rpn_stack_pop(rpn_context & ctxt, rpn_value& out);
 
 rpn_value rpn_stack_pop(rpn_context & ctxt);
 rpn_value rpn_stack_get(rpn_context & ctxt, unsigned char index);
-
-template <typename Callback>
-void rpn_stack_foreach(rpn_context & ctxt, Callback callback) {
-    for (auto it = ctxt.stack.rbegin(); it != ctxt.stack.rend(); ++it) {
-        callback((*it).type, *((*it).value.get()));
-    }
-}

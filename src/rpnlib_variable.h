@@ -46,13 +46,6 @@ struct rpn_variable {
     std::shared_ptr<rpn_value> value;
 };
 
-template <typename Callback>
-void rpn_variable_foreach(rpn_context & ctxt, Callback callback) {
-    for (auto& variable : ctxt.variables) {
-        callback(variable.name, *(variable.value.get()));
-    }
-}
-
 bool rpn_variable_set(rpn_context &, const String& name, const rpn_value& value);
 bool rpn_variable_set(rpn_context &, const String& name, rpn_value&& value);
 

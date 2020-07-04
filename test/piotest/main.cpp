@@ -22,7 +22,6 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <Arduino.h>
-#include <rpnlib.h>
 #include <unity.h>
 
 #include <cmath>
@@ -40,6 +39,8 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #define RPNLIB_PIOTEST_HOST_TEST 0
 #endif
+
+#include <rpnlib.h>
 
 // -----------------------------------------------------------------------------
 // Helper methods
@@ -147,21 +148,21 @@ void test_rpn_value() {
     TEST_ASSERT(rpn_bool.isBoolean());
     TEST_ASSERT(rpn_bool.toBoolean());
 
-    rpn_value rpn_int { static_cast<rpn_int>(2) };
-    TEST_ASSERT(rpn_int.isInt());
-    TEST_ASSERT_EQUAL(2, rpn_int.toInt());
+    rpn_value as_int { static_cast<rpn_int>(2) };
+    TEST_ASSERT(as_int.isInt());
+    TEST_ASSERT_EQUAL(2, as_int.toInt());
 
-    rpn_value rpn_uint { static_cast<rpn_uint>(3) };
-    TEST_ASSERT(rpn_uint.isUint());
-    TEST_ASSERT_EQUAL(3UL, rpn_uint.toUint());
+    rpn_value as_uint { static_cast<rpn_uint>(3) };
+    TEST_ASSERT(as_uint.isUint());
+    TEST_ASSERT_EQUAL(3UL, as_uint.toUint());
 
-    rpn_value rpn_float { static_cast<rpn_float>(1.0) };
-    TEST_ASSERT(rpn_float.isFloat());
-    TEST_ASSERT_EQUAL_FLOAT(1.0, rpn_float.toFloat());
+    rpn_value as_float { static_cast<rpn_float>(1.0) };
+    TEST_ASSERT(as_float.isFloat());
+    TEST_ASSERT_EQUAL_FLOAT(1.0, as_float.toFloat());
 
-    rpn_value rpn_str { "12345" };
-    TEST_ASSERT(rpn_str.isString());
-    TEST_ASSERT_EQUAL_STRING("12345", rpn_str.toString().c_str());
+    rpn_value as_string { "12345" };
+    TEST_ASSERT(as_string.isString());
+    TEST_ASSERT_EQUAL_STRING("12345", as_string.toString().c_str());
 }
 
 void test_math() {
@@ -430,6 +431,49 @@ void test_parse_number(void) {
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
+void test_substacks_parse() {
+    rpn_context ctxt;
+
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "[ [ [ 0 ] ] ]"));
+
+    TEST_ASSERT_EQUAL(4, rpn_stack_size(ctxt));
+    TEST_ASSERT_EQUAL(rpn_stack_value::Type::Array, rpn_stack_inspect(ctxt));
+
+    rpn_value value;
+
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
+    TEST_ASSERT_EQUAL(3, value.toUint());
+
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
+    TEST_ASSERT_EQUAL(2, value.toUint());
+
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
+    TEST_ASSERT_EQUAL(1, value.toUint());
+
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
+    TEST_ASSERT_EQUAL_FLOAT(0.0, value.toFloat());
+}
+
+void test_substacks_operator() {
+    rpn_context ctxt;
+
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+
+    // we cannot operate substacks without creating them first
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "1 1 2 3 ] index"));
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "] ] ] ] ] ] ] ]"));
+    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
+
+    // existing operator `index` supports the following construct
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "1 [ 1 2 3 ] index"));
+    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+
+    rpn_value value;
+    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
+    TEST_ASSERT_EQUAL_FLOAT(2.0, value.toFloat());
+}
+
 #if RPNLIB_PIOTEST_HOST_TEST
 void test_memory(void) {
     TEST_IGNORE_MESSAGE("running on host");
@@ -485,6 +529,8 @@ int run_tests() {
     RUN_TEST(test_parse_bool);
     RUN_TEST(test_parse_null);
     RUN_TEST(test_parse_number);
+    RUN_TEST(test_substacks_parse);
+    RUN_TEST(test_substacks_operator);
     return UNITY_END();
 }
 

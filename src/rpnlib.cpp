@@ -315,13 +315,13 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
     ctxt.error.reset();
     ctxt.input_buffer = "";
 
-    _rpn_tokenize(input, ctxt.input_buffer, [&ctxt, variable_must_exist](rpn_token_t type, const String& token) {
+    _rpn_tokenize(input, ctxt.input_buffer, [&](rpn_token_t type, const String& token) {
 
         // Is token a string, bool, number, variable or null?
         switch (type) {
             case RPN_TOKEN_BOOLEAN: {
                 if (_rpn_token_is_bool(token.c_str())) {
-                    ctxt.stack.emplace_back(std::make_shared<rpn_value>(
+                    ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(
                         _rpn_token_as_bool(token.c_str())
                     ));
                     return true;
@@ -335,12 +335,12 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 if (endptr == token.c_str() || endptr[0] != '\0') {
                     break;
                 }
-                ctxt.stack.emplace_back(std::make_shared<rpn_value>(value));
+                ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(value));
                 return true;
             }
 
             case RPN_TOKEN_STRING:
-                ctxt.stack.emplace_back(std::make_shared<rpn_value>(token));
+                ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(token));
                 return true;
 
             case RPN_TOKEN_VARIABLE: {
@@ -353,7 +353,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 const bool found = (var != ctxt.variables.end());
 
                 if (found) {
-                    ctxt.stack.emplace_back(rpn_stack_value::Type::Variable, (*var).value);
+                    ctxt.stack.get().emplace_back(rpn_stack_value::Type::Variable, (*var).value);
                     return true;
                 }
 
@@ -367,7 +367,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 if (!found) {
                     auto null = std::make_shared<rpn_value>();
                     ctxt.variables.emplace_back(token, null);
-                    ctxt.stack.emplace_back(
+                    ctxt.stack.get().emplace_back(
                         rpn_stack_value::Type::Variable, null
                     );
                     return true;
@@ -376,7 +376,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
             case RPN_TOKEN_NULL:
                 if (_rpn_token_is_null(token.c_str())) {
-                    ctxt.stack.emplace_back(std::make_shared<rpn_value>());
+                    ctxt.stack.get().emplace_back(std::make_shared<rpn_value>());
                     return true;
                 }
                 break;
@@ -385,7 +385,22 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 ctxt.error = rpn_processing_error::UnknownToken;
                 break;
 
-            case RPN_TOKEN_WORD:
+            case RPN_TOKEN_WORD: {
+                if (1 == token.length()) {
+                    switch (token[0]) {
+                    case '[': 
+                        ctxt.stack.stacks_push();
+                        return true;
+                    case ']':
+                        if (ctxt.stack.stacks_size() > 1) {
+                            ctxt.stack.stacks_merge();
+                            return true;
+                        }
+                        ctxt.error = rpn_processing_error::NoMoreStacks;
+                        return false;
+                    }
+                }
+            }
             default:
                 break;
         }

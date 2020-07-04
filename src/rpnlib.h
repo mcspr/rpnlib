@@ -34,22 +34,9 @@ using rpn_int = RPNLIB_INT_TYPE;
 using rpn_float = RPNLIB_FLOAT_TYPE;
 using rpn_uint = RPNLIB_UINT_TYPE;
 
-struct rpn_variable;
-struct rpn_operator;
-struct rpn_stack_value;
 struct rpn_context;
 
 using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
-
-struct rpn_context {
-    std::vector<rpn_variable> variables;
-    std::vector<rpn_operator> operators;
-    std::vector<rpn_stack_value> stack;
-
-    rpn_debug_callback_f debug_callback;
-    String input_buffer;
-    rpn_error error;
-};
 
 // ----------------------------------------------------------------------------
 
@@ -57,6 +44,41 @@ struct rpn_context {
 #include "rpnlib_operators.h"
 #include "rpnlib_variable.h"
 #include "rpnlib_stack.h"
+
+struct rpn_context {
+    using operators_type = std::vector<rpn_operator>;
+    using variables_type = std::vector<rpn_variable>;
+
+    rpn_debug_callback_f debug_callback;
+    String input_buffer;
+    rpn_error error;
+
+    variables_type variables;
+    operators_type operators;
+    rpn_nested_stack stack;
+};
+
+template <typename Callback>
+void rpn_stack_foreach(rpn_context & ctxt, Callback callback) {
+    auto& stack = ctxt.stack.get();
+    for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+        callback((*it).type, *((*it).value.get()));
+    }
+}
+
+template <typename Callback>
+void rpn_variables_foreach(rpn_context & ctxt, Callback callback) {
+    for (auto& var : ctxt.variables) {
+        callback(var.name, *(var.value.get()));
+    }
+}
+
+template <typename Callback>
+void rpn_operators_foreach(rpn_context & ctxt, Callback callback) {
+    for (auto& op : ctxt.operators) {
+        callback(op.name, op.argc, op.callback);
+    }
+}
 
 // ----------------------------------------------------------------------------
 

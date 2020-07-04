@@ -32,6 +32,8 @@ void rpn_decode_errors::operator ()(rpn_processing_error error) {
     case rpn_processing_error::VariableDoesNotExist:
         callback("Variable does not exist");
         break;
+    case rpn_processing_error::NoMoreStacks:
+        callback("Already in the top stack");
     }
 }
 

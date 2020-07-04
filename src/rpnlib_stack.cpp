@@ -22,28 +22,33 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "rpnlib.h"
 #include "rpnlib_stack.h"
+#include "rpnlib_variable.h"
 
 // ----------------------------------------------------------------------------
 // Stack methods
 // ----------------------------------------------------------------------------
 
 bool rpn_stack_push(rpn_context & ctxt, const rpn_value& value) {
-    ctxt.stack.emplace_back(value);
+    ctxt.stack.get().emplace_back(value);
     return true;
 }
 
 bool rpn_stack_push(rpn_context & ctxt, rpn_value&& value) {
-    ctxt.stack.emplace_back(std::move(value));
+    ctxt.stack.get().emplace_back(std::move(value));
     return true;
 }
 
 namespace {
 
+// we only can manipulate the current stack
+// stack shifting, push and pop is only handled via the [ and ] keywords
 bool _rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& out) {
-    const auto size = ctxt.stack.size();
+    auto& stack = ctxt.stack.get();
+
+    const auto size = stack.size();
     if (index >= size) return false;
 
-    const auto& ref = ctxt.stack.at(size - index - 1);
+    const auto& ref = stack.at(size - index - 1);
     if (ref.value == nullptr) return false;
 
     out = *ref.value.get();
@@ -64,7 +69,7 @@ rpn_value rpn_stack_pop(rpn_context & ctxt, unsigned char index) {
 
 bool rpn_stack_pop(rpn_context & ctxt, rpn_value& out) {
     if (_rpn_stack_get(ctxt, 0, out)) {
-        ctxt.stack.pop_back();
+        ctxt.stack.pop();
         return true;
     }
     return false;
@@ -81,11 +86,34 @@ size_t rpn_stack_size(rpn_context & ctxt) {
 }
 
 bool rpn_stack_clear(rpn_context & ctxt) {
-    ctxt.stack.clear();
+    ctxt.stack.stacks_clear();
+    rpn_variables_unref(ctxt);
     return true;
 }
 
 rpn_stack_value::Type rpn_stack_inspect(rpn_context & ctxt) {
     if (!ctxt.stack.size()) return rpn_stack_value::Type::None;
     return ctxt.stack.back().type;
+}
+
+void rpn_nested_stack::stacks_merge() {
+    if (_stacks.size() > 1) {
+        if (!(*_current).size()) {
+            stacks_pop();
+            return;
+        }
+
+        auto& prev = *(_stacks.end() - 2);
+        prev.insert(
+            prev.end(),
+            (*_current).begin(),
+            (*_current).end()
+        );
+        prev.emplace_back(
+            rpn_stack_value::Type::Array,
+            rpn_value(static_cast<rpn_uint>((*_current).size()))
+        );
+
+        stacks_pop();
+    }
 }

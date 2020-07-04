@@ -32,7 +32,8 @@ enum class rpn_error_category {
 enum class rpn_processing_error {
     Ok,
     UnknownToken,
-    VariableDoesNotExist
+    VariableDoesNotExist,
+    NoMoreStacks
 };
 
 enum class rpn_operator_error {
