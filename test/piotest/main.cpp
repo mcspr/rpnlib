@@ -434,9 +434,12 @@ void test_parse_number(void) {
 void test_substacks_parse() {
     rpn_context ctxt;
 
+    // we allow nesting substacks
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_TRUE(rpn_process(ctxt, "[ [ [ 0 ] ] ]"));
 
+    // each time we pop substack, we add it's size to the top
+    // entering and exiting substack 3 times results in at least 3 new elements
     TEST_ASSERT_EQUAL(4, rpn_stack_size(ctxt));
     TEST_ASSERT_EQUAL(rpn_stack_value::Type::Array, rpn_stack_inspect(ctxt));
 
@@ -465,12 +468,14 @@ void test_substacks_operator() {
     TEST_ASSERT_FALSE(rpn_process(ctxt, "] ] ] ] ] ] ] ]"));
     TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
 
-    // stack pop should always place it's size
+    // when exiting substack, we always get it's size
+    // even when substack was empty
     TEST_ASSERT_TRUE(rpn_process(ctxt, "[ ]"));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
     TEST_ASSERT_EQUAL(0u, rpn_stack_pop(ctxt).toUint());
 
-    // we can handle contents via operators that accept specific stack contents
+    // because substacks do not introduce any new structures,
+    // existing operators should still be able to work
     TEST_ASSERT_TRUE(rpn_process(ctxt, "1 [ 1 2 3 ] index"));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
 
