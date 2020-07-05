@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Add integer and unsigned integer type, used in operators
 - Allow to configure underlying types from rpnlib\_config.h and -D... flags
 - Return `rpn_error` from operators, split error types into categories
+- Create a new stack by using `[` keyword. Move stack contents into the previous stack + size by using `]`.
 
 ### Changed
 - Stack structure no longer holds raw `float`, but internal `rpn_value` type

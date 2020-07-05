@@ -170,7 +170,7 @@ void test_math() {
     run_and_compare("-5 -2 -1 * * abs", {10.0});
 }
 
-void test_math_advanced(void) {
+void test_math_advanced() {
 #ifdef RPNLIB_ADVANCED_MATH
     run_and_compare("10 2 pow sqrt log10 floor", {1.0});
 #else
@@ -178,7 +178,7 @@ void test_math_advanced(void) {
 #endif
 }
 
-void test_trig(void) {
+void test_trig() {
 #ifdef RPNLIB_ADVANCED_MATH
     run_and_compare("pi 4 / cos 2 sqrt *", {1.0});
 #else
@@ -186,32 +186,32 @@ void test_trig(void) {
 #endif
 }
 
-void test_cast(void) {
+void test_cast() {
     run_and_compare("pi 2 round pi 4 round 1.1 floor 1.1 ceil", {2.0, 1.0, 3.1416, 3.14});
 }
 
-void test_map(void) {
+void test_map() {
     run_and_compare("256 0 1024 0 100 map", {25.0});
     run_and_compare("1 0 100 0 1000 map", {10.0});
 }
 
-void test_index(void) {
+void test_index() {
     run_and_compare("2 10 20 30 40 50 5 index", {30.0});
 }
 
-void test_cmp3_below(void) {
+void test_cmp3_below() {
     run_and_compare("13 18 24 cmp3", {-1.0});
 }
 
-void test_cmp3_between(void) {
+void test_cmp3_between() {
     run_and_compare("18 18 24 cmp3", {0.0});
 }
 
-void test_cmp3_above(void) {
+void test_cmp3_above() {
     run_and_compare("25 18 24 cmp3", {1.0});
 }
 
-void test_conditionals(void) {
+void test_conditionals() {
     rpn_context ctxt;
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_FALSE(rpn_process(ctxt, "1 2 eq end \"test\""));
@@ -224,19 +224,19 @@ void test_conditionals(void) {
     TEST_ASSERT_EQUAL_FLOAT(2.0, value.toFloat());
 }
 
-void test_stack(void) {
+void test_stack() {
     run_and_compare("1 3 dup unrot swap - *", {6.0});
 }
 
-void test_logic(void) {
+void test_logic() {
     run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt", {0.0, 1.0, 0.0, 1.0});
 }
 
-void test_boolean(void) {
+void test_boolean() {
     run_and_compare("2 0 and 2 0 or 2 0 xor 1 not", {0.0, 1.0, 1.0, 0.0});
 }
 
-void test_variable(void) {
+void test_variable() {
 
     rpn_context ctxt;
 
@@ -256,7 +256,7 @@ void test_variable(void) {
 
 }
 
-void test_variable_operator(void) {
+void test_variable_operator() {
 
     rpn_context ctxt;
 
@@ -277,7 +277,7 @@ void test_variable_operator(void) {
     TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
 }
 
-void test_variable_cleanup(void) {
+void test_variable_cleanup() {
 
     rpn_context ctxt;
 
@@ -296,7 +296,7 @@ void test_variable_cleanup(void) {
     TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
 }
 
-void test_custom_operator(void) {
+void test_custom_operator() {
 
     rpn_context ctxt;
     
@@ -316,19 +316,19 @@ void test_custom_operator(void) {
 
 }
 
-void test_error_divide_by_zero(void) {
+void test_error_divide_by_zero() {
     run_and_error("5 0 /", rpn_value_error::DivideByZero);
 }
 
-void test_error_argument_count_mismatch(void) {
+void test_error_argument_count_mismatch() {
     run_and_error("1 +", rpn_operator_error::ArgumentCountMismatch);
 }
 
-void test_error_unknown_token(void) {
+void test_error_unknown_token() {
     run_and_error("1 2 sum", rpn_processing_error::UnknownToken);
 }
 
-void test_strings(void) {
+void test_strings() {
     rpn_context ctxt;
     TEST_ASSERT_TRUE(rpn_init(ctxt));
 
@@ -352,7 +352,7 @@ void test_strings(void) {
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
-void test_parse_bool(void) {
+void test_parse_bool() {
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
@@ -382,7 +382,7 @@ void test_parse_bool(void) {
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
-void test_parse_string(void) {
+void test_parse_string() {
     rpn_context ctxt;
     TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_FALSE(rpn_process(ctxt, "\"12345 +"));
@@ -409,7 +409,7 @@ void test_parse_string(void) {
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
-void test_parse_null(void) {
+void test_parse_null() {
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
@@ -417,7 +417,7 @@ void test_parse_null(void) {
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
-void test_parse_number(void) {
+void test_parse_number() {
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
@@ -485,11 +485,11 @@ void test_substacks_operator() {
 }
 
 #if RPNLIB_PIOTEST_HOST_TEST
-void test_memory(void) {
+void test_memory() {
     TEST_IGNORE_MESSAGE("running on host");
 }
 #else
-void test_memory(void) {
+void test_memory() {
 
     unsigned long start = ESP.getFreeHeap();
 
