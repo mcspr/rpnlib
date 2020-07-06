@@ -105,6 +105,13 @@ rpn_clear(ctxt);
 
 ## Expressions
 
+### Parsing
+
+- Tokens are separated by one ore more spaces (ASCII character code `32` / ` `).
+- Every expression is interpretted left-to-right, until the token cannot be parsed.
+- When a valid token is found and is not an operator, it is immediately placed on the current stack.
+- When a valid token is an operator, function associated with it is immediately called.
+
 ### Default types
 
 * Keyword `null` is reserved for the internal 'Null' type.
