@@ -165,6 +165,9 @@ void test_rpn_value() {
     TEST_ASSERT_EQUAL_STRING("12345", as_string.toString().c_str());
 }
 
+// TODO: also check integer operations
+// TODO: make sure we handle math processing errors
+
 void test_math() {
     run_and_compare("5 2 * 3 + 5 mod", {3.0});
     run_and_compare("-5 -2 -1 * * abs", {10.0});
@@ -176,6 +179,78 @@ void test_math_advanced() {
 #else
     TEST_IGNORE_MESSAGE("fmath is disabled");
 #endif
+}
+
+// TODO: we can't insert integers without creating rpn_value manually
+//       every number parsed from expression will be floating point
+void test_math_uint() {
+    rpn_context ctxt;
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+
+    const auto first_value = static_cast<rpn_uint>(12345);
+    const auto second_value = static_cast<rpn_uint>(56789);
+
+    rpn_value first(first_value);
+    rpn_value second(second_value);
+
+    TEST_ASSERT(first.isUint());
+    TEST_ASSERT_EQUAL(first_value, first.toUint());
+
+    TEST_ASSERT(second.isUint());
+    TEST_ASSERT_EQUAL(second_value, second.toUint());
+
+    auto check_expression = [&](const char* expression, rpn_uint result) {
+        TEST_ASSERT(rpn_stack_push(ctxt, first));
+        TEST_ASSERT(rpn_stack_push(ctxt, second));
+        TEST_ASSERT_EQUAL(2, rpn_stack_size(ctxt));
+
+        TEST_ASSERT(rpn_process(ctxt, expression));
+        TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+
+        rpn_value output(rpn_stack_pop(ctxt));
+        TEST_ASSERT_EQUAL(result, output.toUint());
+    };
+
+    check_expression("+", first_value + second_value);
+    check_expression("-", first_value - second_value);
+    check_expression("*", first_value * second_value);
+    check_expression("/", first_value / second_value);
+}
+
+void test_math_int() {
+
+    rpn_context ctxt;
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+
+    const auto first_value = static_cast<rpn_int>(50);
+    const auto second_value = static_cast<rpn_int>(25);
+
+    rpn_value first(first_value);
+    rpn_value second(second_value);
+
+    TEST_ASSERT(first.isInt());
+    TEST_ASSERT_EQUAL(first_value, first.toInt());
+
+    TEST_ASSERT(second.isInt());
+    TEST_ASSERT_EQUAL(second_value, second.toInt());
+
+    auto check_expression = [&](const char* expression, rpn_int result) {
+        TEST_ASSERT(rpn_stack_push(ctxt, first));
+        TEST_ASSERT(rpn_stack_push(ctxt, second));
+        TEST_ASSERT_EQUAL(2, rpn_stack_size(ctxt));
+
+        TEST_ASSERT(rpn_process(ctxt, expression));
+        TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+
+        rpn_value output(rpn_stack_pop(ctxt));
+        TEST_ASSERT_EQUAL(result, output.toInt());
+    };
+
+    check_expression("+", first_value + second_value);
+    check_expression("-", first_value - second_value);
+    check_expression("*", first_value * second_value);
+    check_expression("/", first_value / second_value);
+
 }
 
 void test_trig() {
@@ -514,6 +589,8 @@ int run_tests() {
     RUN_TEST(test_rpn_value);
     RUN_TEST(test_math);
     RUN_TEST(test_math_advanced);
+    RUN_TEST(test_math_int);
+    RUN_TEST(test_math_uint);
     RUN_TEST(test_trig);
     RUN_TEST(test_cast);
     RUN_TEST(test_map);
