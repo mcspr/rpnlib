@@ -114,10 +114,10 @@ rpn_clear(ctxt);
 * Unsigned integer values are represented as `rpn_uint`, can be used in operators.
 * All strings are represented as `String` (Arduino class). Strings in expressions are surrounded by double quotation marks.
 
-### Substacks
+### Nested stacks
 
-* Keyword `[` creates a new stack, stores the current stack and replaces it with the new one
-* Keyword `]` appends current stack contents to the previous stack (staring from the bottom of the stack) and appends it's size at the top.
+* Keyword `[` creates a new stack. Any expression after that point uses the new stack. Previous stack is kept in memory.
+* Keyword `]` moves all of the current stack contents into a previous one, inserting from the top. After that, appends it's size at the top and destroys the current stack. Any expression after that point uses the previous stack.
 
 ### Variables
 
