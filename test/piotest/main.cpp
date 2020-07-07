@@ -475,7 +475,21 @@ void test_error_divide_by_zero() {
 }
 
 void test_error_argument_count_mismatch() {
-    run_and_error("1 +", rpn_operator_error::ArgumentCountMismatch);
+    rpn_context ctxt;
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+
+    rpn_operator_set(ctxt, "mismatch", 5, [](rpn_context& ctxt) -> rpn_error {
+        return rpn_operator_error::CannotContinue;
+    });
+
+    run_and_error_ctx(ctxt, "12345 mismatch", rpn_operator_error::ArgumentCountMismatch);
+    rpn_stack_clear(ctxt);
+
+    run_and_error_ctx(ctxt, "1 2 3 4 mismatch", rpn_operator_error::ArgumentCountMismatch);
+    rpn_stack_clear(ctxt);
+
+    run_and_error_ctx(ctxt, "1 2 3 4 5 mismatch", rpn_operator_error::CannotContinue);
+    rpn_stack_clear(ctxt);
 }
 
 void test_error_unknown_token() {
