@@ -23,6 +23,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <Arduino.h>
 #include <unity.h>
+#include <unity_internals.h>
 
 #include <array>
 #include <algorithm>
@@ -157,15 +158,30 @@ void run_and_compare(const char* command, T expected) {
     run_and_compare(ctxt, command, expected);
 }
 
-void run_and_error(const char * command, rpn_error error) {
-
-    rpn_context ctxt;
-
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_FALSE(rpn_process(ctxt, command));
-    TEST_ASSERT(error == ctxt.error);
-
+void _run_and_error(rpn_context& ctxt, const char* command, rpn_error error, const char* message, int line) {
+    char buffer[256];
+    sprintf(buffer, "Expected %s", message);
+    UnityMessage(command, line);
+    UNITY_TEST_ASSERT(!rpn_process(ctxt, command), line, buffer);
+    UNITY_TEST_ASSERT((error == ctxt.error), line, buffer);
 }
+
+void _run_and_error(const char * command, rpn_error error, const char* message, int line) {
+    rpn_context ctxt;
+    UNITY_TEST_ASSERT(rpn_init(ctxt), line, nullptr);
+    _run_and_error(ctxt, command, error, message, line);
+}
+
+// Allow unity tests to reflect the real line number, not the line number of the helper function
+
+#define _RUN_AND_ERROR_STRINGIFY(X) #X
+#define RUN_AND_ERROR_STRINGIFY(X) _RUN_AND_ERROR_STRINGIFY(X)
+
+#define run_and_error(command, error) \
+    _run_and_error(command, error, RUN_AND_ERROR_STRINGIFY(error), __LINE__)
+
+#define run_and_error_ctx(ctx, command, error) \
+    _run_and_error(ctx, command, error, RUN_AND_ERROR_STRINGIFY(error), __LINE__)
 
 // -----------------------------------------------------------------------------
 // Tests
@@ -435,6 +451,27 @@ void test_custom_operator() {
 
 void test_error_divide_by_zero() {
     run_and_error("5 0 /", rpn_value_error::DivideByZero);
+    run_and_error("0 0 /", rpn_value_error::DivideByZero);
+    run_and_error("105 0 mod", rpn_value_error::DivideByZero);
+
+    rpn_context ctxt;
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+
+    const char* ops[] {"/", "mod"};
+
+    for (auto& op : ops) {
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_int>(12345)}));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_int>(0)}));
+        run_and_error_ctx(ctxt, op, rpn_value_error::DivideByZero);
+    }
+    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
+
+    for (auto& op : ops) {
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_uint>(56789u)}));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_uint>(0u)}));
+        run_and_error_ctx(ctxt, op, rpn_value_error::DivideByZero);
+    }
+    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
 }
 
 void test_error_argument_count_mismatch() {
