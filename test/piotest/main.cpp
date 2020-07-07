@@ -476,8 +476,6 @@ void test_error_divide_by_zero() {
 
 void test_error_argument_count_mismatch() {
     rpn_context ctxt;
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-
     rpn_operator_set(ctxt, "mismatch", 5, [](rpn_context& ctxt) -> rpn_error {
         return rpn_operator_error::CannotContinue;
     });
@@ -493,7 +491,16 @@ void test_error_argument_count_mismatch() {
 }
 
 void test_error_unknown_token() {
-    run_and_error("1 2 sum", rpn_processing_error::UnknownToken);
+    rpn_context ctxt;
+
+    run_and_error_ctx(ctxt, "1 2 unknown_operator_name", rpn_processing_error::UnknownToken);
+    rpn_stack_clear(ctxt);
+
+    run_and_error_ctx(ctxt, "something_else", rpn_processing_error::UnknownToken);
+    rpn_stack_clear(ctxt);
+
+    run_and_error_ctx(ctxt, "12345.1ertyu23", rpn_processing_error::UnknownToken);
+    rpn_stack_clear(ctxt);
 }
 
 void test_strings() {
