@@ -71,7 +71,44 @@ rpn_value_error _rpn_can_divide_by(const rpn_value& value) {
     return result;
 }
 
+struct rpn_value_operator_result {
+    operator bool() {
+        return result;
+    }
+
+    bool result;
+    rpn_value_error error;
+};
+
+rpn_value_operator_result _rpn_can_call_operator(const rpn_value& lhs, const rpn_value& rhs) {
+    if (lhs.isError()) {
+        return {false, lhs.toError()};
+    }
+
+    if (rhs.isError()) {
+        return {false, rhs.toError()};
+    }
+
+    if (lhs.isNull() || rhs.isNull()) {
+        return {false, rpn_value_error::IsNull};
+    }
+
+    return {true};
 }
+
+rpn_value_operator_result _rpn_can_do_math(const rpn_value& lhs, const rpn_value& rhs) {
+    if (lhs.isNumber() && (rhs.isNumber() || rhs.isBoolean())) {
+        return {true};
+    }
+
+    if (lhs.isBoolean() && (rhs.isNumber() || rhs.isBoolean())) {
+        return {true};
+    }
+
+    return {false, rpn_value_error::InvalidOperation};
+}
+
+} // namespace
 
 rpn_value::rpn_value() :
     type(rpn_value::Type::Null)
@@ -106,9 +143,9 @@ rpn_value::rpn_value(bool value) :
     as_boolean(value)
 {}
 
-rpn_value::rpn_value(rpn_value_error value) :
+rpn_value::rpn_value(rpn_value_error error) :
     type(rpn_value::Type::Error),
-    as_error(value)
+    as_error(error)
 {}
 
 rpn_value::rpn_value(rpn_int value) :
@@ -188,8 +225,8 @@ void rpn_value::assign(const rpn_value& other) noexcept {
     type = other.type;
 }
 
-rpn_error rpn_value::toError() const {
-    rpn_error result;
+rpn_value_error rpn_value::toError() const {
+    rpn_value_error result = rpn_value_error::Ok;
 
     switch (type) {
     case rpn_value::Type::Error:
@@ -432,14 +469,11 @@ bool rpn_value::operator <=(const rpn_value& other) const {
 rpn_value rpn_value::operator +(const rpn_value& other) {
     rpn_value val;
 
-    // return Null and set err flag when trying to do math with Null
-    if (isError()) {
-        val = *this;
-        return val;
-    }
-
-    if (isNull() || other.isNull()) {
-        val = rpn_value(rpn_value_error::InvalidOperation);
+    // **Notice!**
+    // strings are valid here, so we don't have explicit check for number / bool
+    auto check = _rpn_can_call_operator(*this, other);
+    if (!check) {
+        val = rpn_value(check.error);
         return val;
     }
 
@@ -490,19 +524,16 @@ rpn_value rpn_value::operator +(const rpn_value& other) {
 rpn_value rpn_value::operator -(const rpn_value& other) {
     rpn_value val;
 
-    // return Null and set err flag when trying to do math with Null
-    if (isError()) {
-        val = *this;
+    // return Error when operation does not make sense
+    auto check = _rpn_can_call_operator(*this, other);
+    if (!check) {
+        val = rpn_value(check.error);
         return val;
     }
 
-    if (isNull() || other.isNull()) {
-        val = rpn_value(rpn_value_error::IsNull);
-        return val;
-    }
-
-    // return null when can't do anything to compute the result
-    if (!isNumber() && !isBoolean()) {
+    check = _rpn_can_do_math(*this, other);
+    if (!check) {
+        val = rpn_value(check.error);
         return val;
     }
 
@@ -534,19 +565,16 @@ rpn_value rpn_value::operator -(const rpn_value& other) {
 rpn_value rpn_value::operator *(const rpn_value& other) {
     rpn_value val;
 
-    // return Null and set err flag when trying to do math with Null
-    if (isError()) {
-        val = *this;
+    // return Error when operation does not make sense
+    auto check = _rpn_can_call_operator(*this, other);
+    if (!check) {
+        val = rpn_value(check.error);
         return val;
     }
 
-    if (isNull() || other.isNull()) {
-        val = rpn_value(rpn_value_error::IsNull);
-        return val;
-    }
-
-    // return Null when can't do anything to compute the result
-    if (!isNumber() && !isBoolean()) {
+    check = _rpn_can_do_math(*this, other);
+    if (!check) {
+        val = rpn_value(check.error);
         return val;
     }
 
@@ -578,19 +606,16 @@ rpn_value rpn_value::operator *(const rpn_value& other) {
 rpn_value rpn_value::operator /(const rpn_value& other) {
     rpn_value val;
 
-    // return Null and set err flag when trying to do math with Null
-    if (isError()) {
-        val = *this;
+    // return Error when operation does not make sense
+    auto check = _rpn_can_call_operator(*this, other);
+    if (!check) {
+        val = rpn_value(check.error);
         return val;
     }
 
-    if (isNull() || other.isNull()) {
-        val = rpn_value(rpn_value_error::IsNull);
-        return val;
-    }
-
-    // return null when can't do anything to compute the result
-    if (!isNumber() && !isBoolean()) {
+    check = _rpn_can_do_math(*this, other);
+    if (!check) {
+        val = rpn_value(check.error);
         return val;
     }
 
@@ -630,8 +655,16 @@ rpn_value rpn_value::operator /(const rpn_value& other) {
 rpn_value rpn_value::operator %(const rpn_value& other) {
     rpn_value val;
 
-    // return null when can't do anything to compute the result
-    if (!isNumber() && !isBoolean()) {
+    // return Error when operation does not make sense
+    auto check = _rpn_can_call_operator(*this, other);
+    if (!check) {
+        val = rpn_value(check.error);
+        return val;
+    }
+
+    check = _rpn_can_do_math(*this, other);
+    if (!check) {
+        val = rpn_value(check.error);
         return val;
     }
 

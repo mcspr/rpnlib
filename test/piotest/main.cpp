@@ -24,6 +24,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <Arduino.h>
 #include <unity.h>
 
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <limits>
@@ -46,80 +47,108 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 // Helper methods
 // -----------------------------------------------------------------------------
 
-void highlight_stack_index(rpn_context& ctxt, unsigned char match, rpn_float value, rpn_float match_value) {
-    char buffer[256] = {0};
-
-    snprintf(buffer, sizeof(buffer) - 1, "Stack size = %zu", ctxt.stack.size());
-    TEST_MESSAGE(buffer);
-
-    snprintf(buffer, sizeof(buffer) - 1,
-        "Expected stack[%u] == %.*ef, but it is %.*ef instead (fabs diff is %.*e, %s)",
-        match,
-        3, match_value,
-        3, value,
-        3, std::fabs(match_value - value),
-        (std::fabs(match_value - value) < std::numeric_limits<rpn_float>::epsilon()) ? "less than epsilon" : "more than epsilon"
-    );
-    TEST_MESSAGE(buffer);
-
-    size_t index = rpn_stack_size(ctxt);
-    rpn_stack_foreach(ctxt, [&index, &buffer, match](const rpn_stack_value::Type type, const rpn_value& value) {
-        char highlight = (index == match) ? '*' : ' ';
-        switch (value.type) {
-        case rpn_value::Type::Integer:
-            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %" PRId32, highlight, index, value.toInt());
-            break;
-        case rpn_value::Type::Unsigned:
-            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %" PRIu32, highlight, index, value.toUint());
-            break;
-        case rpn_value::Type::Float:
-            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %f", highlight, index, value.toFloat());
-            break;
-        case rpn_value::Type::String:
-            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: \"%s\"", highlight, index, value.toString().c_str());
-            break;
-        case rpn_value::Type::Boolean:
-            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: %s", highlight, index, value.toBoolean() ? "true" : "false");
-            break;
-        case rpn_value::Type::Null:
-            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: null", highlight, index);
-            break;
-        case rpn_value::Type::Error:
-            snprintf(buffer, sizeof(buffer) - 1, "%c %02zu: error (this should not happen)", highlight, index);
-            break;
-        }
-        --index;
-        TEST_MESSAGE(buffer);
-    });
+template <typename... Args>
+std::array<rpn_value, sizeof...(Args)> rpn_values(Args... args) {
+    return {rpn_value(args)...};
 }
 
-void run_and_compare(const char * command, std::vector<rpn_float> expected) {
+const char* explain_type(rpn_value::Type type) {
+    switch (type) {
+    case rpn_value::Type::Integer:
+        return "Integer";
+    case rpn_value::Type::Unsigned:
+        return "Unsigned";
+    case rpn_value::Type::Float:
+        return "Float";
+    case rpn_value::Type::String:
+        return "String";
+    case rpn_value::Type::Boolean:
+        return "Boolean";
+    case rpn_value::Type::Null:
+        return "Null";
+    case rpn_value::Type::Error:
+        return "Error";
+    default:
+        return "(unknown)";
+    }
+}
 
-    rpn_context ctxt;
+int explain_contents(char* output, size_t output_size, const rpn_value& value) {
+    switch (value.type) {
+    case rpn_value::Type::Integer:
+        return snprintf(output, output_size - 1, "%" PRId32, value.toInt());
+    case rpn_value::Type::Unsigned:
+        return snprintf(output, output_size - 1, "%" PRIu32, value.toUint());
+    case rpn_value::Type::Float:
+        return snprintf(output, output_size - 1, "%f", value.toFloat());
+    case rpn_value::Type::String:
+        return snprintf(output, output_size - 1, "\"%s\"", value.toString().c_str());
+    case rpn_value::Type::Boolean:
+        return snprintf(output, output_size - 1, "%s", value.toBoolean() ? "true" : "false");
+    case rpn_value::Type::Null:
+        return snprintf(output, output_size - 1, "null");
+    case rpn_value::Type::Error:
+        return snprintf(output, output_size - 1, "error (this should not happen)");
+    default:
+        return snprintf(output, output_size - 1, "unknown (this should not happen!!!)");
+    }
+}
 
+template <typename T>
+void run_and_compare(rpn_context & ctxt, const char* command, T expected) {
     TEST_MESSAGE(command);
 
-    TEST_ASSERT_TRUE_MESSAGE(rpn_init(ctxt), "rpn_init() should return true");
-    TEST_ASSERT_TRUE_MESSAGE(rpn_process(ctxt, command), "rpn_process() should return true");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(0, ctxt.error.code, "There should be no error code set");
+    TEST_ASSERT_TRUE_MESSAGE(rpn_process(ctxt, command),
+            "rpn_process() should return true");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, ctxt.error.code,
+            "There should be no error code set");
 
-    TEST_ASSERT_EQUAL_MESSAGE(expected.size(), rpn_stack_size(ctxt), "Stack size does not match the expected value");
+    stack_compare(ctxt, expected);
+}
 
-    rpn_value value;
-    for (unsigned char i=0; i<expected.size(); i++) {
-        if (!rpn_stack_get(ctxt, i, value)) {
-            highlight_stack_index(ctxt, i, value.toFloat(), expected[i]);
-            TEST_MESSAGE(command);
-            TEST_FAIL_MESSAGE("Can't get stack value at specified index");
-        }
-        auto number = value.toFloat();
-        if (std::fabs(expected[i] - number) > std::numeric_limits<rpn_float>::epsilon()) {
-            highlight_stack_index(ctxt, i, number, expected[i]);
-            TEST_MESSAGE(command);
-            TEST_FAIL_MESSAGE("Stack value does not match the expected value");
-        }
+template <typename T>
+void stack_compare(rpn_context& ctxt, T expected) {
+    TEST_ASSERT_EQUAL_MESSAGE(expected.size(), rpn_stack_size(ctxt),
+            "Stack size does not match the expected value");
+
+    auto index = rpn_stack_size(ctxt) - 1;
+
+    std::vector<rpn_value> stack_values;
+    while (rpn_stack_size(ctxt)) {
+        stack_values.push_back(rpn_stack_pop(ctxt));
     }
 
+    char buffer[512] = {0};
+
+    auto expect = expected.begin();
+    auto stack = stack_values.begin();
+    while ((expect != expected.end()) && (stack != stack_values.end())) {
+        if (!(*expect).is((*stack).type)) {
+            sprintf(buffer, "Index %zu TYPE MISMATCH : Expected %s, Got %s",
+                index, explain_type((*expect).type), explain_type((*stack).type));
+            TEST_FAIL_MESSAGE(buffer);
+        }
+
+        if ((*expect) != (*stack)) {
+            auto offset = sprintf(buffer, "Index %zu VALUE MISMATCH : Expected ", index);
+            offset += explain_contents(buffer + offset, sizeof(buffer) - offset, (*expect));
+            offset += sprintf(buffer + offset, ", Got ");
+            offset += explain_contents(buffer + offset, sizeof(buffer) - offset, (*stack));
+            TEST_FAIL_MESSAGE(buffer);
+        }
+
+        --index;
+        ++expect;
+        ++stack;
+    }
+}
+
+template <typename T>
+void run_and_compare(const char* command, T expected) {
+    rpn_context ctxt;
+    TEST_ASSERT_TRUE_MESSAGE(rpn_init(ctxt),
+            "rpn_init() should return true");
+    run_and_compare(ctxt, command, expected);
 }
 
 void run_and_error(const char * command, rpn_error error) {
@@ -169,13 +198,15 @@ void test_rpn_value() {
 // TODO: make sure we handle math processing errors
 
 void test_math() {
-    run_and_compare("5 2 * 3 + 5 mod", {3.0});
-    run_and_compare("-5 -2 -1 * * abs", {10.0});
+    run_and_compare("-5 -2 -1 * * abs", rpn_values(10.0));
+    run_and_compare("5 2 * 3 + 5 mod", rpn_values(3.0));
 }
 
 void test_math_advanced() {
 #ifdef RPNLIB_ADVANCED_MATH
-    run_and_compare("10 2 pow sqrt log10 floor", {1.0});
+    run_and_compare("10 2 pow sqrt log10 floor", {
+        rpn_value(static_cast<rpn_float>(1.0)
+    });
 #else
     TEST_IGNORE_MESSAGE("fmath is disabled");
 #endif
@@ -255,35 +286,38 @@ void test_math_int() {
 
 void test_trig() {
 #ifdef RPNLIB_ADVANCED_MATH
-    run_and_compare("pi 4 / cos 2 sqrt *", {1.0});
+    run_and_compare("pi 4 / cos 2 sqrt *", {
+        rpn_value(static_cast<rpn_float>(1.0))
+    });
 #else
     TEST_IGNORE_MESSAGE("fmath is disabled");
 #endif
 }
 
 void test_cast() {
-    run_and_compare("pi 2 round pi 4 round 1.1 floor 1.1 ceil", {2.0, 1.0, 3.1416, 3.14});
+    run_and_compare("pi 2 round pi 4 round 1.1 floor 1.1 ceil",
+            rpn_values(2.0, 1.0, 3.1416, 3.14));
 }
 
 void test_map() {
-    run_and_compare("256 0 1024 0 100 map", {25.0});
-    run_and_compare("1 0 100 0 1000 map", {10.0});
+    run_and_compare("256 0 1024 0 100 map", rpn_values(25.0));
+    run_and_compare("1 0 100 0 1000 map", rpn_values(10.0));
 }
 
 void test_index() {
-    run_and_compare("2 10 20 30 40 50 5 index", {30.0});
+    run_and_compare("2 10 20 30 40 50 5 index", rpn_values(30.0));
 }
 
 void test_cmp3_below() {
-    run_and_compare("13 18 24 cmp3", {-1.0});
+    run_and_compare("13 18 24 cmp3", rpn_values(-1));
 }
 
 void test_cmp3_between() {
-    run_and_compare("18 18 24 cmp3", {0.0});
+    run_and_compare("18 18 24 cmp3", rpn_values(0));
 }
 
 void test_cmp3_above() {
-    run_and_compare("25 18 24 cmp3", {1.0});
+    run_and_compare("25 18 24 cmp3", rpn_values(1));
 }
 
 void test_conditionals() {
@@ -300,15 +334,17 @@ void test_conditionals() {
 }
 
 void test_stack() {
-    run_and_compare("1 3 dup unrot swap - *", {6.0});
+    run_and_compare("1 3 dup unrot swap - *", rpn_values(6.0));
 }
 
 void test_logic() {
-    run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt", {0.0, 1.0, 0.0, 1.0});
+    run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt",
+            rpn_values(false, true, false, true));
 }
 
 void test_boolean() {
-    run_and_compare("2 0 and 2 0 or 2 0 xor 1 not", {0.0, 1.0, 1.0, 0.0});
+    run_and_compare("2 0 and 2 0 or 2 0 xor 1 not",
+            rpn_values(false, true, true, false));
 }
 
 void test_variable() {
@@ -424,6 +460,9 @@ void test_strings() {
         "Stack string value should contain concatenated string"
     );
 
+    TEST_ASSERT(rpn_value("Non-empty string is true").toBoolean());
+    TEST_ASSERT_FALSE_MESSAGE(rpn_value("").toBoolean(), "Empty string should be false");
+
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
@@ -432,28 +471,29 @@ void test_parse_bool() {
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
 
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "true true and"));
-
-    rpn_value value;
-    TEST_ASSERT_TRUE_MESSAGE(
-        rpn_stack_pop(ctxt, value),
-        "Stack should contain `true` value"
-    );
-    TEST_ASSERT_TRUE(value.isBoolean());
-    TEST_ASSERT_TRUE(value.toBoolean());
-
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "false true and"));
-    TEST_ASSERT_TRUE_MESSAGE(
-        rpn_stack_pop(ctxt, value),
-        "Stack should contain `false` value"
-    );
-    TEST_ASSERT_TRUE(value.isBoolean());
-    TEST_ASSERT_FALSE(value.toBoolean());
-
+    // parsing sometimes takes shortcuts and interprets similar 'words' as true or false
+    // TODO: less clever parser
     TEST_ASSERT_FALSE(rpn_process(ctxt, "trrr"));
     TEST_ASSERT_FALSE(rpn_process(ctxt, "fllll"));
-
     TEST_ASSERT_EQUAL(0, rpn_stack_size(ctxt));
+
+    // some valid expressions
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "true true and"));
+    stack_compare(ctxt, rpn_values(true));
+
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "false true and"));
+    stack_compare(ctxt, rpn_values(false));
+
+    // we can convert every value type
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_int>(0)}));
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_uint>(12345u)}));
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{String("test_string")}));
+    TEST_ASSERT_EQUAL(3, rpn_stack_size(ctxt));
+
+    TEST_ASSERT(rpn_process(ctxt, "and"));
+    TEST_ASSERT(rpn_process(ctxt, "and"));
+    stack_compare(ctxt, rpn_values(false));
+
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
@@ -468,18 +508,27 @@ void test_parse_string() {
         "Parser should fail without closing quote"
     );
 
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "\"12345\""));
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_STRING_MESSAGE(
-        "12345", value.toString().c_str(),
-        "Parser should put string value on the stack"
-    );
-
     TEST_ASSERT_FALSE(rpn_process(ctxt, "12345\""));
     TEST_ASSERT_FALSE_MESSAGE(
         rpn_stack_pop(ctxt, value),
         "Parser should fail without opening quote"
     );
+
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "\"12345\""));
+    stack_compare(ctxt, rpn_values("12345"));
+
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "\"aaaaa\" \"bbbbb\" +"));
+    stack_compare(ctxt, rpn_values("aaaaabbbbb"));
+
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "\"aaaaa\" \"bbbbb\" -"));
+    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
+
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "\"aaaaa\" \"bbbbb\" /"));
+    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
+
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "\"aaaaa\" \"bbbbb\" *"));
+    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
+
 
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }

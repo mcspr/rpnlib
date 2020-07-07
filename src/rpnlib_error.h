@@ -66,8 +66,11 @@ struct rpn_error {
     rpn_error& operator =(rpn_value_error);
 
     bool operator ==(const rpn_error&);
-
     void reset();
+
+    explicit operator bool() {
+        return (0 == code);
+    }
 
     rpn_error_category category;
     int code;

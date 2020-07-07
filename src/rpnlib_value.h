@@ -72,7 +72,7 @@ struct rpn_value {
     rpn_value operator /(const rpn_value&);
     rpn_value operator %(const rpn_value&);
 
-    rpn_error toError() const;
+    rpn_value_error toError() const;
     bool toBoolean() const;
     rpn_int toInt() const;
     rpn_uint toUint() const;
