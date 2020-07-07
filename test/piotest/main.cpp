@@ -25,6 +25,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <unity.h>
 
 #include <array>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <limits>
@@ -47,11 +48,13 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 // Helper methods
 // -----------------------------------------------------------------------------
 
+// Notice that parameter pack Args can contain diffeent types
 template <typename... Args>
 std::array<rpn_value, sizeof...(Args)> rpn_values(Args... args) {
     return {rpn_value(args)...};
 }
 
+// TODO: perhaps this could be in rpnlib utils?
 const char* explain_type(rpn_value::Type type) {
     switch (type) {
     case rpn_value::Type::Integer:
@@ -113,16 +116,19 @@ void stack_compare(rpn_context& ctxt, T expected) {
 
     auto index = rpn_stack_size(ctxt) - 1;
 
+    // 'expected' is arranged as `begin()` == bottom and `end() - 1` == top
     std::vector<rpn_value> stack_values;
     while (rpn_stack_size(ctxt)) {
         stack_values.push_back(rpn_stack_pop(ctxt));
     }
+    std::reverse(stack_values.begin(), stack_values.end());
 
     char buffer[512] = {0};
 
-    auto expect = expected.begin();
-    auto stack = stack_values.begin();
-    while ((expect != expected.end()) && (stack != stack_values.end())) {
+    // start checking from the top
+    auto expect = expected.rbegin();
+    auto stack = stack_values.rbegin();
+    while ((expect != expected.rend()) && (stack != stack_values.rend())) {
         if (!(*expect).is((*stack).type)) {
             sprintf(buffer, "Index %zu TYPE MISMATCH : Expected %s, Got %s",
                 index, explain_type((*expect).type), explain_type((*stack).type));
@@ -296,7 +302,7 @@ void test_trig() {
 
 void test_cast() {
     run_and_compare("pi 2 round pi 4 round 1.1 floor 1.1 ceil",
-            rpn_values(2.0, 1.0, 3.1416, 3.14));
+            rpn_values(3.14, 3.1416, 1.0, 2.0));
 }
 
 void test_map() {
@@ -339,7 +345,7 @@ void test_stack() {
 
 void test_logic() {
     run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt",
-            rpn_values(false, true, false, true));
+            rpn_values(true, false, true, false));
 }
 
 void test_boolean() {
