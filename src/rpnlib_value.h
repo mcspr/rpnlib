@@ -58,19 +58,19 @@ struct rpn_value {
 
     explicit operator bool() const;
 
-    bool operator >(const rpn_value&) const;
-    bool operator <(const rpn_value&) const;
-    bool operator ==(const rpn_value&) const;
-    bool operator !=(const rpn_value&) const;
+    bool operator>(const rpn_value&) const;
+    bool operator<(const rpn_value&) const;
+    bool operator==(const rpn_value&) const;
+    bool operator!=(const rpn_value&) const;
 
-    bool operator >=(const rpn_value&) const;
-    bool operator <=(const rpn_value&) const;
+    bool operator>=(const rpn_value&) const;
+    bool operator<=(const rpn_value&) const;
 
-    rpn_value operator +(const rpn_value&);
-    rpn_value operator -(const rpn_value&);
-    rpn_value operator *(const rpn_value&);
-    rpn_value operator /(const rpn_value&);
-    rpn_value operator %(const rpn_value&);
+    rpn_value operator+(const rpn_value&);
+    rpn_value operator-(const rpn_value&);
+    rpn_value operator*(const rpn_value&);
+    rpn_value operator/(const rpn_value&);
+    rpn_value operator%(const rpn_value&);
 
     rpn_value_error toError() const;
     bool toBoolean() const;

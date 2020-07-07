@@ -319,25 +319,25 @@ rpn_int rpn_value::toInt() const {
     rpn_int result = 0;
 
     switch (type) {
-        case rpn_value::Type::Integer:
-            result = as_integer;
-            break;
-        case rpn_value::Type::Boolean:
-            result = as_boolean ? 1.0 : 0.0;
-            break;
-        case rpn_value::Type::Unsigned:
-            if (static_cast<rpn_uint>(std::numeric_limits<rpn_int>::max()) < as_unsigned) {
-                result = as_unsigned;
-            }
-            break;
-        case rpn_value::Type::Float:
-            if ((std::numeric_limits<rpn_int>::min() <= as_float)
-                && (std::numeric_limits<rpn_int>::max() > as_float)) {
-                result = rpnlib_round(as_float);
-            }
-            break;
-        default:
-            break;
+    case rpn_value::Type::Integer:
+        result = as_integer;
+        break;
+    case rpn_value::Type::Boolean:
+        result = as_boolean ? 1.0 : 0.0;
+        break;
+    case rpn_value::Type::Unsigned:
+        if (static_cast<rpn_uint>(std::numeric_limits<rpn_int>::max()) < as_unsigned) {
+            result = as_unsigned;
+        }
+        break;
+    case rpn_value::Type::Float:
+        if ((std::numeric_limits<rpn_int>::min() <= as_float)
+            && (std::numeric_limits<rpn_int>::max() > as_float)) {
+            result = rpnlib_round(as_float);
+        }
+        break;
+    default:
+        break;
     }
 
     return result;
@@ -347,19 +347,19 @@ String rpn_value::toString() const {
     String result("");
 
     switch (type) {
-        case rpn_value::Type::String:
-            return as_string;
-        case rpn_value::Type::Integer:
-            result = String(as_integer);
-            break;
-        case rpn_value::Type::Unsigned:
-            result = String(as_unsigned);
-            break;
-        case rpn_value::Type::Float:
-            result = String(as_float);
-            break;
-        default:
-            break;
+    case rpn_value::Type::String:
+        return as_string;
+    case rpn_value::Type::Integer:
+        result = String(as_integer);
+        break;
+    case rpn_value::Type::Unsigned:
+        result = String(as_unsigned);
+        break;
+    case rpn_value::Type::Float:
+        result = String(as_float);
+        break;
+    default:
+        break;
     }
 
     return result;
@@ -369,7 +369,7 @@ rpn_value::operator bool() const {
     return (!isNull() && !isError());
 }
 
-bool rpn_value::operator <(const rpn_value& other) const {
+bool rpn_value::operator<(const rpn_value& other) const {
     bool result = false;
 
     // return Null when trying to do logic with Null
@@ -378,25 +378,25 @@ bool rpn_value::operator <(const rpn_value& other) const {
     }
 
     switch (type) {
-        case rpn_value::Type::Float:
-            result = as_float < other.toFloat();
-            break;
-        case rpn_value::Type::Integer:
-            result = as_integer < other.toInt();
-            break;
-        case rpn_value::Type::Unsigned:
-            result = as_unsigned < other.toUint();
-            break;
-        case rpn_value::Type::String:
-        case rpn_value::Type::Boolean:
-        default:
-            break;
+    case rpn_value::Type::Float:
+        result = as_float < other.toFloat();
+        break;
+    case rpn_value::Type::Integer:
+        result = as_integer < other.toInt();
+        break;
+    case rpn_value::Type::Unsigned:
+        result = as_unsigned < other.toUint();
+        break;
+    case rpn_value::Type::String:
+    case rpn_value::Type::Boolean:
+    default:
+        break;
     }
 
     return result;
 }
 
-bool rpn_value::operator >(const rpn_value& other) const {
+bool rpn_value::operator>(const rpn_value& other) const {
     bool result = false;
 
     // return Null when trying to do logic with Null
@@ -405,25 +405,25 @@ bool rpn_value::operator >(const rpn_value& other) const {
     }
 
     switch (type) {
-        case rpn_value::Type::Float:
-            result = as_float > other.toFloat();
-            break;
-        case rpn_value::Type::Integer:
-            result = as_integer > other.toInt();
-            break;
-        case rpn_value::Type::Unsigned:
-            result = as_unsigned > other.toUint();
-            break;
-        case rpn_value::Type::String:
-        case rpn_value::Type::Boolean:
-        default:
-            break;
+    case rpn_value::Type::Float:
+        result = as_float > other.toFloat();
+        break;
+    case rpn_value::Type::Integer:
+        result = as_integer > other.toInt();
+        break;
+    case rpn_value::Type::Unsigned:
+        result = as_unsigned > other.toUint();
+        break;
+    case rpn_value::Type::String:
+    case rpn_value::Type::Boolean:
+    default:
+        break;
     }
 
     return result;
 }
 
-bool rpn_value::operator ==(const rpn_value& other) const {
+bool rpn_value::operator==(const rpn_value& other) const {
     bool result = false;
 
     // return Null when trying to do logic with Null
@@ -432,41 +432,41 @@ bool rpn_value::operator ==(const rpn_value& other) const {
     }
 
     switch (type) {
-        case rpn_value::Type::String:
-            result = (as_string == other.as_string);
-            break;
-        case rpn_value::Type::Boolean:
-            result = as_boolean == other.toBoolean();
-            break;
-        case rpn_value::Type::Float:
-            result = as_float == other.toFloat();
-            break;
-        case rpn_value::Type::Integer:
-            result = as_integer == other.toInt();
-            break;
-        case rpn_value::Type::Unsigned:
-            result = as_unsigned == other.toUint();
-            break;
-        default:
-            break;
+    case rpn_value::Type::String:
+        result = (as_string == other.as_string);
+        break;
+    case rpn_value::Type::Boolean:
+        result = as_boolean == other.toBoolean();
+        break;
+    case rpn_value::Type::Float:
+        result = as_float == other.toFloat();
+        break;
+    case rpn_value::Type::Integer:
+        result = as_integer == other.toInt();
+        break;
+    case rpn_value::Type::Unsigned:
+        result = as_unsigned == other.toUint();
+        break;
+    default:
+        break;
     }
 
     return result;
 }
 
-bool rpn_value::operator !=(const rpn_value& other) const {
+bool rpn_value::operator!=(const rpn_value& other) const {
     return not (*this == other);
 }
 
-bool rpn_value::operator >=(const rpn_value& other) const {
+bool rpn_value::operator>=(const rpn_value& other) const {
     return (*this == other) || (*this > other);
 }
 
-bool rpn_value::operator <=(const rpn_value& other) const {
+bool rpn_value::operator<=(const rpn_value& other) const {
     return (*this == other) || (*this < other);
 }
 
-rpn_value rpn_value::operator +(const rpn_value& other) {
+rpn_value rpn_value::operator+(const rpn_value& other) {
     rpn_value val;
 
     // **Notice!**
@@ -478,50 +478,50 @@ rpn_value rpn_value::operator +(const rpn_value& other) {
     }
 
     switch (type) {
-        // concat strings
-        case rpn_value::Type::String: {
-            if (other.type != rpn_value::Type::String) {
-                break;
-            }
-            val.type = rpn_value::Type::String;
-
-            const auto our_size = as_string.length();
-            const auto other_size = other.as_string.length();
-
-            new (&val.as_string) String();
-            val.as_string.reserve(our_size + other_size + 1);
-            val.as_string += as_string;
-            val.as_string += other.as_string;
+    // concat strings
+    case rpn_value::Type::String: {
+        if (other.type != rpn_value::Type::String) {
             break;
         }
-        // just do generic math
-        case rpn_value::Type::Boolean:
-            if (other.type != rpn_value::Type::Boolean) {
-                break;
-            }
-            val.type = rpn_value::Type::Boolean;
-            val.as_boolean = as_boolean + other.as_boolean;
+        val.type = rpn_value::Type::String;
+
+        const auto our_size = as_string.length();
+        const auto other_size = other.as_string.length();
+
+        new (&val.as_string) String();
+        val.as_string.reserve(our_size + other_size + 1);
+        val.as_string += as_string;
+        val.as_string += other.as_string;
+        break;
+    }
+    // just do generic math
+    case rpn_value::Type::Boolean:
+        if (other.type != rpn_value::Type::Boolean) {
             break;
-        case rpn_value::Type::Float:
-            val.type = rpn_value::Type::Float;
-            val.as_float = as_float + other.toFloat();
-            break;
-        case rpn_value::Type::Integer:
-            val.type = rpn_value::Type::Integer;
-            val.as_integer = as_integer + other.toInt();
-            break;
-        case rpn_value::Type::Unsigned:
-            val.type = rpn_value::Type::Unsigned;
-            val.as_unsigned = as_unsigned + other.toUint();
-            break;
-        default:
-            break;
+        }
+        val.type = rpn_value::Type::Boolean;
+        val.as_boolean = as_boolean + other.as_boolean;
+        break;
+    case rpn_value::Type::Float:
+        val.type = rpn_value::Type::Float;
+        val.as_float = as_float + other.toFloat();
+        break;
+    case rpn_value::Type::Integer:
+        val.type = rpn_value::Type::Integer;
+        val.as_integer = as_integer + other.toInt();
+        break;
+    case rpn_value::Type::Unsigned:
+        val.type = rpn_value::Type::Unsigned;
+        val.as_unsigned = as_unsigned + other.toUint();
+        break;
+    default:
+        break;
     }
 
     return val;
 }
 
-rpn_value rpn_value::operator -(const rpn_value& other) {
+rpn_value rpn_value::operator-(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
@@ -539,30 +539,30 @@ rpn_value rpn_value::operator -(const rpn_value& other) {
 
     // just do generic math
     switch (type) {
-        case rpn_value::Type::Boolean:
-            val.type = rpn_value::Type::Boolean;
-            val.as_boolean = as_boolean - other.toBoolean();
-            break;
-        case rpn_value::Type::Float:
-            val.type = rpn_value::Type::Float;
-            val.as_float = as_float - other.toFloat();
-            break;
-        case rpn_value::Type::Integer:
-            val.type = rpn_value::Type::Integer;
-            val.as_integer = as_integer - other.toInt();
-            break;
-        case rpn_value::Type::Unsigned:
-            val.type = rpn_value::Type::Unsigned;
-            val.as_unsigned = as_unsigned - other.toUint();
-            break;
-        default:
-            break;
+    case rpn_value::Type::Boolean:
+        val.type = rpn_value::Type::Boolean;
+        val.as_boolean = as_boolean - other.toBoolean();
+        break;
+    case rpn_value::Type::Float:
+        val.type = rpn_value::Type::Float;
+        val.as_float = as_float - other.toFloat();
+        break;
+    case rpn_value::Type::Integer:
+        val.type = rpn_value::Type::Integer;
+        val.as_integer = as_integer - other.toInt();
+        break;
+    case rpn_value::Type::Unsigned:
+        val.type = rpn_value::Type::Unsigned;
+        val.as_unsigned = as_unsigned - other.toUint();
+        break;
+    default:
+        break;
     }
 
     return val;
 }
 
-rpn_value rpn_value::operator *(const rpn_value& other) {
+rpn_value rpn_value::operator*(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
@@ -580,30 +580,30 @@ rpn_value rpn_value::operator *(const rpn_value& other) {
 
     // jost do generic math
     switch (type) {
-        case rpn_value::Type::Boolean:
-            val.type = rpn_value::Type::Boolean;
-            val.as_boolean = as_boolean && other.toBoolean();
-            break;
-        case rpn_value::Type::Float:
-            val.type = rpn_value::Type::Float;
-            val.as_float = as_float * other.toFloat();
-            break;
-        case rpn_value::Type::Integer:
-            val.type = rpn_value::Type::Integer;
-            val.as_integer = as_integer * other.toInt();
-            break;
-        case rpn_value::Type::Unsigned:
-            val.type = rpn_value::Type::Unsigned;
-            val.as_unsigned = as_unsigned * other.toUint();
-            break;
-        default:
-            break;
+    case rpn_value::Type::Boolean:
+        val.type = rpn_value::Type::Boolean;
+        val.as_boolean = as_boolean && other.toBoolean();
+        break;
+    case rpn_value::Type::Float:
+        val.type = rpn_value::Type::Float;
+        val.as_float = as_float * other.toFloat();
+        break;
+    case rpn_value::Type::Integer:
+        val.type = rpn_value::Type::Integer;
+        val.as_integer = as_integer * other.toInt();
+        break;
+    case rpn_value::Type::Unsigned:
+        val.type = rpn_value::Type::Unsigned;
+        val.as_unsigned = as_unsigned * other.toUint();
+        break;
+    default:
+        break;
     }
 
     return val;
 }
 
-rpn_value rpn_value::operator /(const rpn_value& other) {
+rpn_value rpn_value::operator/(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
@@ -629,30 +629,30 @@ rpn_value rpn_value::operator /(const rpn_value& other) {
 
     // just do generic math
     switch (type) {
-        case rpn_value::Type::Boolean:
-            val.type = rpn_value::Type::Boolean;
-            val.as_boolean = as_boolean / other.toBoolean();
-            break;
-        case rpn_value::Type::Float:
-            val.type = rpn_value::Type::Float;
-            val.as_float = as_float / other.toFloat();
-            break;
-        case rpn_value::Type::Integer:
-            val.type = rpn_value::Type::Integer;
-            val.as_integer = as_integer / other.toInt();
-            break;
-        case rpn_value::Type::Unsigned:
-            val.type = rpn_value::Type::Unsigned;
-            val.as_unsigned = as_unsigned / other.toUint();
-            break;
-        default:
-            break;
+    case rpn_value::Type::Boolean:
+        val.type = rpn_value::Type::Boolean;
+        val.as_boolean = as_boolean / other.toBoolean();
+        break;
+    case rpn_value::Type::Float:
+        val.type = rpn_value::Type::Float;
+        val.as_float = as_float / other.toFloat();
+        break;
+    case rpn_value::Type::Integer:
+        val.type = rpn_value::Type::Integer;
+        val.as_integer = as_integer / other.toInt();
+        break;
+    case rpn_value::Type::Unsigned:
+        val.type = rpn_value::Type::Unsigned;
+        val.as_unsigned = as_unsigned / other.toUint();
+        break;
+    default:
+        break;
     }
 
     return val;
 }
 
-rpn_value rpn_value::operator %(const rpn_value& other) {
+rpn_value rpn_value::operator%(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
@@ -678,30 +678,30 @@ rpn_value rpn_value::operator %(const rpn_value& other) {
 
     // just do generic math
     switch (type) {
-        case rpn_value::Type::Boolean:
-            val.type = rpn_value::Type::Boolean;
-            val.as_boolean = as_boolean % other.as_boolean;
-            break;
-        case rpn_value::Type::Integer:
-            val.type = rpn_value::Type::Integer;
-            val.as_integer = as_integer - (floor(as_integer / rpn_float(other.as_integer)) * other.as_integer);
-            break;
-        case rpn_value::Type::Unsigned:
-            val.type = rpn_value::Type::Unsigned;
-            val.as_unsigned = as_unsigned - (floor(as_unsigned / rpn_float(other.as_unsigned)) * other.as_unsigned);
-            break;
-        case rpn_value::Type::Float:
-            val.type = rpn_value::Type::Float;
-            val.as_float = as_float - (floor(as_float / other.as_float) * other.as_float);
-            break;
-        default:
-            break;
+    case rpn_value::Type::Boolean:
+        val.type = rpn_value::Type::Boolean;
+        val.as_boolean = as_boolean % other.as_boolean;
+        break;
+    case rpn_value::Type::Integer:
+        val.type = rpn_value::Type::Integer;
+        val.as_integer = as_integer - (floor(as_integer / rpn_float(other.as_integer)) * other.as_integer);
+        break;
+    case rpn_value::Type::Unsigned:
+        val.type = rpn_value::Type::Unsigned;
+        val.as_unsigned = as_unsigned - (floor(as_unsigned / rpn_float(other.as_unsigned)) * other.as_unsigned);
+        break;
+    case rpn_value::Type::Float:
+        val.type = rpn_value::Type::Float;
+        val.as_float = as_float - (floor(as_float / other.as_float) * other.as_float);
+        break;
+    default:
+        break;
     }
 
     return val;
 }
 
-rpn_value& rpn_value::operator =(const rpn_value& other) {
+rpn_value& rpn_value::operator=(const rpn_value& other) {
     assign(other);
     return *this;
 }
