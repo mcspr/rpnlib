@@ -99,21 +99,9 @@ int explain_contents(char* output, size_t output_size, const rpn_value& value) {
 }
 
 template <typename T>
-void run_and_compare(rpn_context & ctxt, const char* command, T expected) {
-    TEST_MESSAGE(command);
-
-    TEST_ASSERT_TRUE_MESSAGE(rpn_process(ctxt, command),
-            "rpn_process() should return true");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(0, ctxt.error.code,
-            "There should be no error code set");
-
-    stack_compare(ctxt, expected);
-}
-
-template <typename T>
-void stack_compare(rpn_context& ctxt, T expected) {
-    TEST_ASSERT_EQUAL_MESSAGE(expected.size(), rpn_stack_size(ctxt),
-            "Stack size does not match the expected value");
+void _stack_compare(rpn_context& ctxt, T expected, int line) {
+    UNITY_TEST_ASSERT_EQUAL_UINT(expected.size(), rpn_stack_size(ctxt),
+            line, "Stack size does not match the expected value");
 
     auto index = rpn_stack_size(ctxt) - 1;
 
@@ -133,7 +121,7 @@ void stack_compare(rpn_context& ctxt, T expected) {
         if (!(*expect).is((*stack).type)) {
             sprintf(buffer, "Index %zu TYPE MISMATCH : Expected %s, Got %s",
                 index, explain_type((*expect).type), explain_type((*stack).type));
-            TEST_FAIL_MESSAGE(buffer);
+            UNITY_TEST_FAIL(line, buffer);
         }
 
         if ((*expect) != (*stack)) {
@@ -141,7 +129,7 @@ void stack_compare(rpn_context& ctxt, T expected) {
             offset += explain_contents(buffer + offset, sizeof(buffer) - offset, (*expect));
             offset += sprintf(buffer + offset, ", Got ");
             offset += explain_contents(buffer + offset, sizeof(buffer) - offset, (*stack));
-            TEST_FAIL_MESSAGE(buffer);
+            UNITY_TEST_FAIL(line, buffer);
         }
 
         --index;
@@ -150,20 +138,50 @@ void stack_compare(rpn_context& ctxt, T expected) {
     }
 }
 
+#define stack_compare(context, expected) \
+    _stack_compare(context, expected, __LINE__)
+
 template <typename T>
-void run_and_compare(const char* command, T expected) {
-    rpn_context ctxt;
-    TEST_ASSERT_TRUE_MESSAGE(rpn_init(ctxt),
-            "rpn_init() should return true");
-    run_and_compare(ctxt, command, expected);
+void _run_and_compare(rpn_context & ctxt, const char* command, T expected, int line) {
+    UnityMessage(command, line);
+
+    UNITY_TEST_ASSERT(rpn_process(ctxt, command),
+            line, "rpn_process() should return true");
+    UNITY_TEST_ASSERT_EQUAL_INT(0, ctxt.error.code,
+            line, "There should be no error code set");
+
+    _stack_compare(ctxt, expected, line);
 }
 
+template <typename T>
+void _run_and_compare(const char* command, T expected, int line) {
+    rpn_context ctxt;
+    UNITY_TEST_ASSERT(rpn_init(ctxt), line, "rpn_init() should return true");
+    _run_and_compare(ctxt, command, expected, line);
+}
+
+#define _RUN_TEST_STRINGIFY(X) #X
+#define RUN_TEST_STRINGIFY(X) _RUN_TEST_STRINGIFY(X)
+
+#define run_and_compare(command, expected) \
+    _run_and_compare(command, expected, __LINE__)
+
+#define run_and_compare_ctx(context, command, expected) \
+    _run_and_compare(context, command, expected, __LINE__)
+
 void _run_and_error(rpn_context& ctxt, const char* command, rpn_error error, const char* message, int line) {
-    char buffer[256];
-    sprintf(buffer, "Expected %s", message);
     UnityMessage(command, line);
-    UNITY_TEST_ASSERT(!rpn_process(ctxt, command), line, buffer);
-    UNITY_TEST_ASSERT((error == ctxt.error), line, buffer);
+
+    char buffer[256];
+    if (!rpn_process(ctxt, command)) {
+        sprintf(buffer, "Expected %s, Got {category %d, code %d}",
+            message, static_cast<int>(ctxt.error.category), ctxt.error.code);
+        UNITY_TEST_ASSERT((error == ctxt.error), line, buffer);
+        return;
+    }
+
+    sprintf(buffer, "Expected to fail with %s\n", message);
+    UNITY_TEST_FAIL(line, buffer);
 }
 
 void _run_and_error(const char * command, rpn_error error, const char* message, int line) {
@@ -174,14 +192,11 @@ void _run_and_error(const char * command, rpn_error error, const char* message, 
 
 // Allow unity tests to reflect the real line number, not the line number of the helper function
 
-#define _RUN_AND_ERROR_STRINGIFY(X) #X
-#define RUN_AND_ERROR_STRINGIFY(X) _RUN_AND_ERROR_STRINGIFY(X)
-
 #define run_and_error(command, error) \
-    _run_and_error(command, error, RUN_AND_ERROR_STRINGIFY(error), __LINE__)
+    _run_and_error(command, error, RUN_TEST_STRINGIFY(error), __LINE__)
 
 #define run_and_error_ctx(ctx, command, error) \
-    _run_and_error(ctx, command, error, RUN_AND_ERROR_STRINGIFY(error), __LINE__)
+    _run_and_error(ctx, command, error, RUN_TEST_STRINGIFY(error), __LINE__)
 
 // -----------------------------------------------------------------------------
 // Tests
@@ -348,23 +363,133 @@ void test_conditionals() {
     TEST_ASSERT_FALSE(rpn_process(ctxt, "1 2 eq end \"test\""));
     TEST_ASSERT_EQUAL(0, rpn_stack_size(ctxt));
 
-    rpn_value value;
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "1 2 3 ifn"));
-    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_FLOAT(2.0, value.toFloat());
+    run_and_compare("1 2 3 ifn", rpn_values(2.0));
+    run_and_compare("true 4 5 ifn", rpn_values(4.0));
+    run_and_compare("false 6 7 ifn", rpn_values(7.0));
+    run_and_compare("4 end 1 2 3 ifn", rpn_values(2.0));
 }
 
 void test_stack() {
     run_and_compare("1 3 dup unrot swap - *", rpn_values(6.0));
+    run_and_compare("1 2 3 rot", rpn_values(2.0, 3.0, 1.0));
+    run_and_compare("2 3 1 unrot", rpn_values(1.0, 2.0, 3.0));
+    run_and_compare("1 2 3 rot unrot", rpn_values(1.0, 2.0, 3.0));
+    run_and_compare("1 2 3 4 5 6 7 8 9 depth", rpn_values(
+        1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, static_cast<rpn_uint>(9)));
 }
 
 void test_logic() {
+    run_and_compare("100 100 eq", rpn_values(true));
+    run_and_compare("1 100 eq", rpn_values(false));
+    run_and_compare("1 true eq", rpn_values(true));
+    run_and_compare("0 false eq", rpn_values(true));
+    run_and_compare("100 100 ne", rpn_values(false));
+    run_and_compare("100 1 ne", rpn_values(true));
+    run_and_compare("2 1 gt", rpn_values(true));
+    run_and_compare("1 1 gt", rpn_values(false));
+    run_and_compare("100 1 ge", rpn_values(true));
+    run_and_compare("100 100 ge", rpn_values(true));
+    run_and_compare("100 101 ge", rpn_values(false));
+    run_and_compare("1 101 lt", rpn_values(true));
+    run_and_compare("2 1 lt", rpn_values(false));
+    run_and_compare("2 1 le", rpn_values(false));
+    run_and_compare("2 2 le", rpn_values(true));
+    run_and_compare("1 2 le", rpn_values(true));
     run_and_compare("1 1 eq 1 1 ne 2 1 gt 2 1 lt",
             rpn_values(true, false, true, false));
 }
 
 void test_boolean() {
+    // general tokens when converted to boolean (and, or, xor, not)
+    run_and_compare("2 2 and", rpn_values(true));
+    run_and_compare("false 2 and", rpn_values(false));
+    run_and_compare("false false and", rpn_values(false));
+    run_and_compare("true false and", rpn_values(false));
+    run_and_compare("true 0 and", rpn_values(false));
+    run_and_compare("true 1 and", rpn_values(true));
+    run_and_compare("true true and", rpn_values(true));
+
+    run_and_compare("2 2 or", rpn_values(true));
+    run_and_compare("false 2 or", rpn_values(true));
+    run_and_compare("false false or", rpn_values(false));
+    run_and_compare("true false or", rpn_values(true));
+    run_and_compare("true 0 or", rpn_values(true));
+    run_and_compare("true 1 or", rpn_values(true));
+    run_and_compare("true true or", rpn_values(true));
+
+    // strings are also convertible to boolean based on length
+    {
+        rpn_context ctxt;
+        TEST_ASSERT(rpn_init(ctxt));
+
+        // TODO: empty string is invalid token, but valid rpn_value
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value("")));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(true)));
+        run_and_compare_ctx(ctxt, "and", rpn_values(false));
+
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value("")));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value("")));
+        run_and_compare_ctx(ctxt, "or", rpn_values(false));
+
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value("not empty")));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value("not empty, again")));
+        run_and_compare_ctx(ctxt, "and", rpn_values(true));
+    }
+
+    // integer values have the same semantics as float
+    {
+        rpn_context ctxt;
+        TEST_ASSERT(rpn_init(ctxt));
+
+        // TODO: empty string is invalid token, but valid rpn_value
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(12345)));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(0)));
+        run_and_compare_ctx(ctxt, "and", rpn_values(false));
+
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(12345)));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(67890)));
+        run_and_compare_ctx(ctxt, "and", rpn_values(true));
+
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(1)));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(1)));
+        run_and_compare_ctx(ctxt, "or", rpn_values(true));
+
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(0)));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(1)));
+        run_and_compare_ctx(ctxt, "or", rpn_values(true));
+
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(0)));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(0)));
+        run_and_compare_ctx(ctxt, "or", rpn_values(false));
+
+    }
+
+    {
+        rpn_context ctxt;
+        TEST_ASSERT(rpn_init(ctxt));
+
+        // TODO: empty string is invalid token, but valid rpn_value
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(12345))));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(56789))));
+        run_and_compare_ctx(ctxt, "and", rpn_values(true));
+
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(12345))));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(67890))));
+        run_and_compare_ctx(ctxt, "and", rpn_values(true));
+
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(0))));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(1))));
+        run_and_compare_ctx(ctxt, "or", rpn_values(true));
+
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(1))));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(1))));
+        run_and_compare_ctx(ctxt, "or", rpn_values(true));
+
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(0))));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(0))));
+        run_and_compare_ctx(ctxt, "or", rpn_values(false));
+    }
+
     run_and_compare("2 0 and 2 0 or 2 0 xor 1 not",
             rpn_values(false, true, true, false));
 }
@@ -376,12 +501,9 @@ void test_variable() {
     TEST_ASSERT_TRUE(rpn_init(ctxt));
 
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", rpn_value { 25.0 }));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "$tmp 5 /"));
-    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
-
-    rpn_value value;
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_FLOAT(5.0, value.toFloat());
+    run_and_compare_ctx(ctxt, "$tmp 5 /", rpn_values(5.0));
+    run_and_error_ctx(ctxt, "25 $unknown +", rpn_value_error::IsNull);
+    TEST_ASSERT(rpn_stack_clear(ctxt));
 
     TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
@@ -433,19 +555,20 @@ void test_custom_operator() {
 
     rpn_context ctxt;
     
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
     TEST_ASSERT_TRUE(rpn_operator_set(ctxt, "cube", 1, [](rpn_context & ctxt) -> rpn_error {
         rpn_value a;
         rpn_stack_pop(ctxt, a);
         rpn_stack_push(ctxt, a*a*a);
         return 0;
     }));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "3 cube"));
-    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
 
-    rpn_value value;
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_FLOAT(27.0, value.toFloat());
+    run_and_compare_ctx(ctxt, "3 cube", rpn_values(27.0));
+
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(2))));
+    run_and_compare_ctx(ctxt, "cube", rpn_values(8));
+
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(4))));
+    run_and_compare_ctx(ctxt, "cube", rpn_values(static_cast<rpn_uint>(64)));
 
 }
 
@@ -549,14 +672,14 @@ void test_parse_bool() {
     stack_compare(ctxt, rpn_values(false));
 
     // we can convert every value type
-    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_int>(0)}));
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_int>(1)}));
     TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_uint>(12345u)}));
     TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{String("test_string")}));
     TEST_ASSERT_EQUAL(3, rpn_stack_size(ctxt));
 
     TEST_ASSERT(rpn_process(ctxt, "and"));
     TEST_ASSERT(rpn_process(ctxt, "and"));
-    stack_compare(ctxt, rpn_values(false));
+    stack_compare(ctxt, rpn_values(true));
 
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
@@ -606,17 +729,12 @@ void test_parse_null() {
 }
 
 void test_parse_number() {
-    rpn_context ctxt;
-
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "1e+4 10000 eq"));
-
-    rpn_value value;
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_TRUE(value.isBoolean());
-    TEST_ASSERT_TRUE(value.toBoolean());
-
-    TEST_ASSERT_TRUE(rpn_clear(ctxt));
+    run_and_compare("1e+4 100000 eq", rpn_values(false));
+    run_and_compare("1e+4 10000 eq", rpn_values(true));
+    run_and_compare("1e4 10000 eq", rpn_values(true));
+    run_and_compare("1e-4 1 eq", rpn_values(false));
+    run_and_compare("1e-4 0.00001 eq", rpn_values(false));
+    run_and_compare("1e-4 0.0001 eq", rpn_values(true));
 }
 
 void test_nested_stack_parse() {
