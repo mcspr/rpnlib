@@ -239,7 +239,6 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
             } else if (c == '"') {
                 state = IN_STRING;
                 type = RPN_TOKEN_STRING;
-                ++p;
             } else if (isdigit(c) || (c == '-') || (c == '+')) {
                 state = IN_NUMBER;
                 type = RPN_TOKEN_NUMBER;
@@ -258,8 +257,13 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
 
         case IN_STRING:
             if (c == '"') {
-                token.reserve(p - start_of_word);
-                _rpn_token_copy(start_of_word, p, token);
+                auto len = p - start_of_word;
+                if (len > 1) {
+                    token.reserve(len);
+                    _rpn_token_copy(start_of_word + 1, p, token);
+                } else {
+                    token = "";
+                }
                 state = UNKNOWN;
                 if (!callback(type, token)) {
                     goto stop_parsing;

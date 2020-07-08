@@ -431,21 +431,11 @@ void test_boolean() {
 
     // strings are also convertible to boolean based on length
     {
-        rpn_context ctxt;
-        TEST_ASSERT(rpn_init(ctxt));
-
-        // TODO: empty string is invalid token, but valid rpn_value
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value("")));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(true)));
-        run_and_compare_ctx(ctxt, "and", rpn_values(false));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value("")));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value("")));
-        run_and_compare_ctx(ctxt, "or", rpn_values(false));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value("not empty")));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value("not empty, again")));
-        run_and_compare_ctx(ctxt, "and", rpn_values(true));
+        run_and_compare("\"\" true and", rpn_values(false));
+        run_and_compare("\"\" \"\" and", rpn_values(false));
+        run_and_compare("\"\" \"\" or", rpn_values(false));
+        run_and_compare("\"\" \"not empty\" or", rpn_values(true));
+        run_and_compare("\"not empty\" \"not empty, again\" and", rpn_values(true));
     }
 
     // integer values have the same semantics as float
