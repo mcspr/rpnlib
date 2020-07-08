@@ -105,12 +105,12 @@ rpn_int _rpn_stack_compare(rpn_context & ctxt) {
     }
 }
 
-rpn_int _rpn_stack_compare_or_eq(rpn_context & ctxt) {
+rpn_int _rpn_stack_compare_or_eq(rpn_context & ctxt, int side) {
     auto& top = _rpn_stack_peek(ctxt, 1);
     auto& prev = _rpn_stack_peek(ctxt, 2);
-    if (prev <= top) {
+    if ((side < 0) && (prev <= top)) {
         return -1.0;
-    } else if (prev >= top) {
+    } else if ((side > 0) && (prev >= top)) {
         return 1.0;
     } else {
         return 0.0;
@@ -270,7 +270,7 @@ rpn_error _rpn_gt(rpn_context & ctxt) {
 }
 
 rpn_error _rpn_ge(rpn_context & ctxt) {
-    rpn_value result { _rpn_stack_compare_or_eq(ctxt) == 1 };
+    rpn_value result { _rpn_stack_compare_or_eq(ctxt, 1) == 1 };
     _rpn_stack_eat(ctxt, 2);
     if (result.isError()) {
         return result.toError();
@@ -290,7 +290,7 @@ rpn_error _rpn_lt(rpn_context & ctxt) {
 }
 
 rpn_error _rpn_le(rpn_context & ctxt) {
-    rpn_value result { _rpn_stack_compare_or_eq(ctxt) == -1 };
+    rpn_value result { _rpn_stack_compare_or_eq(ctxt, -1) == -1 };
     _rpn_stack_eat(ctxt, 2);
     if (result.isError()) {
         return result.toError();
