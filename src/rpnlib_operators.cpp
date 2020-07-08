@@ -344,17 +344,18 @@ rpn_error _rpn_index(rpn_context & ctxt) {
     const auto stack_size = rpn_stack_size(ctxt);
 
     const auto& top = _rpn_stack_peek(ctxt, 1);
-    const auto size = top.toFloat();
-    if (size < 0) {
+    if (!top.isNumber()) {
         return rpn_operator_error::InvalidArgument;
     }
+
+    const auto size = top.toUint();
     if (stack_size < size + 1) {
         return rpn_operator_error::InvalidArgument;
     }
 
     const auto& bottom = _rpn_stack_peek(ctxt, size + 2);
     const auto index = bottom.toFloat();
-    if ((index + 1) > size) {
+    if ((index < 0) || ((index + 1) > size)) {
         return rpn_operator_error::InvalidArgument;
     }
 
