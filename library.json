@@ -6,7 +6,7 @@
         "type": "git",
         "url": "https://github.com/mcspr/rpnlib.git"
     },
-    "version": "0.4.0-pre17",
+    "version": "0.4.0-beta.1",
     "license": "LGPL-3.0",
     "frameworks": "arduino",
     "platforms": ["espressif8266", "esp32"],
