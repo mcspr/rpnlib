@@ -500,10 +500,22 @@ void test_variable() {
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
 
+    // can access variable that was set externally
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", rpn_value { 25.0 }));
     run_and_compare_ctx(ctxt, "$tmp 5 /", rpn_values(5.0));
+
+    // cannot do operations with undefined variable
     run_and_error_ctx(ctxt, "25 $unknown +", rpn_value_error::IsNull);
     TEST_ASSERT(rpn_stack_clear(ctxt));
+
+    TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
+    TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
+    TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
+
+    // should properly swap the stack, not the value reference for the variable
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 100.0 }));
+    run_and_compare_ctx(ctxt, "$var", rpn_values(100.0));
+    run_and_compare_ctx(ctxt, "$var 1 swap =", rpn_values(1.0));
 
     TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
@@ -729,6 +741,8 @@ void test_parse_null() {
 }
 
 void test_parse_number() {
+    run_and_compare("0.0001 1 10000 / eq", rpn_values(true));
+    run_and_compare("1e-4 1 10000 / eq", rpn_values(true));
     run_and_compare("1e+4 100000 eq", rpn_values(false));
     run_and_compare("1e+4 10000 eq", rpn_values(true));
     run_and_compare("1e4 10000 eq", rpn_values(true));

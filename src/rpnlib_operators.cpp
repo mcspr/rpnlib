@@ -585,9 +585,10 @@ rpn_error _rpn_over(rpn_context & ctxt) {
 
 // [a b] -> [b a]
 rpn_error _rpn_swap(rpn_context & ctxt) {
-    auto& top = _rpn_stack_peek(ctxt, 1);
-    auto& prev = _rpn_stack_peek(ctxt, 2);
-    std::swap(top, prev);
+    auto& stack = ctxt.stack.get();
+    auto a = stack.end() - 1;
+    auto b = stack.end() - 2;
+    std::iter_swap(a, b);
     return 0;
 }
 
