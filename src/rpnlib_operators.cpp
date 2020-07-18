@@ -594,30 +594,22 @@ rpn_error _rpn_swap(rpn_context & ctxt) {
 
 // [a b c] -> [c a b]
 rpn_error _rpn_unrot(rpn_context & ctxt) {
-    const auto c = _rpn_stack_peek(ctxt, 1);
-    const auto b = _rpn_stack_peek(ctxt, 2);
-    const auto a = _rpn_stack_peek(ctxt, 3);
+    auto& stack = ctxt.stack.get();
 
-    _rpn_stack_eat(ctxt, 3);
-
-    rpn_stack_push(ctxt, c);
-    rpn_stack_push(ctxt, a);
-    rpn_stack_push(ctxt, b);
+    auto c = *(stack.end() - 1);
+    stack.erase(stack.end() - 1);
+    stack.insert(stack.end() - 2, c);
 
     return 0;
 }
 
 // [a b c] -> [b c a]
 rpn_error _rpn_rot(rpn_context & ctxt) {
-    const auto c = _rpn_stack_peek(ctxt, 1);
-    const auto b = _rpn_stack_peek(ctxt, 2);
-    const auto a = _rpn_stack_peek(ctxt, 3);
+    auto& stack = ctxt.stack.get();
 
-    _rpn_stack_eat(ctxt, 3);
-
-    rpn_stack_push(ctxt, b); 
-    rpn_stack_push(ctxt, c);
-    rpn_stack_push(ctxt, a);
+    auto a = *(stack.end() - 3);
+    stack.erase(stack.end() - 3);
+    stack.insert(stack.end(), a);
 
     return 0;
 }

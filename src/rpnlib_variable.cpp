@@ -82,6 +82,12 @@ bool rpn_variable_get(rpn_context & ctxt, const String& name, rpn_value& value) 
     return false;
 }
 
+rpn_value rpn_variable_get(rpn_context & ctxt, const String& name) {
+    rpn_value value;
+    rpn_variable_get(ctxt, name, value);
+    return value;
+}
+
 bool rpn_variable_del(rpn_context & ctxt, const String& name) {
     for (auto v = ctxt.variables.begin(); v != ctxt.variables.end(); ++v) {
         if ((*v).name == name) {

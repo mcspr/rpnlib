@@ -50,6 +50,7 @@ bool rpn_variable_set(rpn_context &, const String& name, const rpn_value& value)
 bool rpn_variable_set(rpn_context &, const String& name, rpn_value&& value);
 
 bool rpn_variable_get(rpn_context &, const String& name, rpn_value& value);
+rpn_value rpn_variable_get(rpn_context &, const String& name);
 
 
 bool rpn_variable_del(rpn_context &, const String& name);

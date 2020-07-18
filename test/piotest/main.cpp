@@ -516,10 +516,27 @@ void test_variable() {
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 100.0 }));
     run_and_compare_ctx(ctxt, "$var", rpn_values(100.0));
     run_and_compare_ctx(ctxt, "$var 1 swap =", rpn_values(1.0));
-
-    TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
+    TEST_ASSERT(rpn_stack_clear(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
-    TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
+
+    // should properly rotate the stack, similar rule applies
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 200.0 }));
+    run_and_compare_ctx(ctxt, "1 $var 300 unrot = -", rpn_values(299.0));
+    TEST_ASSERT_EQUAL_FLOAT(1.0, rpn_variable_get(ctxt, "var").toFloat());
+    TEST_ASSERT(rpn_stack_clear(ctxt));
+    TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
+
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 400.0 }));
+    run_and_compare_ctx(ctxt, "$var 300 2 rot = -", rpn_values(298.0));
+    TEST_ASSERT_EQUAL_FLOAT(2.0, rpn_variable_get(ctxt, "var").toFloat());
+    TEST_ASSERT(rpn_stack_clear(ctxt));
+    TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
+
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 20.0 }));
+    run_and_compare_ctx(ctxt, "1 10 $var rot unrot = +", rpn_values(11.0));
+    TEST_ASSERT_EQUAL_FLOAT(10.0, rpn_variable_get(ctxt, "var").toFloat());
+    TEST_ASSERT(rpn_stack_clear(ctxt));
+    TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
 
 }
 
