@@ -348,7 +348,11 @@ String rpn_value::toString() const {
 
     switch (type) {
     case rpn_value::Type::String:
-        return as_string;
+        result = as_string;
+        break;
+    case rpn_value::Type::Boolean:
+        result = String(as_boolean);
+        break;
     case rpn_value::Type::Integer:
         result = String(as_integer);
         break;

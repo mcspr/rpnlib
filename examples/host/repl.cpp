@@ -48,14 +48,15 @@ void dump_value(const rpn_value& val) {
 
 rpn_error dump_variables(rpn_context & ctxt) {
     std::cout << "variables: " << ctxt.variables.size() << std::endl;
-    for (auto variable : ctxt.variables) {
-        std::cout << "$" << variable.name.c_str() << " is ";
-        if (!variable.value) {
+    rpn_variables_foreach(ctxt, [](const String& name, rpn_value& value) {
+        std::cout << "$" << name.c_str() << " is ";
+        if (!value) {
             std::cout << "unset (error?)" << std::endl;
-            continue;
+            return;
         }
-        dump_value(*variable.value.get());
-    }
+        dump_value(value);
+        std::cout << std::endl;
+    });
     return 0;
 }
 
@@ -69,40 +70,10 @@ rpn_error dump_stack(rpn_context & ctxt) {
     return 0;
 }
 
-void test_concat(rpn_context & ctxt) {
-    rpn_process(ctxt, "\"12345\" \"67890\" + p");
-    rpn_stack_clear(ctxt);
-}
-
-void test_and(rpn_context & ctxt) {
-    rpn_process(ctxt, "0 1 and");
-    dump_stack(ctxt);
-    rpn_stack_clear(ctxt);
-}
-
-void test_or(rpn_context & ctxt) {
-    rpn_process(ctxt, "0 1 or");
-    dump_stack(ctxt);
-    rpn_stack_clear(ctxt);
-}
-
-void test_sum(rpn_context & ctxt) {
-    rpn_process(ctxt, "2 2 +");
-    dump_stack(ctxt);
-    rpn_stack_clear(ctxt);
-    rpn_process(ctxt, "5 2 * 3 + 5 mod");
-    dump_stack(ctxt);
-    rpn_stack_clear(ctxt);
-}
-
 int main(int argc, char** argv) {
     rpn_context ctxt;
     rpn_init(ctxt);
-    rpn_operator_set(ctxt, "time", 0, [](rpn_context& c) -> rpn_error {
-        rpn_value ts { rpn_int(time(nullptr)) };
-        rpn_stack_push(c, ts);
-        return 0;
-    });
+
     rpn_operator_set(ctxt, "dump", 0, dump_stack);
     rpn_operator_set(ctxt, "vars", 0, dump_variables);
     rpn_operator_set(ctxt, "clear", 0, [](rpn_context& c) -> rpn_error {
@@ -110,12 +81,37 @@ int main(int argc, char** argv) {
             ? rpn_operator_error::Ok
             : rpn_operator_error::CannotContinue;
     });
-    rpn_operator_set(ctxt, "test", 0, [](rpn_context& c) -> rpn_error {
-        test_concat(c);
-        test_and(c);
-        test_or(c);
-        test_sum(c);
+
+    rpn_operator_set(ctxt, "time", 0, [](rpn_context& c) -> rpn_error {
+        rpn_value ts { rpn_int(time(nullptr)) };
+        rpn_stack_push(c, ts);
         return 0;
+    });
+
+    rpn_operator_set(ctxt, "to_string", 1, [](rpn_context& c) -> rpn_error {
+        rpn_value value { rpn_stack_pop(c).toString() };
+        rpn_stack_push(c, value);
+        return value.toError();
+    });
+    rpn_operator_set(ctxt, "to_int", 1, [](rpn_context& c) -> rpn_error {
+        rpn_value value { rpn_stack_pop(c).toInt() };
+        rpn_stack_push(c, value);
+        return value.toError();
+    });
+    rpn_operator_set(ctxt, "to_uint", 1, [](rpn_context& c) -> rpn_error {
+        rpn_value value { rpn_stack_pop(c).toUint() };
+        rpn_stack_push(c, value);
+        return value.toError();
+    });
+    rpn_operator_set(ctxt, "to_boolean", 1, [](rpn_context& c) -> rpn_error {
+        rpn_value value { rpn_stack_pop(c).toBoolean() };
+        rpn_stack_push(c, value);
+        return value.toError();
+    });
+    rpn_operator_set(ctxt, "to_float", 1, [](rpn_context& c) -> rpn_error {
+        rpn_value value { rpn_stack_pop(c).toFloat() };
+        rpn_stack_push(c, value);
+        return value.toError();
     });
 
     rpn_debug(ctxt, [](rpn_context&, const char* message) {
