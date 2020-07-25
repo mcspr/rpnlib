@@ -87,6 +87,17 @@ void _rpn_stack_eat(rpn_context & ctxt, size_t size = 1) {
     stack.erase(stack.end() - size, stack.end());
 }
 
+// when dealing with variables, duplicate the reference instead of value
+void _rpn_stack_dup(rpn_context & ctxt, size_t offset = 1) {
+    auto& stack = ctxt.stack.get();
+    auto& top = *(stack.end() - offset);
+    if (top.type == rpn_stack_value::Type::Variable) {
+        stack.emplace_back(top);
+    } else {
+        rpn_stack_push(ctxt, *top.value);
+    }
+}
+
 // libc cmp interface, depends on implementation of:
 // rpn_value::operator <()
 // rpn_value::operator >()
@@ -566,20 +577,20 @@ rpn_error _rpn_end(rpn_context & ctxt) {
 
 // [a] -> [a a]
 rpn_error _rpn_dup(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 1));
+    _rpn_stack_dup(ctxt);
     return 0;
 }
 
 // [a b] -> [a b a b]
 rpn_error _rpn_dup2(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 1));
-    rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 3));
+    _rpn_stack_dup(ctxt, 2);
+    _rpn_stack_dup(ctxt, 2);
     return 0;
 }
 
 // [a b] -> [a b a]
 rpn_error _rpn_over(rpn_context & ctxt) {
-    rpn_stack_push(ctxt, _rpn_stack_peek(ctxt, 2));
+    _rpn_stack_dup(ctxt, 2);
     return 0;
 }
 
