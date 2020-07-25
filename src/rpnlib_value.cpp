@@ -347,11 +347,15 @@ String rpn_value::toString() const {
     String result("");
 
     switch (type) {
-    case rpn_value::Type::String:
-        result = as_string;
+    case rpn_value::Type::Null:
+        result = F("null");
+        break;
+    case rpn_value::Type::Error:
+        result = F("value_error:");
+        result += String(static_cast<int>(as_error));
         break;
     case rpn_value::Type::Boolean:
-        result = String(as_boolean);
+        result = as_boolean ? F("true") : F("false");
         break;
     case rpn_value::Type::Integer:
         result = String(as_integer);
@@ -362,7 +366,8 @@ String rpn_value::toString() const {
     case rpn_value::Type::Float:
         result = String(as_float);
         break;
-    default:
+    case rpn_value::Type::String:
+        result = as_string;
         break;
     }
 
