@@ -168,7 +168,7 @@ void _run_and_error(rpn_context& ctxt, const char* command, rpn_error error, con
         return;
     }
 
-    sprintf(buffer, "Expected to fail with %s\n", message);
+    sprintf(buffer, "Expected to fail with %s", message);
     UNITY_TEST_FAIL(line, buffer);
 }
 
@@ -500,12 +500,15 @@ void test_variable() {
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
 
+    // should not be able to set impossible to parse variable name
+    TEST_ASSERT_FALSE(rpn_variable_set(ctxt, "tmp value", rpn_value { 52.0 }));
+
     // can access variable that was set externally
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "tmp", rpn_value { 25.0 }));
     run_and_compare_ctx(ctxt, "$tmp 5 /", rpn_values(5.0));
 
     // cannot do operations with undefined variable
-    run_and_error_ctx(ctxt, "25 $unknown +", rpn_value_error::IsNull);
+    run_and_error_ctx(ctxt, "25 &unknown +", rpn_value_error::IsNull);
     TEST_ASSERT(rpn_stack_clear(ctxt));
 
     TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
@@ -514,40 +517,40 @@ void test_variable() {
 
     // should properly 'swap' the stack, not the value reference for the variable
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 100.0 }));
-    run_and_compare_ctx(ctxt, "$var", rpn_values(100.0));
-    run_and_compare_ctx(ctxt, "$var 1 swap =", rpn_values(1.0));
+    run_and_compare_ctx(ctxt, "&var", rpn_values(100.0));
+    run_and_compare_ctx(ctxt, "&var 1 swap =", rpn_values(1.0));
     TEST_ASSERT(rpn_stack_clear(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
 
     // should properly rotate ('rot', 'unrot') the stack, similar rule applies
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 200.0 }));
-    run_and_compare_ctx(ctxt, "1 $var 300 unrot = -", rpn_values(299.0));
+    run_and_compare_ctx(ctxt, "1 &var 300 unrot = -", rpn_values(299.0));
     TEST_ASSERT_EQUAL_FLOAT(1.0, rpn_variable_get(ctxt, "var").toFloat());
     TEST_ASSERT(rpn_stack_clear(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
 
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 400.0 }));
-    run_and_compare_ctx(ctxt, "$var 300 2 rot = -", rpn_values(298.0));
+    run_and_compare_ctx(ctxt, "&var 300 2 rot = -", rpn_values(298.0));
     TEST_ASSERT_EQUAL_FLOAT(2.0, rpn_variable_get(ctxt, "var").toFloat());
     TEST_ASSERT(rpn_stack_clear(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
 
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 20.0 }));
-    run_and_compare_ctx(ctxt, "1 10 $var rot unrot = +", rpn_values(11.0));
+    run_and_compare_ctx(ctxt, "1 10 &var rot unrot = +", rpn_values(11.0));
     TEST_ASSERT_EQUAL_FLOAT(10.0, rpn_variable_get(ctxt, "var").toFloat());
     TEST_ASSERT(rpn_stack_clear(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
 
     // should properly duplicate the stack element ('over') and push it to the top
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 12345.0 }));
-    run_and_compare_ctx(ctxt, "$var 54321 over =", rpn_values(54321.0, 54321.0));
+    run_and_compare_ctx(ctxt, "&var 54321 over =", rpn_values(54321.0, 54321.0));
     TEST_ASSERT_EQUAL_FLOAT(54321.0, rpn_variable_get(ctxt, "var").toFloat());
     TEST_ASSERT(rpn_stack_clear(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
 
     // should duplicate reference instead of the value itself
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 1000.0 }));
-    run_and_compare_ctx(ctxt, "$var dup dup2 swap + + swap =", rpn_values(3000.0));
+    run_and_compare_ctx(ctxt, "&var dup swap dup2 rot swap + + swap =", rpn_values(3000.0));
     TEST_ASSERT_EQUAL_FLOAT(3000.0, rpn_variable_get(ctxt, "var").toFloat());
     TEST_ASSERT(rpn_stack_clear(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
@@ -560,7 +563,7 @@ void test_variable_operator() {
     TEST_ASSERT_TRUE(rpn_init(ctxt));
 
     // ensure basic assignment works
-    run_and_compare_ctx(ctxt, "25 $tmp =", rpn_values(25.0));
+    run_and_compare_ctx(ctxt, "25 &tmp =", rpn_values(25.0));
 
     {
         rpn_value value;
@@ -569,7 +572,7 @@ void test_variable_operator() {
     }
 
     // ensure we don't change the underlying value after dereference
-    run_and_error_ctx(ctxt, "20 $tmp deref =", rpn_operator_error::InvalidType);
+    run_and_error_ctx(ctxt, "20 &tmp deref =", rpn_operator_error::InvalidType);
 
     {
         rpn_value value;
@@ -587,7 +590,7 @@ void test_variable_cleanup() {
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "12.3 $tmp ="));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "12.3 &tmp ="));
     TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
 
     rpn_value value;
@@ -595,10 +598,17 @@ void test_variable_cleanup() {
     TEST_ASSERT_EQUAL_FLOAT(12.3, value.toFloat());
     TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
 
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "null $tmp ="));
-    TEST_ASSERT_FALSE(rpn_process(ctxt, "$tmp exists"));
-    TEST_ASSERT_TRUE(rpn_clear(ctxt));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&tmp exists"));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "null &tmp ="));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&tmp exists"));
+    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
+
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&tmp"));
+    TEST_ASSERT_TRUE(rpn_variable_del(ctxt, "tmp"));
+    TEST_ASSERT_FALSE(rpn_process(ctxt, "exists"));
+
     TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
+    TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
 void test_custom_operator() {
@@ -772,9 +782,13 @@ void test_parse_string() {
 
 void test_parse_null() {
     rpn_context ctxt;
-
     TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "null $var ="));
+
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "var", rpn_value { 42.0 }));
+    run_and_compare_ctx(ctxt, "null &var =", rpn_values(rpn_value{}));
+    run_and_compare_ctx(ctxt, "$var null eq", rpn_values(true));
+    run_and_compare_ctx(ctxt, "null null eq", rpn_values(true));
+
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
@@ -787,6 +801,13 @@ void test_parse_number() {
     run_and_compare("1e-4 1 eq", rpn_values(false));
     run_and_compare("1e-4 0.00001 eq", rpn_values(false));
     run_and_compare("1e-4 0.0001 eq", rpn_values(true));
+}
+
+void test_parse_variable() {
+    run_and_error("$ $ $", rpn_processing_error::UnknownToken);
+    run_and_error("$", rpn_processing_error::UnknownToken);
+    run_and_error("$var", rpn_processing_error::VariableDoesNotExist);
+    run_and_compare("&var", rpn_values(rpn_value{}));
 }
 
 void test_nested_stack_parse() {
@@ -897,6 +918,7 @@ int run_tests() {
     RUN_TEST(test_parse_bool);
     RUN_TEST(test_parse_null);
     RUN_TEST(test_parse_number);
+    RUN_TEST(test_parse_variable);
     RUN_TEST(test_nested_stack_parse);
     RUN_TEST(test_nested_stack_operator);
     return UNITY_END();

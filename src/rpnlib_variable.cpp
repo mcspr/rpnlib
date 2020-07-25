@@ -53,6 +53,10 @@ namespace {
 
 template<typename Value>
 bool _rpn_variable_set(rpn_context & ctxt, const String& name, Value&& value) {
+    if (name.indexOf(' ') >= 0) {
+        return false;
+    }
+
     for (auto& v : ctxt.variables) {
         if (v.name != name) continue;
         *v.value.get() = std::forward<Value>(value);

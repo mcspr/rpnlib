@@ -640,18 +640,16 @@ rpn_error _rpn_depth(rpn_context & ctxt) {
 }
 
 // [$var exists] -> [$var]
-// stops execution when $var is null
+// stops execution when $var is variable and it has no other references
 rpn_error _rpn_exists(rpn_context & ctxt) {
-    auto& ref = ctxt.stack.get().back();
-    if (ref.type != rpn_stack_value::Type::Variable) {
+    auto& top = ctxt.stack.get().back();
+    if (top.type != rpn_stack_value::Type::Variable) {
         return rpn_operator_error::InvalidType;
     }
 
-    if ((*ref.value).isNull() || (*ref.value).isError()) {
-        return rpn_operator_error::CannotContinue;
-    }
-
-    return 0;
+    return (1 == top.value.use_count())
+        ? rpn_operator_error::CannotContinue
+        : rpn_operator_error::Ok;
 }
 
 // [$var] -> [a]

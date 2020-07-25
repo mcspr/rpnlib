@@ -435,20 +435,15 @@ bool rpn_value::operator>(const rpn_value& other) const {
 bool rpn_value::operator==(const rpn_value& other) const {
     bool result = false;
 
-    // return Null when trying to do logic with Null
-    if (isNull() || other.isNull()) {
-        return result;
-    }
-
     switch (type) {
-    case rpn_value::Type::String:
-        result = (as_string == other.as_string);
+    case rpn_value::Type::Null:
+        result = other.isNull();
+        break;
+    case rpn_value::Type::Error:
+        result = as_error == other.as_error;
         break;
     case rpn_value::Type::Boolean:
         result = as_boolean == other.toBoolean();
-        break;
-    case rpn_value::Type::Float:
-        result = as_float == other.toFloat();
         break;
     case rpn_value::Type::Integer:
         result = as_integer == other.toInt();
@@ -456,7 +451,11 @@ bool rpn_value::operator==(const rpn_value& other) const {
     case rpn_value::Type::Unsigned:
         result = as_unsigned == other.toUint();
         break;
-    default:
+    case rpn_value::Type::Float:
+        result = as_float == other.toFloat();
+        break;
+    case rpn_value::Type::String:
+        result = (as_string == other.as_string);
         break;
     }
 

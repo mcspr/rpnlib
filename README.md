@@ -78,6 +78,11 @@ rpn_operator_set(ctxt, "operator", 1, [](rpn_context& ctxt) -> rpn_error {
 rpn_process(ctxt, "4 2 - 5 * 1 +");
 ```
 
+* *Optional* Use variable in the expression
+```cpp
+rpn_process(ctxt, "$variable $variable -");
+```
+
 * Inspect stack
 ```cpp
 Serial.printf("Stack size: %zu\n", rpn_stack_size(ctxt));
@@ -128,10 +133,14 @@ rpn_clear(ctxt);
 
 ### Variables
 
-* All newly created variables are set to 'Null'.
+* Variable names are complete words, without spaces.
+* Variables are accessed by using `$` (by value) or `&` (by reference) before the word.
+* When variable has not been set yet, `$name` will result in an error.
+* When variable has not been set yet, `&name` will push it's value reference to the stack with default value `Null`
+* When variable reference is specified multiple times, stack elements refer to the same underlying value.
+* When variable value is specified multiple times, stack elements contain copies of the underlying value.
+* When variable reference is duplicated using built-in operators, new stack element refers to the same underlying value.
 * When variable set to 'Null' is finally removed from the stack it will be removed from the heap too.
-* When variable is specified multiple times, both stack elements refer to the same underlying value.
-* When variable is duplicated using built-in operators, new stack element refers to the same underlying value.
 
 ### Operators
 
@@ -180,7 +189,8 @@ rpn_clear(ctxt);
 |`over`|( a b -> a b a ) | |
 |`depth`|( a b c ... -> a b c ... n ) |  where n is the number of elements in the stack|
 |`exists`| (a -> ...) | ends execution if a isn't an active variable |
-|`=`|( a $var = -> $var ) |  sets $var to the value of a and keeps $var reference on the stack|
+|`deref`| (&var -> $var) | takes the value from var and copies it on the stack|
+|`=`|( a &var = -> &var ) |  sets var to the value of a and keeps var reference on the stack|
 |`ifn`|( a b c -> d ) |  if a!=0 then b else c|
 |`end`|( a -> ...) |  ends execution if a resolves to false|
 

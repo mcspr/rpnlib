@@ -101,7 +101,8 @@ enum rpn_token_t {
     RPN_TOKEN_BOOLEAN,
     RPN_TOKEN_NUMBER,
     RPN_TOKEN_STRING,
-    RPN_TOKEN_VARIABLE,
+    RPN_TOKEN_VARIABLE_REFERENCE,
+    RPN_TOKEN_VARIABLE_VALUE
 };
 
 // Tokenizer based on https://stackoverflow.com/questions/9659697/parse-string-into-array-based-on-spaces-or-double-quotes-strings
@@ -204,7 +205,8 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
         IN_NUMBER,
         IN_BOOLEAN,
         IN_STRING,
-        IN_VARIABLE
+        IN_VARIABLE_REFERENCE,
+        IN_VARIABLE_VALUE
     };
 
     rpn_token_t type = RPN_TOKEN_UNKNOWN;
@@ -212,30 +214,55 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
 
     while (true) {
         if (*p == '\0') {
-            // Silently drop, we must have closing quote
-            if (state == IN_STRING) {
+            switch (state) {
+            // Silently drop the rest, we must consistent syntax
+            case IN_STRING:
                 state = UNKNOWN;
                 type = RPN_TOKEN_UNKNOWN;
                 if (!callback(type, start_of_word)) {
                     goto stop_parsing;
                 }
+                break;
+            case IN_VARIABLE_REFERENCE:
+            case IN_VARIABLE_VALUE: {
+                if (1 == (p - start_of_word)) {
+                    state = UNKNOWN;
+                    type = RPN_TOKEN_UNKNOWN;
+                    if (!callback(type, start_of_word)) {
+                        goto stop_parsing;
+                    }
+                }
+                ++start_of_word;
+                goto stop_parsing;
+            }
+            case UNKNOWN:
+            case IN_NULL:
+            case IN_WORD:
+            case IN_NUMBER:
+            case IN_BOOLEAN:
+                break;
             }
             break;
         }
 
         c = *p;
+
         switch (state) {
+
         case UNKNOWN:
             if (isspace(c)) {
                 ++p;
                 continue;
             }
 
-            // both STRING and VARIABLE can ignore the first char
-            if (c == '$') {
-                state = IN_VARIABLE;
-                type = RPN_TOKEN_VARIABLE;
-                ++p;
+            // note: both STRING and VARIABLE ignore the first char
+            //       post-actions must expect this
+            if (c == '&') {
+                state = IN_VARIABLE_REFERENCE;
+                type = RPN_TOKEN_VARIABLE_REFERENCE;
+            } else if (c == '$') {
+                state = IN_VARIABLE_VALUE;
+                type = RPN_TOKEN_VARIABLE_VALUE;
             } else if (c == '"') {
                 state = IN_STRING;
                 type = RPN_TOKEN_STRING;
@@ -277,12 +304,13 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
             if (!isspace(c) && (
                 (state == IN_NUMBER) ? !_rpn_token_still_number(c) :
                 (state == IN_BOOLEAN) ? !_rpn_token_still_bool(c) :
-                (state == IN_NULL) ? !_rpn_token_still_null(c) : true)) {
+                (state == IN_NULL) ? !_rpn_token_still_null(c) : true))
+            {
                 state = IN_WORD;
                 type = RPN_TOKEN_WORD;
             }
+            // fallthrough to the word
 
-        case IN_VARIABLE:
         case IN_WORD:
             if (isspace(c)) {
                 token.reserve(p - start_of_word);
@@ -293,6 +321,24 @@ void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
                 }
             }
             break;
+
+        case IN_VARIABLE_REFERENCE:
+        case IN_VARIABLE_VALUE:
+            if (isspace(c)) {
+                auto len = p - start_of_word;
+                if (len > 1) {
+                    token.reserve(len);
+                    _rpn_token_copy(start_of_word + 1, p, token);
+                } else {
+                    token = "";
+                }
+                state = UNKNOWN;
+                if (!callback(type, token)) {
+                    goto stop_parsing;
+                }
+            }
+            break;
+
         }
 
         ++p;
@@ -348,28 +394,31 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(token));
             return true;
 
-        case RPN_TOKEN_VARIABLE: {
+        case RPN_TOKEN_VARIABLE_VALUE:
+        case RPN_TOKEN_VARIABLE_REFERENCE: {
             if (!token.length()) {
-                break;
+                ctxt.error = rpn_processing_error::UnknownToken;
+                return false;
             }
             auto var = std::find_if(ctxt.variables.cbegin(), ctxt.variables.cend(), [&token](const rpn_variable& v) {
                 return (v.name == token);
             });
             const bool found = (var != ctxt.variables.end());
 
+            // either push the reference to the value or the value itself, depending on the variable token type
             if (found) {
-                ctxt.stack.get().emplace_back(rpn_stack_value::Type::Variable, (*var).value);
+                if (RPN_TOKEN_VARIABLE_REFERENCE == type) {
+                    ctxt.stack.get().emplace_back(rpn_stack_value::Type::Variable, (*var).value);
+                } else if (RPN_TOKEN_VARIABLE_VALUE == type) {
+                    ctxt.stack.get().emplace_back(*((*var).value));
+                }
                 return true;
-            }
-
-            // no reason to continue
-            if (!found && variable_must_exist) {
+            // in case we want value / explicitly said to check for variable existence
+            } else if ((type == RPN_TOKEN_VARIABLE_VALUE) || variable_must_exist) {
                 ctxt.error = rpn_processing_error::VariableDoesNotExist;
                 return false;
-            }
-
             // since we don't have the variable yet, push uninitialized one
-            if (!found) {
+            } else {
                 auto null = std::make_shared<rpn_value>();
                 ctxt.variables.emplace_back(token, null);
                 ctxt.stack.get().emplace_back(
