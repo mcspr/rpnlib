@@ -3,15 +3,17 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.4.0] IN DEVELOPMENT
+## [0.23.0] IN DEVELOPMENT
 ### Added
 - `p` operator to print the top of the stack via debug function
+- `&var` syntax to create variable reference in expression
 - `=` operator for variable assignment in expression
-- `exists` operator to check for variable existance
+- `exists` operator to check for variable existance (only for references)
+- `deref` operator to convert variable reference into a value (only for references)
 - Allow to use either float or double as floating type, parse numbers in expressions as specified type
 - Add boolean type, parse `true` and `false` in expressions
-- Add string type, parse `"string"` in expressions
 - Add null type, parse `null` in expressions
+- Add string type, parse double-quoted `"string"` in expressions
 - Add integer and unsigned integer type, used in operators
 - Allow to configure underlying types from rpnlib\_config.h and -D... flags
 - Return `rpn_error` from operators, split error types into categories
@@ -21,7 +23,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Stack structure no longer holds raw `float`, but internal `rpn_value` type
 - rpn\_... setter and getter methods use `rpn_value` type
 - Operator functions return `rpn_error` type, allowing to return both value and operator errors
-- Variables in expressions are no longer required to exist
+- Variables in expressions are no longer required to exist when using `&var`
+  Expression will automatically create the variable, set it to `null` and push it's reference on the stack
+- It is possible to create 'reference' stack values
 - Improve precision of `e` and `pi`
 
 ### Fixed
