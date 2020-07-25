@@ -557,22 +557,29 @@ void test_variable() {
 void test_variable_operator() {
 
     rpn_context ctxt;
-
     TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "25 $tmp ="));
-    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
 
-    rpn_value value;
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_FLOAT(25.0, value.toFloat());
-    TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
+    // ensure basic assignment works
+    run_and_compare_ctx(ctxt, "25 $tmp =", rpn_values(25.0));
 
-    value = rpn_value{};
-    TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "tmp", value));
-    TEST_ASSERT_EQUAL_FLOAT(25.0, value.toFloat());
+    {
+        rpn_value value;
+        TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "tmp", value));
+        TEST_ASSERT_EQUAL_FLOAT(25.0, value.toFloat());
+    }
+
+    // ensure we don't change the underlying value after dereference
+    run_and_error_ctx(ctxt, "20 $tmp deref =", rpn_operator_error::InvalidType);
+
+    {
+        rpn_value value;
+        TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "tmp", value));
+        TEST_ASSERT_EQUAL_FLOAT(25.0, value.toFloat());
+    }
 
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
     TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
+
 }
 
 void test_variable_cleanup() {

@@ -654,6 +654,24 @@ rpn_error _rpn_exists(rpn_context & ctxt) {
     return 0;
 }
 
+// [$var] -> [a]
+// $var value is copied into an independent stack value
+rpn_error _rpn_deref(rpn_context & ctxt) {
+    auto& stack = ctxt.stack.get();
+
+    auto& top = stack.back();
+    if (top.type != rpn_stack_value::Type::Variable) {
+        return rpn_operator_error::InvalidType;
+    }
+
+    auto value = *top.value;
+    stack.pop_back();
+
+    stack.push_back(value);
+
+    return 0;
+}
+
 // [a $var] -> [$var]
 // $var is persisted and set to the value of a
 rpn_error _rpn_assign(rpn_context & ctxt) {
@@ -744,6 +762,7 @@ bool rpn_operators_init(rpn_context & ctxt) {
     rpn_operator_set(ctxt, "depth", 0, _rpn_depth);
 
     rpn_operator_set(ctxt, "exists", 1, _rpn_exists);
+    rpn_operator_set(ctxt, "deref", 1, _rpn_deref);
     rpn_operator_set(ctxt, "=", 2, _rpn_assign);
 
     rpn_operator_set(ctxt, "ifn", 3, _rpn_ifn);

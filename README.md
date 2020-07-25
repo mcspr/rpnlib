@@ -130,6 +130,8 @@ rpn_clear(ctxt);
 
 * All newly created variables are set to 'Null'.
 * When variable set to 'Null' is finally removed from the stack it will be removed from the heap too.
+* When variable is specified multiple times, both stack elements refer to the same underlying value.
+* When variable is duplicated using built-in operators, new stack element refers to the same underlying value.
 
 ### Operators
 
