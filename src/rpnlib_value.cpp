@@ -285,7 +285,9 @@ rpn_uint rpn_value::toUint() const {
             result = static_cast<rpn_uint>(as_float);
         }
         break;
-    default:
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
+    case rpn_value::Type::String:
         break;
     }
 
@@ -308,7 +310,9 @@ rpn_float rpn_value::toFloat() const {
     case rpn_value::Type::Unsigned:
         result = as_unsigned;
         break;
-    default:
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
+    case rpn_value::Type::String:
         break;
     }
 
@@ -336,7 +340,9 @@ rpn_int rpn_value::toInt() const {
             result = rpnlib_round(as_float);
         }
         break;
-    default:
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
+    case rpn_value::Type::String:
         break;
     }
 
@@ -396,9 +402,10 @@ bool rpn_value::operator<(const rpn_value& other) const {
     case rpn_value::Type::Unsigned:
         result = as_unsigned < other.toUint();
         break;
-    case rpn_value::Type::String:
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
     case rpn_value::Type::Boolean:
-    default:
+    case rpn_value::Type::String:
         break;
     }
 
@@ -423,9 +430,10 @@ bool rpn_value::operator>(const rpn_value& other) const {
     case rpn_value::Type::Unsigned:
         result = as_unsigned > other.toUint();
         break;
-    case rpn_value::Type::String:
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
     case rpn_value::Type::Boolean:
-    default:
+    case rpn_value::Type::String:
         break;
     }
 
@@ -522,7 +530,8 @@ rpn_value rpn_value::operator+(const rpn_value& other) {
         val.type = rpn_value::Type::Unsigned;
         val.as_unsigned = as_unsigned + other.toUint();
         break;
-    default:
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
         break;
     }
 
@@ -563,7 +572,9 @@ rpn_value rpn_value::operator-(const rpn_value& other) {
         val.type = rpn_value::Type::Unsigned;
         val.as_unsigned = as_unsigned - other.toUint();
         break;
-    default:
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
+    case rpn_value::Type::String:
         break;
     }
 
@@ -604,7 +615,9 @@ rpn_value rpn_value::operator*(const rpn_value& other) {
         val.type = rpn_value::Type::Unsigned;
         val.as_unsigned = as_unsigned * other.toUint();
         break;
-    default:
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
+    case rpn_value::Type::String:
         break;
     }
 
@@ -653,7 +666,9 @@ rpn_value rpn_value::operator/(const rpn_value& other) {
         val.type = rpn_value::Type::Unsigned;
         val.as_unsigned = as_unsigned / other.toUint();
         break;
-    default:
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
+    case rpn_value::Type::String:
         break;
     }
 
@@ -702,7 +717,9 @@ rpn_value rpn_value::operator%(const rpn_value& other) {
         val.type = rpn_value::Type::Float;
         val.as_float = as_float - (floor(as_float / other.as_float) * other.as_float);
         break;
-    default:
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
+    case rpn_value::Type::String:
         break;
     }
 
