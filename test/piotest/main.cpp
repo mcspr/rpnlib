@@ -560,6 +560,15 @@ void test_variable() {
     TEST_ASSERT(rpn_stack_clear(ctxt));
     TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
 
+    // should keep reference instead of the value itself
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "foo", rpn_value { 1.0 }));
+    TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "bar", rpn_value { 2.0 }));
+    run_and_compare_ctx(ctxt, "3.0 false &foo &bar ifn =", rpn_values(3.0));
+    TEST_ASSERT_EQUAL_FLOAT(3.0, rpn_variable_get(ctxt, "bar").toFloat());
+    TEST_ASSERT_EQUAL_FLOAT(1.0, rpn_variable_get(ctxt, "foo").toFloat());
+    TEST_ASSERT(rpn_stack_clear(ctxt));
+    TEST_ASSERT_TRUE(rpn_variables_clear(ctxt));
+
 }
 
 void test_variable_operator() {

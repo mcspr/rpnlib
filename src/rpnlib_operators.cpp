@@ -566,13 +566,18 @@ rpn_error _rpn_floor(rpn_context & ctxt) {
 // [a b c] -> [b] when a resolves `true`
 // [a b c] -> [c] when a resolves `false`
 rpn_error _rpn_ifn(rpn_context & ctxt) {
-    const auto c = _rpn_stack_peek(ctxt, 1);
-    const auto b = _rpn_stack_peek(ctxt, 2);
-    const auto a = _rpn_stack_peek(ctxt, 3);
+    auto& stack = ctxt.stack.get();
 
-    _rpn_stack_eat(ctxt, 3);
-    rpn_value result { a.toBoolean() ? b : c };
-    rpn_stack_push(ctxt, result);
+    auto c = *(stack.end() - 1);
+    auto b = *(stack.end() - 2);
+    auto a = *(stack.end() - 3);
+    stack.erase(stack.end() - 3, stack.end());
+
+    if (a.value->toBoolean()) {
+        stack.push_back(b);
+    } else {
+        stack.push_back(c);
+    }
 
     return 0;
 }
