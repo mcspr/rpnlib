@@ -375,7 +375,7 @@ rpn_error _rpn_index(rpn_context & ctxt) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    auto offset = std::round(bottom_value->toFloat());
+    auto offset = rpnlib_round(bottom_value->toFloat());
     if (offset >= 0.) {
         if ((offset + 1) > size) {
             return rpn_operator_error::InvalidArgument;
