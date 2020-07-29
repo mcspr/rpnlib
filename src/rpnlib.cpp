@@ -496,7 +496,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
 }
 
-bool rpn_debug(rpn_context & ctxt, rpn_debug_callback_f callback) {
+bool rpn_debug(rpn_context & ctxt, rpn_context::debug_callback_type callback) {
     ctxt.debug_callback = callback;
     return true;
 }

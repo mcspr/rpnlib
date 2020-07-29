@@ -36,8 +36,6 @@ using rpn_uint = RPNLIB_UINT_TYPE;
 
 struct rpn_context;
 
-using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
-
 // ----------------------------------------------------------------------------
 
 #include "rpnlib_value.h"
@@ -46,10 +44,12 @@ using rpn_debug_callback_f = void(*)(rpn_context &, const char *);
 #include "rpnlib_stack.h"
 
 struct rpn_context {
+    using debug_callback_type = void(*)(rpn_context &, const char *);
     using operators_type = std::vector<rpn_operator>;
     using variables_type = std::vector<rpn_variable>;
 
-    rpn_debug_callback_f debug_callback;
+    debug_callback_type debug_callback;
+
     String input_buffer;
     rpn_error error;
 
@@ -86,7 +86,7 @@ bool rpn_process(rpn_context &, const char *, bool variable_must_exist = false);
 bool rpn_init(rpn_context &);
 bool rpn_clear(rpn_context &);
 
-bool rpn_debug(rpn_context &, rpn_debug_callback_f);
+bool rpn_debug(rpn_context &, rpn_context::debug_callback_type);
 
 // ----------------------------------------------------------------------------
 
