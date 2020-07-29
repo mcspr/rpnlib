@@ -349,9 +349,14 @@ void test_cmp() {
 void test_index() {
     run_and_compare("2 10 20 30 40 50 5 index", rpn_values(30.0));
     run_and_compare("0 1 1 index", rpn_values(1.0));
+    run_and_compare("-5 10 20 30 40 50 5 index", rpn_values(10.0));
+
+    run_and_error("-6 10 20 30 40 50 5 index", rpn_operator_error::InvalidArgument);
     run_and_error("5 10 20 30 40 50 5 index", rpn_operator_error::InvalidArgument);
-    run_and_error("-5 10 20 30 40 50 5 index", rpn_operator_error::InvalidArgument);
     run_and_error("0 0 index", rpn_operator_error::InvalidArgument);
+
+    run_and_error("0 index", rpn_operator_error::InvalidArgument);
+    run_and_error("index", rpn_operator_error::ArgumentCountMismatch);
 }
 
 void test_map() {

@@ -352,28 +352,45 @@ rpn_error _rpn_cmp3(rpn_context & ctxt) {
 // - `a` is the array[index] to push onto the stack
 // We eat all of the stack and push N'th element. When either index or array size is wrong, do nothing
 rpn_error _rpn_index(rpn_context & ctxt) {
-    const auto stack_size = rpn_stack_size(ctxt);
+    auto& stack = ctxt.stack.get();
+    auto stack_size = stack.size();
 
-    const auto& top = _rpn_stack_peek(ctxt, 1);
-    if (!top.isNumber()) {
+    // the expected size of the array
+    auto top = stack.end() - 1;
+
+    auto top_value = (*top).value.get();
+    if (!top_value->isNumber()) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    const auto size = top.toUint();
-    if (stack_size < size + 1) {
+    const auto size = top_value->toUint();
+    if ((stack_size - 1) < size + 1) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    const auto& bottom = _rpn_stack_peek(ctxt, size + 2);
-    const auto index = bottom.toFloat();
-    if ((index < 0) || ((index + 1) > size)) {
+    // the expected offset aka index
+    auto bottom = top - 1 - size;
+
+    auto bottom_value = (*bottom).value.get();
+    if (!bottom_value->isNumber()) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    const auto pick = _rpn_stack_peek(ctxt, size + 1 - index);
-    _rpn_stack_eat(ctxt, size + 2);
+    auto offset = std::round(bottom_value->toFloat());
+    if (offset >= 0.) {
+        if ((offset + 1) > size) {
+            return rpn_operator_error::InvalidArgument;
+        }
+    } else {
+        if (-offset > size) {
+            return rpn_operator_error::InvalidArgument;
+        }
+        offset = size + offset;
+    }
 
-    rpn_stack_push(ctxt, pick);
+    auto pick = *(bottom + 1 + offset);
+    stack.erase(bottom, stack.end());
+    stack.push_back(pick);
 
     return 0;
 }
