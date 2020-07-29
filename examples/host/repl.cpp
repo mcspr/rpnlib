@@ -9,8 +9,8 @@
 #include <iostream>
 #include <iomanip>
 
-const char* get_value_type(const rpn_stack_value& val) {
-    switch (val.type) {
+const char* stack_type(rpn_stack_value::Type type) {
+    switch (type) {
         case rpn_stack_value::Type::Value:
             return "VALUE";
         case rpn_stack_value::Type::Variable:
@@ -46,36 +46,33 @@ void dump_value(const rpn_value& val) {
     }
 }
 
-rpn_error dump_variables(rpn_context & ctxt) {
-    std::cout << "variables: " << ctxt.variables.size() << std::endl;
+void dump_variables(rpn_context & ctxt) {
     rpn_variables_foreach(ctxt, [](const String& name, rpn_value& value) {
         std::cout << "$" << name.c_str() << " is ";
-        if (!value) {
-            std::cout << "unset (error?)" << std::endl;
-            return;
-        }
         dump_value(value);
         std::cout << std::endl;
     });
-    return 0;
 }
 
-rpn_error dump_stack(rpn_context & ctxt) {
+void dump_stack(rpn_context & ctxt) {
     size_t index = rpn_stack_size(ctxt);
-    rpn_stack_foreach(ctxt, [&index](rpn_stack_value::Type, const rpn_value& value) {
+    rpn_stack_foreach(ctxt, [&index](rpn_stack_value::Type type, const rpn_value& value) {
         std::cout << std::setfill('0') << std::setw(3) << --index << ": ";
         dump_value(value);
-        std::cout << " (" << get_value_type(value) << ")" << std::endl;
+        std::cout << " (" << stack_type(type) << ")" << std::endl;
     });
-    return 0;
+    std::cout << std::endl;
+}
+
+void dump_state(rpn_context & ctxt) {
+    dump_stack(ctxt);
+    dump_variables(ctxt);
 }
 
 int main(int argc, char** argv) {
     rpn_context ctxt;
     rpn_init(ctxt);
 
-    rpn_operator_set(ctxt, "dump", 0, dump_stack);
-    rpn_operator_set(ctxt, "vars", 0, dump_variables);
     rpn_operator_set(ctxt, "clear", 0, [](rpn_context& c) -> rpn_error {
         return rpn_stack_clear(c)
             ? rpn_operator_error::Ok
@@ -130,7 +127,7 @@ int main(int argc, char** argv) {
                 std::cout << "ERROR! " << decoded.c_str() << std::endl;
             }));
         }
-        dump_stack(ctxt);
+        dump_state(ctxt);
         std::cout << std::endl;
     }
 }
