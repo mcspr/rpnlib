@@ -165,8 +165,7 @@ rpn_error _rpn_e(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 
 // Operators accept [a b] and do `a` OPERATION `b`
-// Pushes `f64` value as the result
-// Eats both stack values
+// Eats both stack values, resulting type depends on the type of `a`
 
 rpn_error _rpn_sum(rpn_context & ctxt) {
     auto result = _rpn_stack_peek(ctxt, 2) + _rpn_stack_peek(ctxt, 1);
