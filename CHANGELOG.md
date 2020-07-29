@@ -3,7 +3,12 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.23.0] IN DEVELOPMENT
+## [0.24.0] IN DEVELOPMENT
+### Changed
+- Preserve variable reference after `ifn`
+- Allow negative offsets for `index`
+
+## [0.23.0] 2020-07-26
 ### Added
 - `p` operator to print the top of the stack via debug function
 - `&var` syntax to create variable reference in expression
