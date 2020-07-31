@@ -22,20 +22,132 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include "rpnlib.h"
+#include <utility>
 
-struct rpn_decode_errors {
+template <typename Callback>
+void rpn_stack_foreach(rpn_context & ctxt, Callback callback) {
+    auto& stack = ctxt.stack.get();
+    for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+        callback((*it).type, *((*it).value.get()));
+    }
+}
 
-    using callback_f = void (*)(const String&);
+template <typename Callback>
+void rpn_variables_foreach(rpn_context & ctxt, Callback callback) {
+    for (auto& var : ctxt.variables) {
+        callback(var.name, *(var.value.get()));
+    }
+}
 
-    rpn_decode_errors(callback_f callback) :
+template <typename Callback>
+void rpn_operators_foreach(rpn_context & ctxt, Callback callback) {
+    for (auto& op : ctxt.operators) {
+        callback(op.name, op.argc, op.callback);
+    }
+}
+
+template <typename Visitor>
+void rpn_handle_error(const rpn_error& error, Visitor&& visitor) {
+    switch (error.category) {
+    case rpn_error_category::Processing:
+       visitor(static_cast<rpn_processing_error>(error.code));
+       break;
+    case rpn_error_category::Operator:
+       visitor(static_cast<rpn_operator_error>(error.code));
+       break;
+    case rpn_error_category::Value:
+       visitor(static_cast<rpn_value_error>(error.code));
+       break;
+    case rpn_error_category::Unknown:
+       visitor(error.code);
+    }
+}
+
+template <typename Callback>
+struct rpn_error_decoder {
+
+    rpn_error_decoder(Callback&& callback) :
         callback(callback)
     {}
 
-    void operator ()(rpn_processing_error error);
-    void operator ()(rpn_operator_error error);
-    void operator ()(rpn_value_error error);
-    void operator ()(int code);
+    void operator()(rpn_processing_error error) {
+        switch (error) {
+        case rpn_processing_error::Ok:
+            callback("No error");
+            break;
+        case rpn_processing_error::UnknownToken:
+            callback("Unknown token");
+            break;
+        case rpn_processing_error::InvalidToken:
+            callback("Invalid token");
+            break;
+        case rpn_processing_error::VariableDoesNotExist:
+            callback("Variable does not exist");
+            break;
+        case rpn_processing_error::UnknownOperator:
+            callback("Operator does not exist");
+            break;
+        case rpn_processing_error::NoMoreStacks:
+            callback("Already in the top stack");
+            break;
+        case rpn_processing_error::Exception:
+            callback("Exception");
+            break;
+        }
+    }
 
-    callback_f callback;
+    void operator()(rpn_operator_error error) {
+        switch (error) {
+        case rpn_operator_error::Ok:
+            callback("No error");
+            break;
+        case rpn_operator_error::ArgumentCountMismatch:
+            callback("Operator argument count mismatch");
+            break;
+        case rpn_operator_error::InvalidType:
+            callback("Invalid operation type");
+            break;
+        case rpn_operator_error::InvalidArgument:
+            callback("Invalid argument");
+            break;
+        case rpn_operator_error::CannotContinue:
+            callback("Processing was stopped, cannot continue");
+            break;
+        }
+    }
+
+    void operator()(rpn_value_error error) {
+        switch (error) {
+        case rpn_value_error::Ok:
+            callback("No error");
+            break;
+        case rpn_value_error::InvalidOperation:
+            callback("Invalid value operation");
+            break;
+        case rpn_value_error::TypeMismatch:
+            callback("Value type mismatch");
+            break;
+        case rpn_value_error::DivideByZero:
+            callback("Value division by zero");
+            break;
+        case rpn_value_error::IEEE754:
+            callback("Value floating point exception");
+            break;
+        case rpn_value_error::IsNull:
+            callback("Value is null");
+            break;
+        }
+    }
+
+    void operator()(int code) {
+        callback(String("Unknown error #") + String(code));
+    }
+
+    Callback callback;
 
 };
+
+template <typename Callback>
+rpn_error_decoder<Callback> rpn_decode_errors(Callback&& callback) {
+    return rpn_error_decoder<Callback>(std::forward<Callback>(callback));
+}

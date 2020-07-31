@@ -32,8 +32,11 @@ enum class rpn_error_category {
 enum class rpn_processing_error {
     Ok,
     UnknownToken,
+    InvalidToken,
     VariableDoesNotExist,
-    NoMoreStacks
+    UnknownOperator,
+    NoMoreStacks,
+    Exception
 };
 
 enum class rpn_operator_error {
@@ -72,23 +75,8 @@ struct rpn_error {
         return (0 == code);
     }
 
+    size_t position;
     rpn_error_category category;
     int code;
 };
 
-template <typename Visitor>
-void rpn_handle_error(const rpn_error& error, Visitor&& visitor) {
-    switch (error.category) {
-    case rpn_error_category::Processing:
-       visitor(static_cast<rpn_processing_error>(error.code));
-       break;
-    case rpn_error_category::Operator:
-       visitor(static_cast<rpn_operator_error>(error.code));
-       break;
-    case rpn_error_category::Value:
-       visitor(static_cast<rpn_value_error>(error.code));
-       break;
-    case rpn_error_category::Unknown:
-       visitor(error.code);
-    }
-}

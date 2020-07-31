@@ -49,6 +49,22 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 // Helper methods
 // -----------------------------------------------------------------------------
 
+// TODO: Integer literals are int, while rpn_int could be a different type.
+//       Most of the time we want to use rpn_values(...) helper or rpn_value ctor
+//       to compare with something that had been parsed. But, right now we need to
+//       either explicitly cast the literal:
+//           `static_cast<rpn_int>(12345)`
+//           `static_cast<rpn_uint>(67890u)`
+//       Or, specify parameter pack types:
+//           `rpn_values<rpn_int, rpn_int>(123, 456)`
+//           `rpn_values<rpn_uint, rpn_int>(111u, 222)`
+//
+//       Some possible options:
+//       - enforce automatic conversion for rpn_values() inputs
+//       - provide properly typed array / structure instead of arguments
+//       - ...use intmax_t in rpn_value?
+//
+
 // Notice that parameter pack Args can contain diffeent types
 template <typename... Args>
 std::array<rpn_value, sizeof...(Args)> rpn_values(Args... args) {
@@ -80,9 +96,9 @@ const char* explain_type(rpn_value::Type type) {
 int explain_contents(char* output, size_t output_size, const rpn_value& value) {
     switch (value.type) {
     case rpn_value::Type::Integer:
-        return snprintf(output, output_size - 1, "%" PRId32, value.toInt());
+        return snprintf(output, output_size - 1, "%" PRIdMAX, static_cast<std::intmax_t>(value.toInt()));
     case rpn_value::Type::Unsigned:
-        return snprintf(output, output_size - 1, "%" PRIu32, value.toUint());
+        return snprintf(output, output_size - 1, "%" PRIuMAX, static_cast<std::uintmax_t>(value.toUint()));
     case rpn_value::Type::Float:
         return snprintf(output, output_size - 1, "%f", value.toFloat());
     case rpn_value::Type::String:
@@ -142,10 +158,18 @@ template <typename T>
 void _run_and_compare(rpn_context & ctxt, const char* command, T expected, int line) {
     UnityMessage(command, line);
 
-    UNITY_TEST_ASSERT(rpn_process(ctxt, command),
-            line, "rpn_process() should return true");
+    if (!rpn_process(ctxt, command)) {
+        String message("rpn_process() failed with \"");
+        rpn_handle_error(ctxt.error, rpn_decode_errors([&message](const String& decoded) {
+            message += decoded;
+        }));
+        message += "\" at position ";
+        message += ctxt.error.position;
+        UNITY_TEST_FAIL(line, message.c_str());
+    }
+
     UNITY_TEST_ASSERT_EQUAL_INT(0, ctxt.error.code,
-            line, "There should be no error code set");
+            line, "There should be no error code set after rpn_process() returns true");
 
     _stack_compare(ctxt, expected, line);
 }
@@ -162,8 +186,8 @@ void _run_and_error(rpn_context& ctxt, const char* command, rpn_error error, con
 
     char buffer[256];
     if (!rpn_process(ctxt, command)) {
-        sprintf(buffer, "Expected %s, Got {category %d, code %d}",
-            message, static_cast<int>(ctxt.error.category), ctxt.error.code);
+        sprintf(buffer, "Expected %s, Got {category %d, code %d at %zu}",
+            message, static_cast<int>(ctxt.error.category), ctxt.error.code, ctxt.error.position);
         UNITY_TEST_ASSERT((error == ctxt.error), line, buffer);
         return;
     }
@@ -241,9 +265,7 @@ void test_math() {
 
 void test_math_advanced() {
 #ifdef RPNLIB_ADVANCED_MATH
-    run_and_compare("10 2 pow sqrt log10 floor", {
-        rpn_value(static_cast<rpn_float>(1.0)
-    });
+    run_and_compare("10 2 pow sqrt log10 floor", rpn_values(1.0));
 #else
     TEST_IGNORE_MESSAGE("fmath is disabled");
 #endif
@@ -323,9 +345,7 @@ void test_math_int() {
 
 void test_trig() {
 #ifdef RPNLIB_ADVANCED_MATH
-    run_and_compare("pi 4 / cos 2 sqrt *", {
-        rpn_value(static_cast<rpn_float>(1.0))
-    });
+    run_and_compare("pi 4 / cos 2 sqrt * 3 round", rpn_values(1.000));
 #else
     TEST_IGNORE_MESSAGE("fmath is disabled");
 #endif
@@ -337,13 +357,13 @@ void test_cast() {
 }
 
 void test_cmp() {
-    run_and_compare("18 24 cmp", rpn_values(-1));
-    run_and_compare("24 18 cmp", rpn_values(1));
-    run_and_compare("18 18 cmp", rpn_values(0));
+    run_and_compare("18 24 cmp", rpn_values<rpn_int>(-1));
+    run_and_compare("24 18 cmp", rpn_values<rpn_int>(1));
+    run_and_compare("18 18 cmp", rpn_values<rpn_int>(0));
 
-    run_and_compare("13 18 24 cmp3", rpn_values(-1));
-    run_and_compare("18 18 24 cmp3", rpn_values(0));
-    run_and_compare("25 18 24 cmp3", rpn_values(1));
+    run_and_compare("13 18 24 cmp3", rpn_values<rpn_int>(-1));
+    run_and_compare("18 18 24 cmp3", rpn_values<rpn_int>(0));
+    run_and_compare("25 18 24 cmp3", rpn_values<rpn_int>(1));
 }
 
 void test_index() {
@@ -448,24 +468,24 @@ void test_boolean() {
         rpn_context ctxt;
         TEST_ASSERT(rpn_init(ctxt));
 
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(12345)));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(0)));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(12345))));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(0))));
         run_and_compare_ctx(ctxt, "and", rpn_values(false));
 
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(12345)));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(67890)));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(12345))));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(67890))));
         run_and_compare_ctx(ctxt, "and", rpn_values(true));
 
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(1)));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(1)));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(1))));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(1))));
         run_and_compare_ctx(ctxt, "or", rpn_values(true));
 
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(0)));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(1)));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(0))));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(1))));
         run_and_compare_ctx(ctxt, "or", rpn_values(true));
 
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(0)));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(0)));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(0))));
+        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(0))));
         run_and_compare_ctx(ctxt, "or", rpn_values(false));
 
     }
@@ -639,7 +659,7 @@ void test_custom_operator() {
     run_and_compare_ctx(ctxt, "3 cube", rpn_values(27.0));
 
     TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(2))));
-    run_and_compare_ctx(ctxt, "cube", rpn_values(8));
+    run_and_compare_ctx(ctxt, "cube", rpn_values<rpn_int>(8));
 
     TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(4))));
     run_and_compare_ctx(ctxt, "cube", rpn_values(static_cast<rpn_uint>(64)));
@@ -690,13 +710,13 @@ void test_error_argument_count_mismatch() {
 void test_error_unknown_token() {
     rpn_context ctxt;
 
-    run_and_error_ctx(ctxt, "1 2 unknown_operator_name", rpn_processing_error::UnknownToken);
+    run_and_error_ctx(ctxt, "1 2 unknown_operator_name", rpn_processing_error::UnknownOperator);
     rpn_stack_clear(ctxt);
 
-    run_and_error_ctx(ctxt, "something_else", rpn_processing_error::UnknownToken);
+    run_and_error_ctx(ctxt, "something_else", rpn_processing_error::UnknownOperator);
     rpn_stack_clear(ctxt);
 
-    run_and_error_ctx(ctxt, "12345.1ertyu23", rpn_processing_error::UnknownToken);
+    run_and_error_ctx(ctxt, "12345.1ertyu23", rpn_processing_error::UnknownOperator);
     rpn_stack_clear(ctxt);
 }
 
@@ -706,7 +726,7 @@ void test_strings() {
 
     rpn_value original { String("12345") };
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", original));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "$value $value +"));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&value &value +"));
 
     rpn_value value;
     TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "value", value));
@@ -794,6 +814,44 @@ void test_parse_string() {
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 
+void test_parse_string_escaped() {
+    run_and_compare("   \"\\x61\\x62\\x63 \\\" \"", rpn_values("abc \" "));
+
+    run_and_error("\"\\x6\\x62\"", rpn_processing_error::UnknownToken);
+    run_and_error("\"\\x\\x62\"", rpn_processing_error::UnknownToken);
+    run_and_error("\"\\x\\x62\"", rpn_processing_error::UnknownToken);
+
+    {
+        char buffer[] {'\n', '"', '\\', 'n', '\\', 'n', ' ', '\\', 'n', '"', ' ', '\0'};
+        run_and_compare(buffer, rpn_values("\n\n \n"));
+    }
+
+    {
+        char buffer[] {'"', '\\', 't', '\\', 't', '\\', 't', '"', '\0'};
+        run_and_compare(buffer, rpn_values("\t\t\t"));
+    }
+
+    {
+        char buffer[] {'"', '\\', 'r', '\\', 'r', '\\', 'r', '"', '\0'};
+        run_and_compare(buffer, rpn_values("\r\r\r"));
+    }
+
+    {
+        char buffer[] {'"', '\\', '\\', '\\', '\\', '\\', '\\', '"', '\0'};
+        run_and_compare(buffer, rpn_values("\\\\\\"));
+    }
+
+    {
+        char buffer[] {'"', '\\', ' ', '"', '\0'};
+        run_and_error(buffer, rpn_processing_error::UnknownToken);
+    }
+
+    {
+        char buffer[] {'"', '\\', '\'', '"', '\0'};
+        run_and_error(buffer, rpn_processing_error::UnknownToken);
+    }
+}
+
 void test_parse_null() {
     rpn_context ctxt;
     TEST_ASSERT_TRUE(rpn_init(ctxt));
@@ -824,31 +882,21 @@ void test_parse_variable() {
     run_and_compare("&var", rpn_values(rpn_value{}));
 }
 
+void test_parse_multiline() {
+    const char snippet[] = R"EOF(
+    1
+     2
+      3
+       4
+        5
+    )EOF";
+    run_and_compare(snippet, rpn_values(1.0, 2.0, 3.0, 4.0, 5.0));
+}
+
 void test_nested_stack_parse() {
-    rpn_context ctxt;
-
     // we allow nesting stacks, but we always need to pop / close / exit them before using the previous stack
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "[ [ [ 0 ] ] ]"));
-
-    // each time we pop the nested stack, we add it's size to the top
-    // entering stack 3 levels deep results in at least 3 new elements added to the top one + contents of the stacks
-    TEST_ASSERT_EQUAL(4, rpn_stack_size(ctxt));
-    TEST_ASSERT_EQUAL(rpn_stack_value::Type::Array, rpn_stack_inspect(ctxt));
-
-    rpn_value value;
-
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL(3, value.toUint());
-
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL(2, value.toUint());
-
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL(1, value.toUint());
-
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_FLOAT(0.0, value.toFloat());
+    auto values = rpn_values<rpn_float, rpn_uint, rpn_uint, rpn_uint>(0.0, 1u, 2u, 3u);
+    run_and_compare("[ [ [ 0 ] ] ]", values);
 }
 
 void test_nested_stack_operator() {
@@ -878,6 +926,9 @@ void test_nested_stack_operator() {
 
 #if RPNLIB_PIOTEST_HOST_TEST
 void test_memory() {
+    // Unlike the embedded environment, we would need to play valgrind
+    // and count every new / malloc and ensure we have the same amount
+    // of delete / free
     TEST_IGNORE_MESSAGE("running on host");
 }
 #else
@@ -885,6 +936,9 @@ void test_memory() {
 
     unsigned long start = ESP.getFreeHeap();
 
+    // Note that just running rpn_clear() will not release the memory, as internal data structures
+    // will keep allocated chunks for the stack, values, variables and operators
+    // However, after removing ctxt object we expect everything to be freed with it
     {
         rpn_context ctxt;
         TEST_ASSERT_TRUE(rpn_init(ctxt));
@@ -929,10 +983,12 @@ int run_tests() {
     RUN_TEST(test_memory);
     RUN_TEST(test_strings);
     RUN_TEST(test_parse_string);
+    RUN_TEST(test_parse_string_escaped);
     RUN_TEST(test_parse_bool);
     RUN_TEST(test_parse_null);
     RUN_TEST(test_parse_number);
     RUN_TEST(test_parse_variable);
+    RUN_TEST(test_parse_multiline);
     RUN_TEST(test_nested_stack_parse);
     RUN_TEST(test_nested_stack_operator);
     return UNITY_END();

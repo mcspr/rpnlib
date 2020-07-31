@@ -58,29 +58,9 @@ struct rpn_context {
     rpn_nested_stack stack;
 };
 
-template <typename Callback>
-void rpn_stack_foreach(rpn_context & ctxt, Callback callback) {
-    auto& stack = ctxt.stack.get();
-    for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
-        callback((*it).type, *((*it).value.get()));
-    }
-}
-
-template <typename Callback>
-void rpn_variables_foreach(rpn_context & ctxt, Callback callback) {
-    for (auto& var : ctxt.variables) {
-        callback(var.name, *(var.value.get()));
-    }
-}
-
-template <typename Callback>
-void rpn_operators_foreach(rpn_context & ctxt, Callback callback) {
-    for (auto& op : ctxt.operators) {
-        callback(op.name, op.argc, op.callback);
-    }
-}
-
 // ----------------------------------------------------------------------------
+
+#include "rpnlib_util.h"
 
 bool rpn_process(rpn_context &, const char *, bool variable_must_exist = false);
 bool rpn_init(rpn_context &);

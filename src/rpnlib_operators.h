@@ -24,18 +24,18 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "rpnlib.h"
 
-using rpn_operator_callback_f = rpn_error(*)(rpn_context &);
-
 struct rpn_operator {
+    using callback_type = rpn_error(*)(rpn_context &);
+
     rpn_operator() = delete;
-    rpn_operator(const char*, unsigned char, rpn_operator_callback_f);
+    rpn_operator(const char*, unsigned char, callback_type);
 
     rpn_operator(const rpn_operator&) = default;
     rpn_operator(rpn_operator&&) = default;
 
     const String name;
     const unsigned char argc;
-    rpn_operator_callback_f callback;
+    const callback_type callback;
 };
 
 bool rpn_operators_fmath_init(rpn_context &);
@@ -43,4 +43,4 @@ bool rpn_operators_init(rpn_context &);
 
 bool rpn_operators_clear(rpn_context &);
 
-bool rpn_operator_set(rpn_context &, const char *, unsigned char, rpn_operator_callback_f);
+bool rpn_operator_set(rpn_context &, const char *, unsigned char, rpn_operator::callback_type);

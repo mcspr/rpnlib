@@ -86,6 +86,7 @@ bool rpn_error::operator ==(const rpn_error& other) {
 }
 
 void rpn_error::reset() {
+    position = 0;
     category = rpn_error_category::Unknown;
     code = 0;
 }
@@ -94,85 +95,43 @@ void rpn_error::reset() {
 // Utils
 // ----------------------------------------------------------------------------
 
-enum rpn_token_t {
-    RPN_TOKEN_UNKNOWN,
-    RPN_TOKEN_NULL,
-    RPN_TOKEN_WORD,
-    RPN_TOKEN_BOOLEAN,
-    RPN_TOKEN_NUMBER,
-    RPN_TOKEN_STRING,
-    RPN_TOKEN_VARIABLE_REFERENCE,
-    RPN_TOKEN_VARIABLE_VALUE
-};
-
-// Tokenizer based on https://stackoverflow.com/questions/9659697/parse-string-into-array-based-on-spaces-or-double-quotes-strings
-// Changes from the answer:
-// - rework inner loop to call external function with token arg
-// - rework interal types. add variables, booleans and numbers
-// - special condition for null
-// - special condition for bool (true or false)
-// - special condition for scientific notation
-// - don't copy the string to insert '\0', just copy chars into a String
-//
-// TODO: support '\'' and '"' at the same time, we must have different branches for each one. (likely to be solved with goto, also reducing nesting)
-// TODO: re2c could generate more efficient code for types, we don't have to check 3 times for bool
+// TODO: consider using code generation for parser?
+// TODO: provide a way to define operators in expressions
+//       e.g.
+//       - by preserving type<->token pairs instead of passing them into the tokenizer handler
+//       - by having a separate branch which fully parses everything, but instead of updating stack or calling operators preserves
+//         operations order, which later will be replayed
 
 namespace {
 
-// convert raw word to bool. we only need to match one of `true` or `false`, since we expect tokenizer to deduce the correct string
+const String _rpn_empty_token;
+
+// convert raw word to bool. we only need to match one of `true` or `false`, since we expect tokenizer to ensure we have the correct string
 
 bool _rpn_token_as_bool(const char* token) {
     return (strcmp(token, "true") == 0);
 }
 
-// after initial match, check if token still matches the originally deduced type
-// no need for further checks, callback is expected to validate the token
-// TODO: ...should it though?
+bool _rpn_end_of_token(char c) {
+    return (c == '\0') || (c == '\n') || isspace(c);
+}
 
-bool _rpn_token_still_number(char c) {
-    switch (c) {
-    case '.':
-    case 'e':
-    case 'E':
-    case '-':
-    case '+':
-        return true;
-    default:
-        return isdigit(c) != 0;
+bool _rpn_is_hexchar(char ch) {
+    return ((ch >= '0') && (ch <= '9'))
+        || ((ch >= 'a') && (ch <= 'f'))
+        || ((ch >= 'A') && (ch <= 'F'));
+}
+
+uint8_t _rpn_hexchar_to_byte(char ch) {
+    if ((ch >= '0') && (ch <= '9')) {
+        return (ch - '0');
+    } else if ((ch >= 'a') && (ch <= 'f')) {
+        return 10 + (ch - 'a');
+    } else if ((ch >= 'A') && (ch <= 'F')) {
+        return 10 + (ch - 'A');
+    } else {
+        return 0;
     }
-}
-
-bool _rpn_token_still_bool(char c) {
-    switch (c) {
-    case 'r':
-    case 'u':
-    case 'e':
-    case 'a':
-    case 'l':
-    case 's':
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool _rpn_token_still_null(char c) {
-    switch (c) {
-    case 'n':
-    case 'u':
-    case 'l':
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool _rpn_token_is_null(const char* token) {
-    return (strcmp(token, "null") == 0);
-}
-
-bool _rpn_token_is_bool(const char* token) {
-    return (strcmp(token, "true") == 0) || (strcmp(token, "false") == 0);
 }
 
 // XXX: using out param since we don't know the length beforehand, and out is re-used
@@ -186,171 +145,319 @@ void _rpn_token_copy(const char* start, const char* stop, String& out) {
     }
 }
 
-// TODO: check that we have this signature:
-// bool(rpn_token_t, const char* ptr)
+enum class Token {
+    Unknown,
+    Error,
+    Null,
+    Word,
+    Boolean,
+    Number,
+    String,
+    VariableReference,
+    VariableValue,
+    StackPush,
+    StackPop
+};
+
+// TODO: check that callback has this signature:
+// `bool(rpn_token_t, const char* ptr)`
 // One option is to use std::inplace_function / function_ref:
-// https://github.com/TartanLlama/function_ref
+// - https://github.com/TartanLlama/function_ref
 
 template <typename CallbackType>
-void _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
+size_t _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
     const char *p = buffer;
     const char *start_of_word = nullptr;
 
-    char c = '\0';
+    Token type = Token::Unknown;
 
-    enum states_t {
-        UNKNOWN,
-        IN_NULL,
-        IN_WORD,
-        IN_NUMBER,
-        IN_BOOLEAN,
-        IN_STRING,
-        IN_VARIABLE_REFERENCE,
-        IN_VARIABLE_VALUE
-    };
+// The following labels **must** only reachable by jumping into them explicitly.
+// We never expect to fall-through (besides here), effectively making them a separate 'function' blocks,
+//
+// XXX goto warning: alternative approach would be to maintain the `buffer`, `start_of_word` and `p`
+// inside of a 'fsm' context object and jump around via transition functions.
 
-    rpn_token_t type = RPN_TOKEN_UNKNOWN;
-    states_t state = UNKNOWN;
+loop:
 
-    while (true) {
-        if (*p == '\0') {
-            switch (state) {
-            // Silently drop the rest, we must consistent syntax
-            case IN_STRING:
-                state = UNKNOWN;
-                type = RPN_TOKEN_UNKNOWN;
-                if (!callback(type, start_of_word)) {
-                    goto stop_parsing;
-                }
-                break;
-            case IN_VARIABLE_REFERENCE:
-            case IN_VARIABLE_VALUE: {
-                if (1 == (p - start_of_word)) {
-                    state = UNKNOWN;
-                    type = RPN_TOKEN_UNKNOWN;
-                    if (!callback(type, start_of_word)) {
-                        goto stop_parsing;
-                    }
-                }
-                ++start_of_word;
-                goto stop_parsing;
-            }
-            case UNKNOWN:
-            case IN_NULL:
-            case IN_WORD:
-            case IN_NUMBER:
-            case IN_BOOLEAN:
-                break;
-            }
-            break;
-        }
+    type = Token::Unknown;
+    start_of_word = p;
 
-        c = *p;
+    if (*p == '\0') {
+        goto stop_parsing;
+    }
 
-        switch (state) {
+    if (isspace(*p)) {
+        ++p;
+        goto loop;
+    }
 
-        case UNKNOWN:
-            if (isspace(c)) {
-                ++p;
-                continue;
-            }
+    if (*p == '&') {
+        type = Token::VariableReference;
+        goto on_variable;
+    } else if (*p == '$') {
+        type = Token::VariableValue;
+        goto on_variable;
+    } else if (*p == '"') {
+        type = Token::String;
+        goto on_string;
+    } else if (isdigit(*p) || (*p == '-') || (*p == '+')) {
+        type = Token::Number;
+        goto on_number;
+    } else if ((*p == 't') || (*p == 'f')) {
+        type = Token::Boolean;
+        goto on_boolean;
+    } else if (*p == 'n') {
+        type = Token::Null;
+        goto on_null;
+    } else if (*p == '[') {
+        type = Token::StackPush;
+        goto on_stack_change;
+    } else if (*p == ']') {
+        type = Token::StackPop;
+        goto on_stack_change;
+    } else {
+        type = Token::Word;
+        goto on_word;
+    }
 
-            // note: both STRING and VARIABLE ignore the first char
-            //       post-actions must expect this
-            if (c == '&') {
-                state = IN_VARIABLE_REFERENCE;
-                type = RPN_TOKEN_VARIABLE_REFERENCE;
-            } else if (c == '$') {
-                state = IN_VARIABLE_VALUE;
-                type = RPN_TOKEN_VARIABLE_VALUE;
-            } else if (c == '"') {
-                state = IN_STRING;
-                type = RPN_TOKEN_STRING;
-            } else if (isdigit(c) || (c == '-') || (c == '+')) {
-                state = IN_NUMBER;
-                type = RPN_TOKEN_NUMBER;
-            } else if ((c == 't') || (c == 'f')) {
-                state = IN_BOOLEAN;
-                type = RPN_TOKEN_BOOLEAN;
-            } else if (c == 'n') {
-                state = IN_NULL;
-                type = RPN_TOKEN_NULL;
-            } else {
-                state = IN_WORD;
-                type = RPN_TOKEN_WORD;
-            }
-            start_of_word = p;
-            break;
+    goto loop;
 
-        case IN_STRING:
-            if (c == '"') {
-                auto len = p - start_of_word;
-                if (len > 1) {
-                    token.reserve(len);
-                    _rpn_token_copy(start_of_word + 1, p, token);
-                } else {
-                    token = "";
-                }
-                state = UNKNOWN;
-                if (!callback(type, token)) {
-                    goto stop_parsing;
-                }
-            }
-            break;
+// Default non-empty token
+// This branch is allowed as a fallback, so implicitly switch the type
 
-        case IN_NUMBER:
-        case IN_BOOLEAN:
-        case IN_NULL:
-            if (!isspace(c) && (
-                (state == IN_NUMBER) ? !_rpn_token_still_number(c) :
-                (state == IN_BOOLEAN) ? !_rpn_token_still_bool(c) :
-                (state == IN_NULL) ? !_rpn_token_still_null(c) : true))
-            {
-                state = IN_WORD;
-                type = RPN_TOKEN_WORD;
-            }
-            // fallthrough to the word
+on_word:
 
-        case IN_WORD:
-            if (isspace(c)) {
-                token.reserve(p - start_of_word);
-                _rpn_token_copy(start_of_word, p, token);
-                state = UNKNOWN;
-                if (!callback(type, token)) {
-                    goto stop_parsing;
-                }
-            }
-            break;
+    type = Token::Word;
 
-        case IN_VARIABLE_REFERENCE:
-        case IN_VARIABLE_VALUE:
-            if (isspace(c)) {
-                auto len = p - start_of_word;
-                if (len > 1) {
-                    token.reserve(len);
-                    _rpn_token_copy(start_of_word + 1, p, token);
-                } else {
-                    token = "";
-                }
-                state = UNKNOWN;
-                if (!callback(type, token)) {
-                    goto stop_parsing;
-                }
-            }
-            break;
-
-        }
-
+    while (!_rpn_end_of_token(*p)) {
         ++p;
     }
 
+    goto push_token;
+
+// Some reserved words for base types
+// TODO: we *could* use operator dict, but we would need un-deletable entries
+
+on_null:
+
+    if (*p == 'n') {
+        if ((*(++p) == 'u')
+            && (*(++p) == 'l')
+            && (*(++p) == 'l')
+            && (_rpn_end_of_token(*(++p))))
+        {
+            goto push_token;
+        }
+    }
+
+    goto on_word;
+
+on_boolean:
+
+    if (*p == 't') {
+        if ((*(++p) == 'r')
+            && (*(++p) == 'u')
+            && (*(++p) == 'e')
+            && (_rpn_end_of_token(*(++p))))
+        {
+            goto push_token;
+        }
+    } else if (*p == 'f') {
+        if ((*(++p) == 'a')
+            && (*(++p) == 'l')
+            && (*(++p) == 's')
+            && (*(++p) == 'e')
+            && (_rpn_end_of_token(*(++p))))
+        {
+            goto push_token;
+        }
+    }
+
+    goto on_word;
+
+// Stack manipulation words `[`, `]`
+// TODO: same as bool and null, should these be implemented as un-deletable built-in dict?
+
+on_stack_change:
+
+    if (!_rpn_end_of_token(*(p + 1))) {
+        goto on_word;
+    }
+
+    if (!callback(type, _rpn_empty_token)) {
+        goto stop_parsing;
+    }
+
+    ++p;
+
+    goto loop;
+
+// Floating point numbers
+// TODO: allow suffixes specifying the type?
+//       `123uint`, `456int`, `789float`
+//       `123u32`, `456i32`, `789f32` (e.g. depend on the bit size from configuration)
+//       `123u`, `456i`, `789f` (maybe not i, if we don't want to get it confused with complex numbers)
+
+on_number:
+
+    if ((*p == '+') || (*p == '-')) {
+        ++p;
+        if (!isdigit(*p)) {
+            goto on_word;
+        }
+    }
+
+    while (!_rpn_end_of_token(*p)) {
+        if (!isdigit(*p)) {
+            switch (*p) {
+            case '.':
+                ++p;
+                goto on_number_digits;
+            case 'e':
+            case 'E':
+                ++p;
+                if ((*p == '-') || (*p == '+')) {
+                    ++p;
+                }
+                goto on_number_digits;
+            default:
+                goto on_word;
+            }
+        }
+        ++p;
+    }
+
+    goto push_token;
+
+on_number_digits:
+
+    while (!_rpn_end_of_token(*p)) {
+        if (!isdigit(*p)) {
+            goto on_word;
+        }
+        ++p;
+    }
+
+    goto push_token;
+
+// $var or &var
+
+on_variable:
+
+    ++p;
+
+    while (!_rpn_end_of_token(*p)) {
+        ++p;
+    }
+
+    // We must have more than one character and we don't allow operators to use & and $
+    if (1 == (p - start_of_word)) {
+        goto push_unknown;
+    }
+
+    if ((p - start_of_word) > 1) {
+        token.reserve(p - start_of_word);
+        _rpn_token_copy(start_of_word + 1, p, token);
+    } else {
+        token = "";
+    }
+
+    if (!callback(type, token)) {
+        goto stop_parsing;
+    }
+
+    goto loop;
+
+// "...something..."
+// Unlike the above, we start buffering the token right away to allow escape sequences
+//
+// TODO: do we need single quote support?
+// TODO: or, should those be reserved for 'char' type converting into int?
+
+on_string:
+
+    ++p;
+    token = "";
+
+    while (*p != '\0') {
+        // we've reached the end, break right away so the action below skips this char
+        if (*p == '"') {
+            break;
+        // support some generic escape sequences + \x61\x62\x63 hex codes
+        } else if (*p == '\\') {
+            switch (*(p + 1)) {
+            case '"':
+                token += '"';
+                p += 2;
+                break;
+            case 'n':
+                token += '\n';
+                p += 2;
+                break;
+            case 'r':
+                token += '\r';
+                p += 2;
+                break;
+            case 't':
+                token += '\t';
+                p += 2;
+                break;
+            case '\\':
+                token += '\\';
+                p += 2;
+                break;
+            case 'x':
+                if (_rpn_is_hexchar(*(p + 2)) && _rpn_is_hexchar(*(p + 3))) {
+                    token += static_cast<char>(
+                        (_rpn_hexchar_to_byte(*(p + 2)) << 4)
+                        | (_rpn_hexchar_to_byte(*(p + 3)))
+                    );
+                    p += 4;
+                } else {
+                    goto push_unknown;
+                }
+                break;
+            default:
+                goto push_unknown;
+            }
+        } else {
+            token += *(p++);
+        }
+    }
+
+    if (*p == '\0') {
+        goto push_unknown;
+    }
+
+    ++p;
+
+    if (!callback(type, token)) {
+        goto stop_parsing;
+    }
+
+    goto loop;
+
+// We either push what we gathered so far
+
+push_token:
+
+    token.reserve(p - start_of_word);
+    _rpn_token_copy(start_of_word, p, token);
+    if (!callback(type, token)) {
+        goto stop_parsing;
+    }
+
+    goto loop;
+
+// Or stop the parser completely
+
+push_unknown:
+
+    callback(Token::Unknown, _rpn_empty_token);
+
 stop_parsing:
 
-    if ((state != UNKNOWN) && (p - start_of_word)) {
-        token.reserve(p - start_of_word);
-        _rpn_token_copy(start_of_word, p, token);
-        callback(type, token);
-    }
+    return (p - start_of_word);
 
 }
 
@@ -365,22 +472,24 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
     ctxt.error.reset();
     ctxt.input_buffer = "";
 
-    _rpn_tokenize(input, ctxt.input_buffer, [&](rpn_token_t type, const String& token) {
+    auto position = _rpn_tokenize(input, ctxt.input_buffer, [&](Token type, const String& token) {
 
-        // Is token a string, bool, number, variable or null?
+        //printf(":token \"%s\" type %d\n", token.c_str(), static_cast<int>(type));
+
+        // Is token a null, bool, number, string or a variable?
         switch (type) {
 
-        case RPN_TOKEN_BOOLEAN: {
-            if (_rpn_token_is_bool(token.c_str())) {
-                ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(
-                    _rpn_token_as_bool(token.c_str())
-                ));
-                return true;
-            }
-            break;
-        }
+        case Token::Null:
+            ctxt.stack.get().emplace_back(std::make_shared<rpn_value>());
+            return true;
 
-        case RPN_TOKEN_NUMBER: {
+        case Token::Boolean:
+            ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(
+                _rpn_token_as_bool(token.c_str())
+            ));
+            return true;
+
+        case Token::Number: {
             char* endptr = nullptr;
             rpn_float value = strtod(token.c_str(), &endptr);
             if (endptr == token.c_str() || endptr[0] != '\0') {
@@ -390,12 +499,12 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             return true;
         }
 
-        case RPN_TOKEN_STRING:
+        case Token::String:
             ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(token));
             return true;
 
-        case RPN_TOKEN_VARIABLE_VALUE:
-        case RPN_TOKEN_VARIABLE_REFERENCE: {
+        case Token::VariableValue:
+        case Token::VariableReference: {
             if (!token.length()) {
                 ctxt.error = rpn_processing_error::UnknownToken;
                 return false;
@@ -407,14 +516,14 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
             // either push the reference to the value or the value itself, depending on the variable token type
             if (found) {
-                if (RPN_TOKEN_VARIABLE_REFERENCE == type) {
+                if (Token::VariableReference == type) {
                     ctxt.stack.get().emplace_back(rpn_stack_value::Type::Variable, (*var).value);
-                } else if (RPN_TOKEN_VARIABLE_VALUE == type) {
+                } else if (Token::VariableValue == type) {
                     ctxt.stack.get().emplace_back(*((*var).value));
                 }
                 return true;
             // in case we want value / explicitly said to check for variable existence
-            } else if ((type == RPN_TOKEN_VARIABLE_VALUE) || variable_must_exist) {
+            } else if ((type == Token::VariableValue) || variable_must_exist) {
                 ctxt.error = rpn_processing_error::VariableDoesNotExist;
                 return false;
             // since we don't have the variable yet, push uninitialized one
@@ -428,64 +537,59 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             }
         }
 
-        case RPN_TOKEN_NULL:
-            if (_rpn_token_is_null(token.c_str())) {
-                ctxt.stack.get().emplace_back(std::make_shared<rpn_value>());
+        case Token::StackPush:
+            ctxt.stack.stacks_push();
+            return true;
+
+        case Token::StackPop: {
+            if (ctxt.stack.stacks_size() > 1) {
+                ctxt.stack.stacks_merge();
                 return true;
             }
-            break;
 
-        case RPN_TOKEN_UNKNOWN:
+            ctxt.error = rpn_processing_error::NoMoreStacks;
+            return false;
+        }
+
+        // TODO: ctxt.error.position is set down below
+        case Token::Unknown:
             ctxt.error = rpn_processing_error::UnknownToken;
-            break;
+            return false;
 
-        case RPN_TOKEN_WORD: {
-            if (1 == token.length()) {
-                switch (token[0]) {
-                case '[':
-                    ctxt.stack.stacks_push();
-                    return true;
-                case ']':
-                    if (ctxt.stack.stacks_size() > 1) {
-                        ctxt.stack.stacks_merge();
-                        return true;
-                    }
-                    ctxt.error = rpn_processing_error::NoMoreStacks;
+        case Token::Error:
+            ctxt.error = rpn_processing_error::InvalidToken;
+            return false;
+
+        // Everything else that did not go through the token matching
+        case Token::Word: {
+            auto result = std::find_if(ctxt.operators.cbegin(), ctxt.operators.cend(), [&token](const rpn_operator& op) {
+                return op.name == token;
+            });
+
+            if (result != ctxt.operators.end()) {
+                if ((*result).argc > ctxt.stack.get().size()) {
+                    ctxt.error = rpn_operator_error::ArgumentCountMismatch;
                     return false;
                 }
+                ctxt.error = ((*result).callback)(ctxt);
+                return (0 == ctxt.error.code);
             }
+
+            ctxt.error = rpn_processing_error::UnknownOperator;
+            return false;
         }
 
-        default:
-            break;
-
         }
 
-        // Is token an operator?
-        {
-            bool found = false;
-            for (auto & f : ctxt.operators) {
-                if (f.name == token) {
-                    if (rpn_stack_size(ctxt) < f.argc) {
-                        ctxt.error = rpn_operator_error::ArgumentCountMismatch;
-                        break;
-                    }
-                    ctxt.error = (f.callback)(ctxt);
-                    found = true;
-                    break;
-                }
-            }
-            if (ctxt.error.code) {
-                return false;
-            }
-            if (found) return true;
-        }
-
-        // Don't know the token
-        ctxt.error = rpn_processing_error::UnknownToken;
+        // Don't know the token. And, somehow missed the above switch-case
+        ctxt.error = rpn_processing_error::Exception;
         return false;
 
     });
+
+    if (0 != ctxt.error.code) {
+        ctxt.error.position = position;
+    }
 
     // clean-up temporaries when
     // - variable is only referenced from the ctxt.variables (since we enforce shared_ptr copy, avoiding weak_ptr usage)

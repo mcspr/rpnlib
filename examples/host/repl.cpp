@@ -1,7 +1,6 @@
 // check if arduino type works with ours
 
 #include <rpnlib.h>
-#include <rpnlib_util.h>
 
 #include <ctime>
 #include <cctype>
@@ -35,7 +34,7 @@ void dump_value(const rpn_value& val) {
             std::cout << val.toFloat() << " (Float) ";
             break;
         case rpn_value::Type::String:
-            std::cout << "\"" << val.toString().c_str() << "\" ";
+            std::cout << val.toString().c_str() << " (String) ";
             break;
         case rpn_value::Type::Error:
             std::cout << "error ";
@@ -64,6 +63,14 @@ void dump_stack(rpn_context & ctxt) {
     std::cout << std::endl;
 }
 
+void dump_operators(rpn_context & ctxt) {
+    size_t index = 0;
+    rpn_operators_foreach(ctxt, [&index](const String& name, size_t argc, rpn_operator::callback_type) {
+        std::cout << std::setfill('0') << std::setw(3) << ++index << ": ";
+        std::cout << name.c_str() << "(...), " << argc << std::endl;
+    });
+}
+
 void dump_state(rpn_context & ctxt) {
     dump_stack(ctxt);
     dump_variables(ctxt);
@@ -77,6 +84,11 @@ int main(int argc, char** argv) {
         return rpn_stack_clear(c)
             ? rpn_operator_error::Ok
             : rpn_operator_error::CannotContinue;
+    });
+
+    rpn_operator_set(ctxt, "operators", 0, [](rpn_context& c) -> rpn_error {
+        dump_operators(c);
+        return 0;
     });
 
     rpn_operator_set(ctxt, "time", 0, [](rpn_context& c) -> rpn_error {
@@ -123,9 +135,10 @@ int main(int argc, char** argv) {
             break;
         }
         if (!rpn_process(ctxt, input.c_str())) {
-            rpn_handle_error(ctxt.error, rpn_decode_errors([](const String& decoded) {
-                std::cout << "ERROR! " << decoded.c_str() << std::endl;
-            }));
+            auto handler = [&ctxt](const String& decoded) {
+                std::cout << "ERROR at %u " << ctxt.error.position << " - " << decoded.c_str() << std::endl;
+            };
+            rpn_handle_error(ctxt.error, rpn_decode_errors(handler));
         }
         dump_state(ctxt);
         std::cout << std::endl;

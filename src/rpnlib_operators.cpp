@@ -714,13 +714,13 @@ rpn_error _rpn_assign(rpn_context & ctxt) {
 // Functions methods
 // ----------------------------------------------------------------------------
 
-rpn_operator::rpn_operator(const char* name, unsigned char argc, rpn_operator_callback_f callback) :
+rpn_operator::rpn_operator(const char* name, unsigned char argc, callback_type callback) :
     name(name),
     argc(argc),
     callback(callback)
 {}
 
-bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, rpn_operator_callback_f callback) {
+bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, rpn_operator::callback_type callback) {
     ctxt.operators.emplace_back(name, argc, callback);
     return true;
 }

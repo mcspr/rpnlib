@@ -24,7 +24,6 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <Arduino.h>
 
 #include <rpnlib.h>
-#include <rpnlib_util.h>
 
 void dump_stack(rpn_context & ctxt) {
     auto index = rpn_stack_size(ctxt) - 1;

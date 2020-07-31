@@ -95,7 +95,6 @@ add_library(rpnlib STATIC
     ${RPNLIB_PATH}/src/rpnlib_fmath.cpp
     ${RPNLIB_PATH}/src/rpnlib_operators.cpp
     ${RPNLIB_PATH}/src/rpnlib_stack.cpp
-    ${RPNLIB_PATH}/src/rpnlib_util.cpp
     ${RPNLIB_PATH}/src/rpnlib_value.cpp
     ${RPNLIB_PATH}/src/rpnlib_variable.cpp
     ${RPNLIB_PATH}/src/rpnlib.cpp
