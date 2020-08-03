@@ -90,8 +90,8 @@ struct rpn_error_decoder {
         case rpn_processing_error::NoMoreStacks:
             callback("Already in the top stack");
             break;
-        case rpn_processing_error::Exception:
-            callback("Exception");
+        case rpn_processing_error::TokenNotHandled:
+            callback("Token was not handled");
             break;
         }
     }

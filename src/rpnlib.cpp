@@ -582,7 +582,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         }
 
         // Don't know the token. And, somehow missed the above switch-case
-        ctxt.error = rpn_processing_error::Exception;
+        ctxt.error = rpn_processing_error::TokenNotHandled;
         return false;
 
     });

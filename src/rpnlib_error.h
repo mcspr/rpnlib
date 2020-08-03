@@ -36,7 +36,7 @@ enum class rpn_processing_error {
     VariableDoesNotExist,
     UnknownOperator,
     NoMoreStacks,
-    Exception
+    TokenNotHandled
 };
 
 enum class rpn_operator_error {

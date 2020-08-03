@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
         }
         if (!rpn_process(ctxt, input.c_str())) {
             auto handler = [&ctxt](const String& decoded) {
-                std::cout << "ERROR at %u " << ctxt.error.position << " - " << decoded.c_str() << std::endl;
+                std::cout << "ERROR at position " << ctxt.error.position << " - " << decoded.c_str() << std::endl;
             };
             rpn_handle_error(ctxt.error, rpn_decode_errors(handler));
         }
