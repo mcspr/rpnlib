@@ -112,8 +112,15 @@ bool _rpn_token_as_bool(const char* token) {
 }
 
 // note that isspace in posix terms does not only mean literal ' ' space character. excerpt from isalpha(3):
-// > checks for white-space characters.  In the "C" and "POSIX" locales, these are:
-// >   space, form-feed ('\f'), newline ('\n'), carriage return ('\r'), horizontal tab ('\t'),  and vertical tab ('\v')
+// > These functions check whether c, which must have the value of an unsigned char or EOF, falls into a certain character class according to  the  specified  locale.
+// > ...
+// > isspace()
+// >   checks for white-space characters.  In the "C" and "POSIX" locales, these are:
+// >    space, form-feed ('\f'), newline ('\n'), carriage return ('\r'), horizontal tab ('\t'),  and vertical tab ('\v')
+// > ...
+// TODO: ref. https://www.greenend.org.uk/rjk/tech/cfu.html
+//       due to the toolchain setting -funsigned-char on build, we are safe from implementation detail of ctype.h
+//       ofc, we could also just use a custom function here and filter char with switch statement, compiled into the exact same thing that newlib does
 bool _rpn_end_of_token(char c) {
     return (c == '\0') || (c == '\n') || isspace(c);
 }
