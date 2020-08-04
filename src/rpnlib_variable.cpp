@@ -53,7 +53,7 @@ namespace {
 
 template<typename Value>
 bool _rpn_variable_set(rpn_context & ctxt, const String& name, Value&& value) {
-    if (name.indexOf(' ') >= 0) {
+    if (!name.length() || (name.indexOf(' ') >= 0)) {
         return false;
     }
 
