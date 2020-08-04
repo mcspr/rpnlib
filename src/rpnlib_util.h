@@ -130,11 +130,20 @@ struct rpn_error_decoder {
         case rpn_value_error::DivideByZero:
             callback("Value division by zero");
             break;
+        case rpn_value_error::NotAnError:
+            callback("Value is not an error");
+            break;
         case rpn_value_error::IEEE754:
             callback("Value floating point exception");
             break;
         case rpn_value_error::IsNull:
             callback("Value is null");
+            break;
+        case rpn_value_error::OutOfRangeConversion:
+            callback("Value out-of-range conversion");
+            break;
+        case rpn_value_error::ImpossibleConversion:
+            callback("Value conversion is impossible");
             break;
         }
     }

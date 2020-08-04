@@ -38,103 +38,130 @@ namespace {
 // ----------------------------------------------------------------------------
 
 rpn_error _rpn_sqrt(rpn_context & ctxt) {
-    rpn_value a;
-    rpn_stack_pop(ctxt, a);
+    auto a = rpn_stack_pop(ctxt);
+    auto conversion = a.checkedToFloat();
+    if (!conversion.ok()) {
+        return conversion.error();
+    }
 
-    rpn_float value { fs_sqrt(a.toFloat()) };
-    rpn_value result { value };
-    rpn_stack_push(ctxt, result);
+    rpn_value result { static_cast<rpn_float>(fs_sqrt(conversion.value())) };
+    rpn_stack_push(ctxt, std::move(result));
 
     return 0;
 }
 
 rpn_error _rpn_log(rpn_context & ctxt) {
-    rpn_value a;
-    rpn_stack_pop(ctxt, a);
+    auto a = rpn_stack_pop(ctxt);
+    auto conversion = a.checkedToFloat();
+    if (!conversion.ok()) {
+        return conversion.error();
+    }
 
-    auto a_val { a.toFloat() };
-    if (0 >= a_val) {
+    if (static_cast<rpn_float>(0.0) >= conversion.value()) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    rpn_value result { rpn_float(fs_log(a_val)) };
-    rpn_stack_push(ctxt, result);
+    rpn_value result { rpn_float(fs_log(conversion.value())) };
+    rpn_stack_push(ctxt, std::move(result));
+
     return 0;
 }
 
 rpn_error _rpn_log10(rpn_context & ctxt) {
-    rpn_value a;
-    rpn_stack_pop(ctxt, a);
+    auto a = rpn_stack_pop(ctxt);
+    auto conversion = a.checkedToFloat();
+    if (!conversion.ok()) {
+        return conversion.error();
+    }
 
-    auto a_val { a.toFloat() };
-    if (0.0 >= a_val) {
+    if (static_cast<rpn_float>(0.0) >= conversion.value()) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    rpn_value result { rpn_float(fs_log10(a_val)) };
-    rpn_stack_push(ctxt, result);
+    rpn_value result { rpn_float(fs_log10(conversion.value())) };
+    rpn_stack_push(ctxt, std::move(result));
 
     return 0;
 }
 
 rpn_error _rpn_exp(rpn_context & ctxt) {
-    rpn_value a;
-    rpn_stack_pop(ctxt, a);
+    auto a = rpn_stack_pop(ctxt);
+    auto conversion = a.checkedToFloat();
+    if (!conversion.ok()) {
+        return conversion.error();
+    }
 
-    auto a_val { a.toFloat() };
-    rpn_value result { rpn_float(fs_exp(a_val)) };
-    rpn_stack_push(ctxt, result);
+    rpn_value result { rpn_float(fs_exp(conversion.value())) };
+    rpn_stack_push(ctxt, std::move(result));
 
     return 0;
 }
 
 rpn_error _rpn_fmod(rpn_context & ctxt) {
-    rpn_value a;
-    rpn_value b;
+    auto b = rpn_stack_pop(ctxt);
+    auto a = rpn_stack_pop(ctxt);
 
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_pop(ctxt, b);
+    auto convert_a = a.checkedToFloat();
+    if (!convert_a.ok()) {
+        return convert_a.error();
+    }
 
-    auto a_val { a.toFloat() };
-    auto b_val { b.toFloat() };
-    if (0.0 == b_val) {
+    auto convert_b = b.checkedToFloat();
+    if (!convert_b.ok()) {
+        return convert_b.error();
+    }
+
+    if (static_cast<rpn_float>(0.0) == convert_b.value()) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    rpn_value result { fs_fmod(a_val, b_val) };
-    rpn_stack_push(ctxt, result);
+    rpn_value result { static_cast<rpn_float>(fs_fmod(convert_a.value(), convert_b.value())) };
+    rpn_stack_push(ctxt, std::move(result));
 
     return 0;
 }
 
 rpn_error _rpn_pow(rpn_context & ctxt) {
-    rpn_value a;
-    rpn_value b;
+    auto b = rpn_stack_pop(ctxt);
+    auto a = rpn_stack_pop(ctxt);
 
-    rpn_stack_pop(ctxt, a);
-    rpn_stack_pop(ctxt, b);
+    auto convert_a = a.checkedToFloat();
+    if (!convert_a.ok()) {
+        return convert_a.error();
+    }
 
-    rpn_value result { fs_pow(a.toFloat(), b.toFloat()) };
-    rpn_stack_push(ctxt, result);
+    auto convert_b = b.checkedToFloat();
+    if (!convert_b.ok()) {
+        return convert_b.error();
+    }
+
+    rpn_value result { static_cast<rpn_float>(fs_pow(convert_a.value(), convert_b.value())) };
+    rpn_stack_push(ctxt, std::move(result));
 
     return 0;
 }
 
 rpn_error _rpn_cos(rpn_context & ctxt) {
-    rpn_value a;
-    rpn_stack_pop(ctxt, a);
+    auto a = rpn_stack_pop(ctxt);
+    auto conversion = a.checkedToFloat();
+    if (!conversion.ok()) {
+        return conversion.error();
+    }
 
-    rpn_value result { rpn_float(fs_cos(a.toFloat())) };
-    rpn_stack_push(ctxt, result);
+    rpn_value result { rpn_float(fs_cos(conversion.value())) };
+    rpn_stack_push(ctxt, std::move(result));
 
     return 0;
 }
 
 rpn_error _rpn_sin(rpn_context & ctxt) {
-    rpn_value a;
-    rpn_stack_pop(ctxt, a);
+    auto a = rpn_stack_pop(ctxt);
+    auto conversion = a.checkedToFloat();
+    if (!conversion.ok()) {
+        return conversion.error();
+    }
 
-    auto cos = fs_cos(a.toFloat());
+    auto cos = fs_cos(conversion.value());
 
     rpn_value result { rpn_float(fs_sqrt(1.0 - cos * cos)) };
     rpn_stack_push(ctxt, std::move(result));
@@ -143,10 +170,13 @@ rpn_error _rpn_sin(rpn_context & ctxt) {
 }
 
 rpn_error _rpn_tan(rpn_context & ctxt) {
-    rpn_value a;
-    rpn_stack_pop(ctxt, a);
+    auto a = rpn_stack_pop(ctxt);
+    auto conversion = a.checkedToFloat();
+    if (!conversion.ok()) {
+        return conversion.error();
+    }
 
-    auto cos = fs_cos(a.toFloat());
+    auto cos = fs_cos(conversion.value());
     if (0.0 == cos) {
         return rpn_operator_error::InvalidArgument;
     }

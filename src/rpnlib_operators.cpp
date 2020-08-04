@@ -149,13 +149,13 @@ rpn_int _rpn_stack_compare3(rpn_context & ctxt) {
 // TODO: should these be `$pi` and `$e` instead?
 
 rpn_error _rpn_pi(rpn_context & ctxt) {
-    static auto value = rpn_value { RPN_CONST_PI };
+    static auto value = rpn_value { static_cast<rpn_float>(RPN_CONST_PI) };
     rpn_stack_push(ctxt, value);
     return 0;
 }
 
 rpn_error _rpn_e(rpn_context & ctxt) {
-    static auto value = rpn_value { RPN_CONST_E };
+    static auto value = rpn_value { static_cast<rpn_float>(RPN_CONST_E) };
     rpn_stack_push(ctxt, value);
     return 0;
 }
@@ -230,10 +230,6 @@ rpn_error _rpn_abs(rpn_context & ctxt) {
         (top.isFloat()) ? rpn_value(rpnlib_abs(top.toFloat())) :
         (top.isInt()) ? rpn_value(rpnlib_abs(top.toInt())) :
         (rpn_value{});
-
-    if (result.isError()) {
-        return result.toError();
-    }
 
     _rpn_stack_eat(ctxt, 1);
     rpn_stack_push(ctxt, std::move(result));
@@ -326,7 +322,7 @@ rpn_error _rpn_cmp(rpn_context & ctxt) {
     }
     rpn_stack_push(ctxt, result);
     return 0;
-};    
+}
 
 // [a b c] -> [d]
 // Where `d` is
@@ -342,7 +338,7 @@ rpn_error _rpn_cmp3(rpn_context & ctxt) {
 
     rpn_stack_push(ctxt, result);
     return 0;
-};    
+}
 
 // [a ... x] -> [y]
 // Allow indexed access for N+1 stack array, where:
@@ -362,20 +358,29 @@ rpn_error _rpn_index(rpn_context & ctxt) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    const auto size = top_value->toUint();
-    if ((stack_size - 1) < size + 1) {
+    auto size = top_value->checkedToUint();
+    if (!size.ok()) {
+        return size.error();
+    }
+
+    if ((stack_size - 1) < size.value() + 1) {
         return rpn_operator_error::InvalidArgument;
     }
 
     // the expected offset aka index
-    auto bottom = top - 1 - size;
+    auto bottom = top - 1 - size.value();
 
     auto bottom_value = (*bottom).value.get();
     if (!bottom_value->isNumber()) {
         return rpn_operator_error::InvalidArgument;
     }
 
-    auto offset = rpnlib_round(bottom_value->toFloat());
+    auto conversion = bottom_value->checkedToFloat();
+    if (!conversion.ok()) {
+        return conversion.error();
+    }
+
+    auto offset = rpnlib_round(conversion.value());
     if (offset >= 0.) {
         if ((offset + 1) > size) {
             return rpn_operator_error::InvalidArgument;
@@ -442,7 +447,7 @@ rpn_error _rpn_constrain(rpn_context & ctxt) {
     }
 
     return 0;
-};    
+}
 
 // ----------------------------------------------------------------------------
 // Boolean
@@ -509,20 +514,28 @@ rpn_error _rpn_not(rpn_context & ctxt) {
 // [a b] -> [c], where a is equal to round(a) and `b` is number of decimal places
 // stops execution when either `a` or `b` are not numbers
 rpn_error _rpn_round(rpn_context & ctxt) {
-    
+
     const auto& decimals = _rpn_stack_peek(ctxt, 1);
     const auto& value = _rpn_stack_peek(ctxt, 2);
 
     if (!decimals.isNumber() || !value.isNumber()) {
         return rpn_operator_error::InvalidType;
     }
-    
+
+    auto conversion = decimals.checkedToFloat();
+    if (!conversion.ok()) {
+        return conversion.error();
+    }
+
+    rpn_float limit = rpnlib_round(conversion.value());
     rpn_float multiplier = 1.0;
-    for (int i = 0; i < rpnlib_round(decimals.toFloat()); ++i) {
+    for (int i = 0; i < limit; ++i) {
         multiplier *= 10.0;
     }
-    
-    rpn_value result { rpn_float(int(value.toFloat() * multiplier + 0.5) / multiplier) };
+
+    rpn_value result { static_cast<rpn_float>(
+        static_cast<rpn_int>(value.toFloat() * multiplier + static_cast<rpn_float>(0.5)) / multiplier
+    ) };
 
     _rpn_stack_eat(ctxt, 2);
     rpn_stack_push(ctxt, std::move(result));

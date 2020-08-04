@@ -26,7 +26,55 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 #include <cstring>
 
+#include <memory>
 #include <limits>
+
+#include "rpnlib_error.h"
+
+template <typename T>
+struct rpn_optional {
+    rpn_optional() = delete;
+    rpn_optional(T default_value, rpn_value_error default_error) :
+        _value(default_value),
+        _error(default_error)
+    {}
+
+    rpn_optional& operator=(T value) {
+        _value = value;
+        _error = rpn_value_error::Ok;
+        return *this;
+    }
+
+    rpn_optional& operator=(rpn_value_error error) {
+        _error = error;
+        return *this;
+    }
+
+    bool ok() {
+        return rpn_value_error::Ok == _error;
+    }   
+
+    rpn_value_error error() {
+        return _error;
+    }
+
+    T value() {
+        return _value;
+    }
+
+    operator T() {
+        return _value;
+    }
+
+    explicit operator rpn_value_error() {
+        return _error;
+    }
+
+    private:
+
+    T _value;
+    rpn_value_error _error;
+};
 
 struct rpn_value {
     enum class Type {
@@ -40,6 +88,9 @@ struct rpn_value {
     };
 
     rpn_value();
+    rpn_value(rpn_value&&) noexcept;
+    rpn_value(const rpn_value&);
+
     explicit rpn_value(rpn_value_error);
     explicit rpn_value(bool);
     explicit rpn_value(rpn_int);
@@ -49,8 +100,14 @@ struct rpn_value {
     explicit rpn_value(const String&);
     explicit rpn_value(String&&);
 
-    rpn_value(rpn_value&&) noexcept;
-    rpn_value(const rpn_value&);
+    template <typename T>
+    explicit rpn_value(rpn_optional<T> value) :
+        rpn_value(value.ok()
+            ? std::move(rpn_value(static_cast<T>(value)))
+            : std::move(rpn_value(static_cast<rpn_value_error>(value)))
+        )
+    {}
+
     ~rpn_value();
 
     void assign(const rpn_value&) noexcept;
@@ -72,12 +129,20 @@ struct rpn_value {
     rpn_value operator/(const rpn_value&);
     rpn_value operator%(const rpn_value&);
 
+    // Un-checked conversions, returning 'default' when failed
+    // Assume we had previously used is...() and know of what will happen
     rpn_value_error toError() const;
     bool toBoolean() const;
     rpn_int toInt() const;
     rpn_uint toUint() const;
     rpn_float toFloat() const;
     String toString() const;
+
+    // Optional result when we need to ensure that target
+    // value did convert without any issues
+    rpn_optional<rpn_int> checkedToInt() const;
+    rpn_optional<rpn_uint> checkedToUint() const;
+    rpn_optional<rpn_float> checkedToFloat() const;
 
     bool is(Type) const;
     bool isError() const;

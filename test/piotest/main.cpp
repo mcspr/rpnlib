@@ -255,6 +255,75 @@ void test_rpn_value() {
     TEST_ASSERT_EQUAL_STRING("12345", as_string.toString().c_str());
 }
 
+// Ensures default configuration works, but we may encounter different combinations...
+void test_conversions() {
+
+    {
+        rpn_value value{};
+        TEST_ASSERT_FALSE((value.checkedToInt()).ok());
+        TEST_ASSERT_FALSE((value.checkedToUint()).ok());
+        TEST_ASSERT_FALSE((value.checkedToFloat()).ok());
+    }
+
+    {
+        rpn_value value { rpn_value_error::NotAnError };
+        TEST_ASSERT_FALSE((value.checkedToInt()).ok());
+        TEST_ASSERT_FALSE((value.checkedToUint()).ok());
+        TEST_ASSERT_FALSE((value.checkedToFloat()).ok());
+    }
+
+    {
+        rpn_value value { std::numeric_limits<rpn_int>::min() };
+        TEST_ASSERT((value.checkedToInt()).ok());
+        TEST_ASSERT((value.checkedToFloat()).ok());
+        TEST_ASSERT_FALSE((value.checkedToUint()).ok());
+        TEST_ASSERT_EQUAL(rpn_value_error::OutOfRangeConversion, value.checkedToUint().error());
+    }
+
+    {
+        rpn_value value { std::numeric_limits<rpn_int>::max() };
+        TEST_ASSERT((value.checkedToInt()).ok());
+        TEST_ASSERT((value.checkedToFloat()).ok());
+        TEST_ASSERT((value.checkedToUint()).ok());
+    }
+
+    {
+        rpn_value value { std::numeric_limits<rpn_uint>::max() };
+        TEST_ASSERT_FALSE((value.checkedToInt()).ok());
+        TEST_ASSERT((value.checkedToUint()).ok());
+        TEST_ASSERT((value.checkedToFloat()).ok());
+    }
+
+    {
+        rpn_value value { std::numeric_limits<rpn_uint>::min() };
+        TEST_ASSERT((value.checkedToInt()).ok());
+        TEST_ASSERT((value.checkedToUint()).ok());
+        TEST_ASSERT((value.checkedToFloat()).ok());
+    }
+
+    {
+        rpn_value value { std::numeric_limits<rpn_float>::max() };
+        TEST_ASSERT_FALSE((value.checkedToInt()).ok());
+        TEST_ASSERT_FALSE((value.checkedToUint()).ok());
+        TEST_ASSERT((value.checkedToFloat()).ok());
+    }
+
+    {
+        rpn_value value { std::numeric_limits<rpn_float>::lowest() };
+        TEST_ASSERT_FALSE((value.checkedToInt()).ok());
+        TEST_ASSERT_FALSE((value.checkedToUint()).ok());
+        TEST_ASSERT((value.checkedToFloat()).ok());
+    }
+
+    {
+        rpn_value value { "1234567890" };
+        TEST_ASSERT_FALSE((value.checkedToInt()).ok());
+        TEST_ASSERT_FALSE((value.checkedToUint()).ok());
+        TEST_ASSERT_FALSE((value.checkedToFloat()).ok());
+    }
+
+}
+
 // TODO: also check integer operations
 // TODO: make sure we handle math processing errors
 
@@ -959,6 +1028,7 @@ void test_memory() {
 int run_tests() {
     UNITY_BEGIN();
     RUN_TEST(test_rpn_value);
+    RUN_TEST(test_conversions);
     RUN_TEST(test_math);
     RUN_TEST(test_math_advanced);
     RUN_TEST(test_math_int);

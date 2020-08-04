@@ -39,48 +39,71 @@ rpn_value_error _rpn_can_divide_by(const rpn_value& value) {
     rpn_value_error result = rpn_value_error::Ok;
 
     switch (value.type) {
+
     case rpn_value::Type::Float: {
-        auto as_float = value.toFloat();
-        if (std::isinf(as_float) || std::isnan(as_float)) {
-            return rpn_value_error::IEEE754;
+        auto conversion = value.checkedToFloat();
+        if (!conversion.ok()) {
+            result = conversion.error();
+            break;
         }
-        if (as_float == 0.0) {
+
+        rpn_float as_float = conversion.value();
+        if (std::isinf(as_float) || std::isnan(as_float)) {
+            result = rpn_value_error::IEEE754;
+            break;
+        }
+
+        if (static_cast<rpn_float>(0.0) == as_float) {
             result = rpn_value_error::DivideByZero;
+        }
+
+        break;
+    }
+
+    case rpn_value::Type::Null:
+        return rpn_value_error::IsNull;
+
+    case rpn_value::Type::Integer: {
+        auto conversion = value.checkedToInt();
+        if (!conversion.ok()) {
+            result = conversion.error();
+            break;
+        }
+
+        if (static_cast<rpn_int>(0) == conversion.value()) {
+            result = rpn_value_error::DivideByZero;
+            break;
+        }
+
+        break;
+    }
+
+    case rpn_value::Type::Unsigned: {
+        auto conversion = value.checkedToInt();
+        if (!conversion.ok()) {
+            result = conversion.error();
+            break;
+        }
+
+        if (static_cast<rpn_uint>(0ul) == conversion.value()) {
+            result = rpn_value_error::DivideByZero;
+            break;
         }
         break;
     }
-    case rpn_value::Type::Null:
-        return rpn_value_error::IsNull;
-    case rpn_value::Type::Integer:
-        if (value.toInt() == 0) {
-            result = rpn_value_error::DivideByZero;
-        }
-        break;
-    case rpn_value::Type::Unsigned:
-        if (value.toUint() == 0UL) {
-            result = rpn_value_error::DivideByZero;
-        }
-        break;
+
     case rpn_value::Type::Error:
     case rpn_value::Type::Boolean:
     case rpn_value::Type::String:
         result = rpn_value_error::InvalidOperation;
         break;
+
     }
 
     return result;
 }
 
-struct rpn_value_operator_result {
-    operator bool() {
-        return result;
-    }
-
-    bool result;
-    rpn_value_error error;
-};
-
-rpn_value_operator_result _rpn_can_call_operator(const rpn_value& lhs, const rpn_value& rhs) {
+rpn_optional<bool> _rpn_can_call_operator(const rpn_value& lhs, const rpn_value& rhs) {
     if (lhs.isError()) {
         return {false, lhs.toError()};
     }
@@ -93,16 +116,16 @@ rpn_value_operator_result _rpn_can_call_operator(const rpn_value& lhs, const rpn
         return {false, rpn_value_error::IsNull};
     }
 
-    return {true};
+    return {true, rpn_value_error::Ok};
 }
 
-rpn_value_operator_result _rpn_can_do_math(const rpn_value& lhs, const rpn_value& rhs) {
+rpn_optional<bool> _rpn_can_do_math(const rpn_value& lhs, const rpn_value& rhs) {
     if (lhs.isNumber() && (rhs.isNumber() || rhs.isBoolean())) {
-        return {true};
+        return {true, rpn_value_error::Ok};
     }
 
     if (lhs.isBoolean() && (rhs.isNumber() || rhs.isBoolean())) {
-        return {true};
+        return {true, rpn_value_error::Ok};
     }
 
     return {false, rpn_value_error::InvalidOperation};
@@ -226,7 +249,7 @@ void rpn_value::assign(const rpn_value& other) noexcept {
 }
 
 rpn_value_error rpn_value::toError() const {
-    rpn_value_error result = rpn_value_error::Ok;
+    auto result = rpn_value_error::NotAnError;
 
     switch (type) {
     case rpn_value::Type::Error:
@@ -245,45 +268,154 @@ rpn_value_error rpn_value::toError() const {
 }
 
 bool rpn_value::toBoolean() const {
+    bool result { false };
+
     switch (type) {
     case rpn_value::Type::Boolean:
-        return as_boolean;
+        result = as_boolean;
+        break;
     case rpn_value::Type::Integer:
-        return as_integer != 0L;
+        result = static_cast<rpn_int>(0) != as_integer;
+        break;
     case rpn_value::Type::Unsigned:
-        return as_unsigned != 0UL;
+        result = static_cast<rpn_uint>(0ul) != as_unsigned;
+        break;
     case rpn_value::Type::Float:
-        return as_float != 0.0;
-    case rpn_value::Type::String:
-        return as_string.length() > 0;
+        result = static_cast<rpn_float>(0.0) != as_float;
+        break;
+    case rpn_value::Type::String: {
+        using size_type = decltype(std::declval<String>().length());
+        result = static_cast<size_type>(0ul) < as_string.length();
+        break;
+    }
     case rpn_value::Type::Null:
     case rpn_value::Type::Error:
         break;
     }
 
-    return false;
+    return result;
 }
 
-rpn_uint rpn_value::toUint() const {
-    rpn_uint result = 0UL;
+rpn_optional<rpn_int> rpn_value::checkedToInt() const {
+    rpn_optional<rpn_int> result(
+        static_cast<rpn_int>(0),
+        rpn_value_error::ImpossibleConversion
+    );
+
+    switch (type) {
+    case rpn_value::Type::Integer:
+        result = as_integer;
+        break;
+    case rpn_value::Type::Boolean:
+        result = as_boolean
+            ? static_cast<rpn_int>(1)
+            : static_cast<rpn_int>(0);
+        break;
+    case rpn_value::Type::Unsigned:
+        if (std::numeric_limits<rpn_int>::digits <= std::numeric_limits<rpn_uint>::digits) {
+            constexpr rpn_uint mask = std::numeric_limits<rpn_int>::max();
+            if ((as_unsigned & mask) != as_unsigned) {
+                break;
+            }
+            result = static_cast<rpn_int>(as_unsigned);
+            break;
+        }
+        result = rpn_value_error::OutOfRangeConversion;
+        break;
+    case rpn_value::Type::Float: {
+        constexpr rpn_float upper = std::numeric_limits<rpn_int>::max();
+        constexpr rpn_float lower = std::numeric_limits<rpn_int>::min();
+        if ((lower <= as_float) && (as_float <= upper)) {
+            result = rpnlib_round(as_float);
+            break;
+        }
+        result = rpn_value_error::OutOfRangeConversion;
+        break;
+    }
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
+    case rpn_value::Type::String:
+        break;
+    }
+
+    return result;
+}
+
+rpn_int rpn_value::toInt() const {
+    return isInt() ? as_integer : checkedToInt().value();
+}
+
+rpn_optional<rpn_uint> rpn_value::checkedToUint() const {
+    rpn_optional<rpn_uint> result(
+        static_cast<rpn_uint>(0ul),
+        rpn_value_error::ImpossibleConversion
+    );
 
     switch (type) {
     case rpn_value::Type::Unsigned:
         result = as_unsigned;
         break;
     case rpn_value::Type::Boolean:
-        result = as_boolean ? 1UL : 0UL;
+        result = as_boolean
+            ? static_cast<rpn_uint>(1UL)
+            : static_cast<rpn_uint>(0UL);
         break;
     case rpn_value::Type::Integer:
-        if (as_integer >= 0) {
-            result = as_integer;
+        if (static_cast<rpn_int>(0) <= as_integer) {
+            if (std::numeric_limits<rpn_int>::digits > std::numeric_limits<rpn_uint>::digits) {
+                constexpr auto mask = std::numeric_limits<rpn_int>::max();
+                if ((as_integer & mask) != as_integer) {
+                    break;
+                }
+            }
+            result = static_cast<rpn_uint>(as_integer);
+            break;
         }
+        result = rpn_value_error::OutOfRangeConversion;
         break;
-    case rpn_value::Type::Float:
-        if ((std::numeric_limits<rpn_uint>::min() <= as_float)
-            && (std::numeric_limits<rpn_uint>::max() > as_float)) {
-            result = static_cast<rpn_uint>(as_float);
+    case rpn_value::Type::Float: {
+        constexpr rpn_float upper = std::numeric_limits<rpn_uint>::max();
+        constexpr rpn_float lower = std::numeric_limits<rpn_uint>::min();
+        if ((as_float >= lower) && (as_float <= upper)) {
+            result = rpnlib_round(as_float);
+            break;
         }
+        result = rpn_value_error::OutOfRangeConversion;
+        break;
+    }
+    case rpn_value::Type::Null:
+    case rpn_value::Type::Error:
+    case rpn_value::Type::String:
+        break;
+    }
+
+    return result;
+}
+
+rpn_uint rpn_value::toUint() const {
+    return isUint() ? as_unsigned : checkedToUint().value();
+}
+
+rpn_optional<rpn_float> rpn_value::checkedToFloat() const {
+    rpn_optional<rpn_float> result(
+        static_cast<rpn_float>(0.0),
+        rpn_value_error::ImpossibleConversion
+    );
+
+    switch (type) {
+    case rpn_value::Type::Float:
+        result = as_float;
+        break;
+    case rpn_value::Type::Boolean:
+        result = as_boolean
+            ? static_cast<rpn_float>(1.0)
+            : static_cast<rpn_float>(0.0);
+        break;
+    case rpn_value::Type::Integer:
+        result = static_cast<rpn_float>(as_integer);
+        break;
+    case rpn_value::Type::Unsigned:
+        result = static_cast<rpn_float>(as_unsigned);
         break;
     case rpn_value::Type::Null:
     case rpn_value::Type::Error:
@@ -295,58 +427,7 @@ rpn_uint rpn_value::toUint() const {
 }
 
 rpn_float rpn_value::toFloat() const {
-    rpn_float result = 0.0;
-
-    switch (type) {
-    case rpn_value::Type::Float:
-        result = as_float;
-        break;
-    case rpn_value::Type::Boolean:
-        result = as_boolean ? 1.0 : 0.0;
-        break;
-    case rpn_value::Type::Integer:
-        result = as_integer;
-        break;
-    case rpn_value::Type::Unsigned:
-        result = as_unsigned;
-        break;
-    case rpn_value::Type::Null:
-    case rpn_value::Type::Error:
-    case rpn_value::Type::String:
-        break;
-    }
-
-    return result;
-}
-
-rpn_int rpn_value::toInt() const {
-    rpn_int result = 0;
-
-    switch (type) {
-    case rpn_value::Type::Integer:
-        result = as_integer;
-        break;
-    case rpn_value::Type::Boolean:
-        result = as_boolean ? 1.0 : 0.0;
-        break;
-    case rpn_value::Type::Unsigned:
-        if (static_cast<rpn_uint>(std::numeric_limits<rpn_int>::max()) < as_unsigned) {
-            result = as_unsigned;
-        }
-        break;
-    case rpn_value::Type::Float:
-        if ((std::numeric_limits<rpn_int>::min() <= as_float)
-            && (std::numeric_limits<rpn_int>::max() > as_float)) {
-            result = rpnlib_round(as_float);
-        }
-        break;
-    case rpn_value::Type::Null:
-    case rpn_value::Type::Error:
-    case rpn_value::Type::String:
-        break;
-    }
-
-    return result;
+    return isFloat() ? as_float : checkedToFloat().value();
 }
 
 String rpn_value::toString() const {
@@ -357,8 +438,9 @@ String rpn_value::toString() const {
         result = F("null");
         break;
     case rpn_value::Type::Error:
-        result = F("value_error:");
+        result = F("<rpn_value_error:");
         result += String(static_cast<int>(as_error));
+        result += F(">");
         break;
     case rpn_value::Type::Boolean:
         result = as_boolean ? F("true") : F("false");
@@ -393,15 +475,27 @@ bool rpn_value::operator<(const rpn_value& other) const {
     }
 
     switch (type) {
-    case rpn_value::Type::Float:
-        result = as_float < other.toFloat();
+    case rpn_value::Type::Integer: {
+        auto conversion = other.checkedToInt();
+        if (conversion.ok()) {
+            result = as_integer < conversion.value();
+        }
         break;
-    case rpn_value::Type::Integer:
-        result = as_integer < other.toInt();
+    }
+    case rpn_value::Type::Unsigned: {
+        auto conversion = other.checkedToUint();
+        if (conversion.ok()) {
+            result = as_unsigned < conversion.value();
+        }
         break;
-    case rpn_value::Type::Unsigned:
-        result = as_unsigned < other.toUint();
+    }
+    case rpn_value::Type::Float: {
+        auto conversion = other.checkedToFloat();
+        if (conversion.ok()) {
+            result = as_float < conversion.value();
+        }
         break;
+    }
     case rpn_value::Type::Null:
     case rpn_value::Type::Error:
     case rpn_value::Type::Boolean:
@@ -421,15 +515,27 @@ bool rpn_value::operator>(const rpn_value& other) const {
     }
 
     switch (type) {
-    case rpn_value::Type::Float:
-        result = as_float > other.toFloat();
+    case rpn_value::Type::Integer: {
+        auto conversion = other.checkedToInt();
+        if (conversion.ok()) {
+            result = as_integer > conversion.value();
+        }
         break;
-    case rpn_value::Type::Integer:
-        result = as_integer > other.toInt();
+    }
+    case rpn_value::Type::Unsigned: {
+        auto conversion = other.checkedToUint();
+        if (conversion.ok()) {
+            result = as_unsigned > conversion.value();
+        }
         break;
-    case rpn_value::Type::Unsigned:
-        result = as_unsigned > other.toUint();
+    }
+    case rpn_value::Type::Float: {
+        auto conversion = other.checkedToFloat();
+        if (conversion.ok()) {
+            result = as_float > conversion.value();
+        }
         break;
+    }
     case rpn_value::Type::Null:
     case rpn_value::Type::Error:
     case rpn_value::Type::Boolean:
@@ -448,20 +554,54 @@ bool rpn_value::operator==(const rpn_value& other) const {
         result = other.isNull();
         break;
     case rpn_value::Type::Error:
-        result = as_error == other.as_error;
+        result = as_error == other.toError();
         break;
     case rpn_value::Type::Boolean:
         result = as_boolean == other.toBoolean();
         break;
-    case rpn_value::Type::Integer:
-        result = as_integer == other.toInt();
+    case rpn_value::Type::Integer: {
+        auto conversion = other.checkedToInt();
+        if (conversion.ok()) {
+            result = as_integer == conversion.value();
+        }
         break;
-    case rpn_value::Type::Unsigned:
-        result = as_unsigned == other.toUint();
+    }
+    case rpn_value::Type::Unsigned: {
+        auto conversion = other.checkedToUint();
+        if (conversion.ok()) {
+            result = as_unsigned == conversion.value();
+        }
         break;
-    case rpn_value::Type::Float:
-        result = as_float == other.toFloat();
+    }
+    case rpn_value::Type::Float: {
+        if (std::isinf(as_float) || std::isnan(as_float)) {
+            break;
+        }
+
+        if (other.isFloat() && (std::isinf(other.as_float) || std::isnan(other.as_float))) {
+            break;
+        }
+
+        // TODO: slightly reduce epsilon value to slightly (lol) widen the margin for error
+        // ref:
+        // - https://randomascii.wordpress.com/category/floating-point/
+        // - https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+        // - https://randomascii.wordpress.com/2012/06/26/doubles-are-not-floats-so-dont-compare-them/
+        // - https://www.embeddeduse.com/2019/08/26/qt-compare-two-floats/
+        constexpr auto epsilon = std::numeric_limits<rpn_float>::epsilon();
+        if (other.isFloat()) {
+            result = rpnlib_abs(as_float - other.as_float) <= epsilon;
+            break;
+        }
+
+        auto conversion = other.checkedToFloat();
+        if (conversion.ok()) {
+            result = rpnlib_abs(as_float - conversion.value()) <= epsilon;
+            break;
+        }
+
         break;
+    }
     case rpn_value::Type::String:
         result = (as_string == other.as_string);
         break;
@@ -488,8 +628,8 @@ rpn_value rpn_value::operator+(const rpn_value& other) {
     // **Notice!**
     // strings are valid here, so we don't have explicit check for number / bool
     auto check = _rpn_can_call_operator(*this, other);
-    if (!check) {
-        val = rpn_value(check.error);
+    if (!check.ok()) {
+        val = rpn_value(check.error());
         return val;
     }
 
@@ -518,18 +658,36 @@ rpn_value rpn_value::operator+(const rpn_value& other) {
         val.type = rpn_value::Type::Boolean;
         val.as_boolean = as_boolean + other.as_boolean;
         break;
-    case rpn_value::Type::Float:
-        val.type = rpn_value::Type::Float;
-        val.as_float = as_float + other.toFloat();
-        break;
-    case rpn_value::Type::Integer:
+    case rpn_value::Type::Integer: {
+        auto conversion = other.checkedToInt();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Integer;
-        val.as_integer = as_integer + other.toInt();
+        val.as_integer = as_integer + conversion.value();
         break;
-    case rpn_value::Type::Unsigned:
+    }
+    case rpn_value::Type::Unsigned: {
+        auto conversion = other.checkedToUint();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Unsigned;
-        val.as_unsigned = as_unsigned + other.toUint();
+        val.as_unsigned = as_unsigned + conversion.value();
         break;
+    }
+    case rpn_value::Type::Float: {
+        auto conversion = other.checkedToFloat();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
+        val.type = rpn_value::Type::Float;
+        val.as_float = as_float + conversion.value();
+        break;
+    }
     case rpn_value::Type::Null:
     case rpn_value::Type::Error:
         break;
@@ -543,14 +701,14 @@ rpn_value rpn_value::operator-(const rpn_value& other) {
 
     // return Error when operation does not make sense
     auto check = _rpn_can_call_operator(*this, other);
-    if (!check) {
-        val = rpn_value(check.error);
+    if (!check.ok()) {
+        val = rpn_value(check.error());
         return val;
     }
 
     check = _rpn_can_do_math(*this, other);
-    if (!check) {
-        val = rpn_value(check.error);
+    if (!check.ok()) {
+        val = rpn_value(check.error());
         return val;
     }
 
@@ -560,18 +718,36 @@ rpn_value rpn_value::operator-(const rpn_value& other) {
         val.type = rpn_value::Type::Boolean;
         val.as_boolean = as_boolean - other.toBoolean();
         break;
-    case rpn_value::Type::Float:
-        val.type = rpn_value::Type::Float;
-        val.as_float = as_float - other.toFloat();
-        break;
-    case rpn_value::Type::Integer:
+    case rpn_value::Type::Integer: {
+        auto conversion = other.checkedToInt();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Integer;
-        val.as_integer = as_integer - other.toInt();
+        val.as_integer = as_integer - conversion.value();
         break;
-    case rpn_value::Type::Unsigned:
+    }
+    case rpn_value::Type::Unsigned: {
+        auto conversion = other.checkedToUint();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Unsigned;
-        val.as_unsigned = as_unsigned - other.toUint();
+        val.as_unsigned = as_unsigned - conversion.value();
         break;
+    }
+    case rpn_value::Type::Float: {
+        auto conversion = other.checkedToFloat();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
+        val.type = rpn_value::Type::Float;
+        val.as_float = as_float - conversion.value();
+        break;
+    }
     case rpn_value::Type::Null:
     case rpn_value::Type::Error:
     case rpn_value::Type::String:
@@ -586,35 +762,52 @@ rpn_value rpn_value::operator*(const rpn_value& other) {
 
     // return Error when operation does not make sense
     auto check = _rpn_can_call_operator(*this, other);
-    if (!check) {
-        val = rpn_value(check.error);
+    if (!check.ok()) {
+        val = rpn_value(check.error());
         return val;
     }
 
     check = _rpn_can_do_math(*this, other);
     if (!check) {
-        val = rpn_value(check.error);
+        val = rpn_value(check.error());
         return val;
     }
 
-    // jost do generic math
     switch (type) {
     case rpn_value::Type::Boolean:
         val.type = rpn_value::Type::Boolean;
         val.as_boolean = as_boolean && other.toBoolean();
         break;
-    case rpn_value::Type::Float:
-        val.type = rpn_value::Type::Float;
-        val.as_float = as_float * other.toFloat();
-        break;
-    case rpn_value::Type::Integer:
+    case rpn_value::Type::Integer: {
+        auto conversion = other.checkedToInt();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Integer;
-        val.as_integer = as_integer * other.toInt();
+        val.as_integer = as_integer * conversion.value();
         break;
-    case rpn_value::Type::Unsigned:
+    }
+    case rpn_value::Type::Unsigned: {
+        auto conversion = other.checkedToUint();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Unsigned;
-        val.as_unsigned = as_unsigned * other.toUint();
+        val.as_unsigned = as_unsigned * conversion.value();
         break;
+    }
+    case rpn_value::Type::Float: {
+        auto conversion = other.checkedToFloat();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
+        val.type = rpn_value::Type::Float;
+        val.as_float = as_float * conversion.value();
+        break;
+    }
     case rpn_value::Type::Null:
     case rpn_value::Type::Error:
     case rpn_value::Type::String:
@@ -629,14 +822,14 @@ rpn_value rpn_value::operator/(const rpn_value& other) {
 
     // return Error when operation does not make sense
     auto check = _rpn_can_call_operator(*this, other);
-    if (!check) {
-        val = rpn_value(check.error);
+    if (!check.ok()) {
+        val = rpn_value(check.error());
         return val;
     }
 
     check = _rpn_can_do_math(*this, other);
-    if (!check) {
-        val = rpn_value(check.error);
+    if (!check.ok()) {
+        val = rpn_value(check.error());
         return val;
     }
 
@@ -654,18 +847,36 @@ rpn_value rpn_value::operator/(const rpn_value& other) {
         val.type = rpn_value::Type::Boolean;
         val.as_boolean = as_boolean / other.toBoolean();
         break;
-    case rpn_value::Type::Float:
-        val.type = rpn_value::Type::Float;
-        val.as_float = as_float / other.toFloat();
-        break;
-    case rpn_value::Type::Integer:
+    case rpn_value::Type::Integer: {
+        auto conversion = other.checkedToInt();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Integer;
-        val.as_integer = as_integer / other.toInt();
+        val.as_integer = as_integer / conversion.value();
         break;
-    case rpn_value::Type::Unsigned:
+    }
+    case rpn_value::Type::Unsigned: {
+        auto conversion = other.checkedToUint();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Unsigned;
-        val.as_unsigned = as_unsigned / other.toUint();
+        val.as_unsigned = as_unsigned / conversion.value();
         break;
+    }
+    case rpn_value::Type::Float: {
+        auto conversion = other.checkedToFloat();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
+        val.type = rpn_value::Type::Float;
+        val.as_float = as_float / conversion.value();
+        break;
+    }
     case rpn_value::Type::Null:
     case rpn_value::Type::Error:
     case rpn_value::Type::String:
@@ -680,14 +891,14 @@ rpn_value rpn_value::operator%(const rpn_value& other) {
 
     // return Error when operation does not make sense
     auto check = _rpn_can_call_operator(*this, other);
-    if (!check) {
-        val = rpn_value(check.error);
+    if (!check.ok()) {
+        val = rpn_value(check.error());
         return val;
     }
 
     check = _rpn_can_do_math(*this, other);
-    if (!check) {
-        val = rpn_value(check.error);
+    if (!check.ok()) {
+        val = rpn_value(check.error());
         return val;
     }
 
@@ -705,18 +916,36 @@ rpn_value rpn_value::operator%(const rpn_value& other) {
         val.type = rpn_value::Type::Boolean;
         val.as_boolean = as_boolean % other.as_boolean;
         break;
-    case rpn_value::Type::Integer:
+    case rpn_value::Type::Integer: {
+        auto conversion = other.checkedToInt();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Integer;
-        val.as_integer = as_integer - (floor(as_integer / rpn_float(other.as_integer)) * other.as_integer);
+        val.as_integer = as_integer - (std::floor(as_integer / static_cast<rpn_float>(conversion.value())) * conversion.value());
         break;
-    case rpn_value::Type::Unsigned:
+    }
+    case rpn_value::Type::Unsigned: {
+        auto conversion = other.checkedToUint();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Unsigned;
-        val.as_unsigned = as_unsigned - (floor(as_unsigned / rpn_float(other.as_unsigned)) * other.as_unsigned);
+        val.as_unsigned = as_unsigned - (std::floor(as_unsigned / static_cast<rpn_float>(conversion.value())) * conversion.value());
         break;
-    case rpn_value::Type::Float:
+    }
+    case rpn_value::Type::Float: {
+        auto conversion = other.checkedToFloat();
+        if (!conversion.ok()) {
+            val = rpn_value(conversion.error());
+            break;
+        }
         val.type = rpn_value::Type::Float;
-        val.as_float = as_float - (floor(as_float / other.as_float) * other.as_float);
+        val.as_float = as_float - (std::floor(as_float / conversion.value()) * conversion.value());
         break;
+    }
     case rpn_value::Type::Null:
     case rpn_value::Type::Error:
     case rpn_value::Type::String:

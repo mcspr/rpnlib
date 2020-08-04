@@ -53,7 +53,10 @@ enum class rpn_value_error {
     TypeMismatch,
     DivideByZero,
     IEEE754,
-    IsNull
+    IsNull,
+    NotAnError,
+    OutOfRangeConversion,
+    ImpossibleConversion
 };
 
 struct rpn_error {
