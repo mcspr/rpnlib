@@ -103,32 +103,32 @@ rpn_value_error _rpn_can_divide_by(const rpn_value& value) {
     return result;
 }
 
-rpn_optional<bool> _rpn_can_call_operator(const rpn_value& lhs, const rpn_value& rhs) {
+rpn_value_error _rpn_can_call_operator(const rpn_value& lhs, const rpn_value& rhs) {
     if (lhs.isError()) {
-        return {false, lhs.toError()};
+        return lhs.toError();
     }
 
     if (rhs.isError()) {
-        return {false, rhs.toError()};
+        return rhs.toError();
     }
 
     if (lhs.isNull() || rhs.isNull()) {
-        return {false, rpn_value_error::IsNull};
+        return rpn_value_error::IsNull;
     }
 
-    return {true, rpn_value_error::Ok};
+    return rpn_value_error::Ok;
 }
 
-rpn_optional<bool> _rpn_can_do_math(const rpn_value& lhs, const rpn_value& rhs) {
+rpn_value_error _rpn_can_do_math(const rpn_value& lhs, const rpn_value& rhs) {
     if (lhs.isNumber() && (rhs.isNumber() || rhs.isBoolean())) {
-        return {true, rpn_value_error::Ok};
+        return rpn_value_error::Ok;
     }
 
     if (lhs.isBoolean() && (rhs.isNumber() || rhs.isBoolean())) {
-        return {true, rpn_value_error::Ok};
+        return rpn_value_error::Ok;
     }
 
-    return {false, rpn_value_error::InvalidOperation};
+    return rpn_value_error::InvalidOperation;
 }
 
 } // namespace
@@ -627,9 +627,9 @@ rpn_value rpn_value::operator+(const rpn_value& other) {
 
     // **Notice!**
     // strings are valid here, so we don't have explicit check for number / bool
-    auto check = _rpn_can_call_operator(*this, other);
-    if (!check.ok()) {
-        val = rpn_value(check.error());
+    auto error = _rpn_can_call_operator(*this, other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
@@ -700,15 +700,15 @@ rpn_value rpn_value::operator-(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
-    auto check = _rpn_can_call_operator(*this, other);
-    if (!check.ok()) {
-        val = rpn_value(check.error());
+    auto error = _rpn_can_call_operator(*this, other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
-    check = _rpn_can_do_math(*this, other);
-    if (!check.ok()) {
-        val = rpn_value(check.error());
+    error = _rpn_can_do_math(*this, other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
@@ -761,15 +761,15 @@ rpn_value rpn_value::operator*(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
-    auto check = _rpn_can_call_operator(*this, other);
-    if (!check.ok()) {
-        val = rpn_value(check.error());
+    auto error = _rpn_can_call_operator(*this, other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
-    check = _rpn_can_do_math(*this, other);
-    if (!check) {
-        val = rpn_value(check.error());
+    error = _rpn_can_do_math(*this, other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
@@ -821,23 +821,23 @@ rpn_value rpn_value::operator/(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
-    auto check = _rpn_can_call_operator(*this, other);
-    if (!check.ok()) {
-        val = rpn_value(check.error());
+    auto error = _rpn_can_call_operator(*this, other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
-    check = _rpn_can_do_math(*this, other);
-    if (!check.ok()) {
-        val = rpn_value(check.error());
+    error = _rpn_can_do_math(*this, other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
     // avoid division by zero (previously, RPN_ERROR_DIVIDE_BY_ZERO)
     // technically, we will get either inf or nan with floating point math, but we need operator to do the conversion for this `val` to make sense to the user
-    auto err = _rpn_can_divide_by(other);
-    if (err != rpn_value_error::Ok) {
-        val = rpn_value(err);
+    error = _rpn_can_divide_by(other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
@@ -890,23 +890,23 @@ rpn_value rpn_value::operator%(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
-    auto check = _rpn_can_call_operator(*this, other);
-    if (!check.ok()) {
-        val = rpn_value(check.error());
+    auto error = _rpn_can_call_operator(*this, other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
-    check = _rpn_can_do_math(*this, other);
-    if (!check.ok()) {
-        val = rpn_value(check.error());
+    error = _rpn_can_do_math(*this, other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
     // avoid division by zero (previously, RPN_ERROR_DIVIDE_BY_ZERO)
     // technically, we will get either inf or nan with floating point math, but we need operator to do the conversion for this `val` to make sense to the user
-    auto err = _rpn_can_divide_by(other);
-    if (err != rpn_value_error::Ok) {
-        val = rpn_value(err);
+    error = _rpn_can_divide_by(other);
+    if (rpn_value_error::Ok != error) {
+        val = rpn_value(error);
         return val;
     }
 
