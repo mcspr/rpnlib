@@ -100,27 +100,43 @@ int main(int argc, char** argv) {
     rpn_operator_set(ctxt, "to_string", 1, [](rpn_context& c) -> rpn_error {
         rpn_value value { rpn_stack_pop(c).toString() };
         rpn_stack_push(c, value);
-        return value.toError();
-    });
-    rpn_operator_set(ctxt, "to_int", 1, [](rpn_context& c) -> rpn_error {
-        rpn_value value { rpn_stack_pop(c).toInt() };
-        rpn_stack_push(c, value);
-        return value.toError();
-    });
-    rpn_operator_set(ctxt, "to_uint", 1, [](rpn_context& c) -> rpn_error {
-        rpn_value value { rpn_stack_pop(c).toUint() };
-        rpn_stack_push(c, value);
-        return value.toError();
+        return 0;
     });
     rpn_operator_set(ctxt, "to_boolean", 1, [](rpn_context& c) -> rpn_error {
         rpn_value value { rpn_stack_pop(c).toBoolean() };
         rpn_stack_push(c, value);
-        return value.toError();
+        return 0;
+    });
+
+    rpn_operator_set(ctxt, "to_int", 1, [](rpn_context& c) -> rpn_error {
+        auto value = rpn_stack_pop(c);
+        auto conversion = value.checkedToInt();
+        if (!conversion.ok()) {
+            return conversion.error();
+        }
+
+        rpn_stack_push(c, rpn_value(conversion.value()));
+        return 0;
+    });
+    rpn_operator_set(ctxt, "to_uint", 1, [](rpn_context& c) -> rpn_error {
+        auto value = rpn_stack_pop(c);
+        auto conversion = value.checkedToUint();
+        if (!conversion.ok()) {
+            return conversion.error();
+        }
+
+        rpn_stack_push(c, rpn_value(conversion.value()));
+        return 0;
     });
     rpn_operator_set(ctxt, "to_float", 1, [](rpn_context& c) -> rpn_error {
-        rpn_value value { rpn_stack_pop(c).toFloat() };
-        rpn_stack_push(c, value);
-        return value.toError();
+        auto value = rpn_stack_pop(c);
+        auto conversion = value.checkedToFloat();
+        if (!conversion.ok()) {
+            return conversion.error();
+        }
+
+        rpn_stack_push(c, rpn_value(conversion.value()));
+        return 0;
     });
 
     rpn_debug(ctxt, [](rpn_context&, const char* message) {
