@@ -107,11 +107,13 @@ namespace {
 const String _rpn_empty_token;
 
 // convert raw word to bool. we only need to match one of `true` or `false`, since we expect tokenizer to ensure we have the correct string
-
 bool _rpn_token_as_bool(const char* token) {
     return (strcmp(token, "true") == 0);
 }
 
+// note that isspace in posix terms does not only mean literal ' ' space character. excerpt from isalpha(3):
+// > checks for white-space characters.  In the "C" and "POSIX" locales, these are:
+// >   space, form-feed ('\f'), newline ('\n'), carriage return ('\r'), horizontal tab ('\t'),  and vertical tab ('\v')
 bool _rpn_end_of_token(char c) {
     return (c == '\0') || (c == '\n') || isspace(c);
 }
