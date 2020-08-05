@@ -122,7 +122,7 @@ bool _rpn_token_as_bool(const char* token) {
 //       due to the toolchain setting -funsigned-char on build, we are safe from implementation detail of ctype.h
 //       ofc, we could also just use a custom function here and filter char with switch statement, compiled into the exact same thing that newlib does
 bool _rpn_end_of_token(char c) {
-    return (c == '\0') || (c == '\n') || isspace(c);
+    return (c == '\0') || isspace(c);
 }
 
 bool _rpn_is_hexchar(char ch) {
@@ -160,7 +160,9 @@ enum class Token {
     Null,
     Word,
     Boolean,
-    Number,
+    Integer,
+    Unsigned,
+    Float,
     String,
     VariableReference,
     VariableValue,
@@ -188,8 +190,8 @@ size_t _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
 
 loop:
 
-    type = Token::Unknown;
     start_of_word = p;
+    type = Token::Unknown;
 
     if (*p == '\0') {
         goto stop_parsing;
@@ -210,7 +212,7 @@ loop:
         type = Token::String;
         goto on_string;
     } else if (isdigit(*p) || (*p == '-') || (*p == '+')) {
-        type = Token::Number;
+        type = Token::Float;
         goto on_number;
     } else if ((*p == 't') || (*p == 'f')) {
         type = Token::Boolean;
@@ -301,11 +303,14 @@ on_stack_change:
 
     goto loop;
 
-// Floating point numbers
-// TODO: allow suffixes specifying the type?
-//       `123uint`, `456int`, `789float`
-//       `123u32`, `456i32`, `789f32` (e.g. depend on the bit size from configuration)
-//       `123u`, `456i`, `789f` (maybe not i, if we don't want to get it confused with complex numbers)
+// Generic number matching
+// - anything with a single dot, e / E digits - pass along as float
+// - anything without dots could be integer or unsgined, depending on a single letter suffix
+//
+// TODO:
+// - we don't support matching anything but the base10. allow prefix with integers?
+// - since we ensure number ordering, might as well implement rpn_value assignment in-place?
+// - drop the token completely when matching fails instead of passing it along as a generic word token?
 
 on_number:
 
@@ -321,7 +326,37 @@ on_number:
             switch (*p) {
             case '.':
                 ++p;
-                goto on_number_digits;
+                goto on_number_float;
+            case 'e':
+            case 'E':
+                goto on_number_float;
+            case 'i':
+            case 'u':
+                if (_rpn_end_of_token(*(p + 1))) {
+                    type = (*p == 'i') ? Token::Integer :
+                           (*p == 'u') ? Token::Unsigned :
+                           Token::Error;
+                    ++p;
+                    goto push_token;
+                }
+                goto on_word;
+            default:
+                goto on_word;
+            }
+        }
+        ++p;
+    }
+
+    goto push_token;
+
+// we have encountered floating point dot
+// only allow digits, exponent or end-of-token after this point
+
+on_number_float:
+
+    while (!_rpn_end_of_token(*p)) {
+        if (!isdigit(*p)) {
+            switch (*p) {
             case 'e':
             case 'E':
                 ++p;
@@ -337,6 +372,9 @@ on_number:
     }
 
     goto push_token;
+
+// we have encountered floating point exponent
+// only allow digits after this point
 
 on_number_digits:
 
@@ -498,14 +536,36 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             ));
             return true;
 
-        case Token::Number: {
+        // Integer tokens contain either `i` or `u` at the end, which conversion function should ignore
+        case Token::Integer: {
+            char* endptr = nullptr;
+            rpn_int value = strtol(token.c_str(), &endptr, 10);
+            if (endptr && (endptr != token.c_str()) && endptr[0] == 'i') {
+                ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(value));
+                return true;
+            }
+            break;
+        }
+
+        case Token::Unsigned: {
+            char* endptr = nullptr;
+            rpn_uint value = strtoul(token.c_str(), &endptr, 10);
+            if (endptr && (endptr != token.c_str()) && endptr[0] == 'u') {
+                ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(value));
+                return true;
+            }
+            break;
+        }
+
+        // Floating point does not contain any surprises, just try to parse it normally
+        case Token::Float: {
             char* endptr = nullptr;
             rpn_float value = strtod(token.c_str(), &endptr);
-            if (endptr == token.c_str() || endptr[0] != '\0') {
-                break;
+            if (endptr && endptr != token.c_str() && endptr[0] == '\0') {
+                ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(value));
+                return true;
             }
-            ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(value));
-            return true;
+            break;
         }
 
         case Token::String:

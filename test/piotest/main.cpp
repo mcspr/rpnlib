@@ -935,6 +935,9 @@ void test_parse_null() {
 
 void test_parse_number() {
     run_and_compare("0.0001 1 10000 / eq", rpn_values(true));
+    run_and_compare("0.0001e4 1 eq", rpn_values(true));
+    run_and_compare("0.0001e-4 1e-8 eq", rpn_values(true));
+    run_and_compare("1.e4 10000 eq", rpn_values(true));
     run_and_compare("1e-4 1 10000 / eq", rpn_values(true));
     run_and_compare("1e+4 100000 eq", rpn_values(false));
     run_and_compare("1e+4 10000 eq", rpn_values(true));
@@ -942,6 +945,26 @@ void test_parse_number() {
     run_and_compare("1e-4 1 eq", rpn_values(false));
     run_and_compare("1e-4 0.00001 eq", rpn_values(false));
     run_and_compare("1e-4 0.0001 eq", rpn_values(true));
+}
+
+void test_parse_integer() {
+    run_and_compare("1u 2i 3", rpn_values(
+        static_cast<rpn_uint>(1),
+        static_cast<rpn_int>(2),
+        static_cast<rpn_float>(3.0)
+    ));
+
+    run_and_compare("1i 1u eq", rpn_values(true));
+    run_and_compare("1u 1i eq", rpn_values(true));
+    run_and_compare("1u 1 eq", rpn_values(true));
+    run_and_compare("1 1i eq", rpn_values(true));
+    run_and_compare("1.0 1i eq", rpn_values(true));
+    run_and_compare("1. 1i eq", rpn_values(true));
+    run_and_compare("1u 1u eq", rpn_values(true));
+
+    run_and_compare("1u 2i 3u 4i 5u + + + +", rpn_values<rpn_uint>(15u));
+    run_and_compare("1i 2u 3i 4u 5i + + + +", rpn_values<rpn_int>(15));
+    run_and_compare("1i 2i 3i 4i 5i + + + +", rpn_values<rpn_int>(15));
 }
 
 void test_parse_variable() {
@@ -1057,6 +1080,7 @@ int run_tests() {
     RUN_TEST(test_parse_bool);
     RUN_TEST(test_parse_null);
     RUN_TEST(test_parse_number);
+    RUN_TEST(test_parse_integer);
     RUN_TEST(test_parse_variable);
     RUN_TEST(test_parse_multiline);
     RUN_TEST(test_nested_stack_parse);
