@@ -119,7 +119,12 @@ rpn_value_error _rpn_can_call_operator(const rpn_value& lhs, const rpn_value& rh
     return rpn_value_error::Ok;
 }
 
-rpn_value_error _rpn_can_do_math(const rpn_value& lhs, const rpn_value& rhs) {
+rpn_value_error _rpn_can_call_math_operator(const rpn_value& lhs, const rpn_value& rhs) {
+    auto err = _rpn_can_call_operator(lhs, rhs);
+    if (err != rpn_value_error::Ok) {
+        return err;
+    }
+
     if (lhs.isNumber() && (rhs.isNumber() || rhs.isBoolean())) {
         return rpn_value_error::Ok;
     }
@@ -699,14 +704,7 @@ rpn_value rpn_value::operator+(const rpn_value& other) {
 rpn_value rpn_value::operator-(const rpn_value& other) {
     rpn_value val;
 
-    // return Error when operation does not make sense
-    auto error = _rpn_can_call_operator(*this, other);
-    if (rpn_value_error::Ok != error) {
-        val = rpn_value(error);
-        return val;
-    }
-
-    error = _rpn_can_do_math(*this, other);
+    auto error = _rpn_can_call_math_operator(*this, other);
     if (rpn_value_error::Ok != error) {
         val = rpn_value(error);
         return val;
@@ -761,13 +759,7 @@ rpn_value rpn_value::operator*(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
-    auto error = _rpn_can_call_operator(*this, other);
-    if (rpn_value_error::Ok != error) {
-        val = rpn_value(error);
-        return val;
-    }
-
-    error = _rpn_can_do_math(*this, other);
+    auto error = _rpn_can_call_math_operator(*this, other);
     if (rpn_value_error::Ok != error) {
         val = rpn_value(error);
         return val;
@@ -821,13 +813,7 @@ rpn_value rpn_value::operator/(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
-    auto error = _rpn_can_call_operator(*this, other);
-    if (rpn_value_error::Ok != error) {
-        val = rpn_value(error);
-        return val;
-    }
-
-    error = _rpn_can_do_math(*this, other);
+    auto error = _rpn_can_call_math_operator(*this, other);
     if (rpn_value_error::Ok != error) {
         val = rpn_value(error);
         return val;
@@ -890,13 +876,7 @@ rpn_value rpn_value::operator%(const rpn_value& other) {
     rpn_value val;
 
     // return Error when operation does not make sense
-    auto error = _rpn_can_call_operator(*this, other);
-    if (rpn_value_error::Ok != error) {
-        val = rpn_value(error);
-        return val;
-    }
-
-    error = _rpn_can_do_math(*this, other);
+    auto error = _rpn_can_call_math_operator(*this, other);
     if (rpn_value_error::Ok != error) {
         val = rpn_value(error);
         return val;
