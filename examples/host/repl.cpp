@@ -152,7 +152,13 @@ int main(int argc, char** argv) {
         }
         if (!rpn_process(ctxt, input.c_str())) {
             auto handler = [&ctxt](const String& decoded) {
-                std::cout << "ERROR at position " << ctxt.error.position << " - " << decoded.c_str() << std::endl;
+                auto pos = ctxt.error.position;
+                std::cout << "    ";
+                while (--pos) {
+                    std::cout << ' ';
+                }
+                std::cout << "^\n";
+                std::cout << "ERR: " << decoded.c_str() << std::endl;
             };
             rpn_handle_error(ctxt.error, rpn_decode_errors(handler));
         }
