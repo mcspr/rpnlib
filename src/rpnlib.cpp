@@ -437,6 +437,33 @@ on_string:
         if (*p == '"') {
             break;
         // support some generic escape sequences + \x61\x62\x63 hex codes
+        // break out into a separate loop to simplify string copy without escape codes
+        } else if (*p == '\\') {
+            goto on_string_escaped;
+        }
+        ++p;
+    }
+
+    if (*p == '\0') {
+        goto push_unknown;
+    }
+
+    _rpn_token_copy(start_of_word + 1, p, token);
+    ++p;
+
+    if (!callback(type, token)) {
+        goto stop_parsing;
+    }
+
+    goto loop;
+
+on_string_escaped:
+
+    _rpn_token_copy(start_of_word + 1, p, token);
+
+    while (*p != '\0') {
+        if (*p == '"') {
+            break;
         } else if (*p == '\\') {
             switch (*(p + 1)) {
             case '"':
