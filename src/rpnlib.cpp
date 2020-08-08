@@ -211,7 +211,7 @@ loop:
     } else if (*p == '"') {
         type = Token::String;
         goto on_string;
-    } else if (isdigit(*p) || (*p == '-') || (*p == '+')) {
+    } else if (isdigit(*p) || (*p == '-') || (*p == '+') || (*p == '.')) {
         type = Token::Float;
         goto on_number;
     } else if ((*p == 't') || (*p == 'f')) {
@@ -319,6 +319,12 @@ on_number:
         if (!isdigit(*p)) {
             goto on_word;
         }
+    } else if (*p == '.') {
+        ++p;
+        if (!isdigit(*p)) {
+            goto on_word;
+        }
+        goto on_number_float;
     }
 
     while (!_rpn_end_of_token(*p)) {

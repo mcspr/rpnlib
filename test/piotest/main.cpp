@@ -937,14 +937,16 @@ void test_parse_number() {
     run_and_compare("0.0001 1 10000 / eq", rpn_values(true));
     run_and_compare("0.0001e4 1 eq", rpn_values(true));
     run_and_compare("0.0001e-4 1e-8 eq", rpn_values(true));
-    run_and_compare("1.e4 10000 eq", rpn_values(true));
+    run_and_compare("1.e4 10000", rpn_values(10000.0, 10000.0));
     run_and_compare("1e-4 1 10000 / eq", rpn_values(true));
     run_and_compare("1e+4 100000 eq", rpn_values(false));
     run_and_compare("1e+4 10000 eq", rpn_values(true));
-    run_and_compare("1e4 10000 eq", rpn_values(true));
+    run_and_compare("1e4 10000", rpn_values(10000.0, 10000.0));
     run_and_compare("1e-4 1 eq", rpn_values(false));
     run_and_compare("1e-4 0.00001 eq", rpn_values(false));
-    run_and_compare("1e-4 0.0001 eq", rpn_values(true));
+    run_and_compare("1e-4 0.0001", rpn_values(0.0001, 0.0001));
+    run_and_compare(".123 123e-3 eq", rpn_values(true));
+    run_and_compare("0.123 .123 eq", rpn_values(true));
 }
 
 void test_parse_integer() {
