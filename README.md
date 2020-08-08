@@ -153,59 +153,61 @@ rpn_clear(ctxt);
 
 |Name|Stack operation|Description|
 |-|-|-|
-|`pi`|( -> a ) |  where a is the value of PI|
-|`e`|( -> a ) |  where a is the value of e (base of the Napierian (Naperian) logarithm)|
-|`+`|( a b -> a+b ) | |
-|`-`|( a b -> a-b ) | |
-|`*`|( a b -> a*b ) | |
-|`/`|( a b -> a/b ) | (note: ends execution if b equals 0) |
-|`mod`|( a b -> a\b ) |  returns the reminder for the a/b division as integers |
-|`abs`|( a -> a ) | absolute value of the number. throws an error when a is not float, int or uint |
-|`round`|( a n -> b ) |  where b is a rounded to the n-th decimal|
-|`ceil`|( a -> b ) |  where b is the smallest integral value not less than a |
-|`floor`|( a -> b ) |  where b is the largest integral value not greater than a |
-|`int`|( a -> b ) |  alias for "floor" |
-|`eq`|( a b -> a==b ) | |
-|`ne`|( a b -> a!=b ) | |
-|`gt`|( a b -> a>b ) | |
-|`ge`|( a b -> a>=b ) | |
-|`lt`|( a b -> a<b ) | |
-|`le`|( a b -> a<=b ) | |
-|`cmp`|( a b -> c ) |  c is -1 if a<b, 0 if a==b and 1 if a>b|
-|`cmp3`|( a b c -> d ) |  d is -1 if a<b, 1 if a>c and 0 if equals to b or c or in the middle|
-|`index`|( a v1 v2 ... b -> c ) |  returns the a-nth value from the v# list, b is the number of values in the v# list |
-|`map`|    ( a b c d e -> f ) |  performs a rule of 3 mapping value a which goes from b to c to d to e|
-|`constrain`|(a b c -> d) |  ensures a is between the range of b and c (inlusive) |
-|`and`|( a b -> c ) |  where c is 1 if both a and b are different from 0 |
-|`or`|( a b -> c ) |  where c is 1 if a or b are different from 0 |
-|`xor`|( a b -> c ) |  where c is 1 if either a or b are different from 0, but not both|
-|`not`|( a -> !a ) |  where b is 1 if a is 0, 0 otherwise|
-|`dup`|( a -> a a ) | |
-|`dup2`|( a b -> a b a b ) | |
-|`swap`|( a b -> b a ) | |
-|`rot`|( a b c -> b c a ) | |
-|`unrot`|( a b c -> c a b ) | |
-|`drop`|( a ->  ) | |
-|`over`|( a b -> a b a ) | |
-|`depth`|( a b c ... -> a b c ... n ) |  where n is the number of elements in the stack|
-|`exists`| (a -> ...) | ends execution if a isn't an active variable |
-|`deref`| (&var -> $var) | takes the value from var and copies it on the stack|
-|`=`|( a &var = -> &var ) |  sets var to the value of a and keeps var reference on the stack|
-|`ifn`|( a b c -> d ) |  if a!=0 then b else c|
-|`end`|( a -> ...) |  ends execution if a resolves to false|
+|`pi`|( -- a:float ) |  where a is the value of PI|
+|`e`|( -- a:float ) |  where a is the value of e (base of the Napierian (Naperian) logarithm)|
+|`inf`|( -- a:float ) |  where a is the value of floating point inf |
+|`nan`|( -- a:float ) |  where a is the value of floating point quiet NaN |
+|`+`|( a b -- c ) | (note: when a and b types are different, convers b type into the type of a) |
+|`-`|( a b -- c ) | - |
+|`*`|( a b -- c ) | - |
+|`/`|( a b -- c ) | (note: ends execution if b equals 0) |
+|`mod`|( a b -- c ) |  where c is the reminder of the a/b division |
+|`abs`|( a -- b ) | absolute value of the number. throws an error when a is not float, int or uint |
+|`round`|( a n -- b ) | where b is a rounded to the n-th decimal |
+|`ceil`|( a -- b ) |  where b is the smallest integral value not less than a |
+|`floor`|( a -- b ) |  where b is the largest integral value not greater than a |
+|`int`|( a -- b ) |  alias for "floor" (note: does **not** change value type to Integer) |
+|`eq`|( a b -- c:bool ) | |
+|`ne`|( a b -- c:bool ) | |
+|`gt`|( a b -- c:bool ) | |
+|`ge`|( a b -- c:bool ) | |
+|`lt`|( a b -- c:bool ) | |
+|`le`|( a b -- c:bool ) | |
+|`cmp`|( a b -- c ) |  c is -1 if a<b, 0 if a==b and 1 if a>b |
+|`cmp3`|( a b c -- d ) |  d is -1 if a<b, 1 if a>c and 0 if equals to b or c or in the middle|
+|`index`|( a v1 v2 ... b -- c ) |  returns the a-nth value from the v# list, b is the number of values in the v# list. also accepts the result of `]` as list's length |
+|`map`| ( a b c d e -- f ) |  performs a rule of 3 mapping of the value a (number) which goes from b to c to d to e |
+|`constrain`| (a b c -- d) |  ensures a is between the range of b and c (inlusive) |
+|`and`|( a b -- c:bool ) |  where c is true if both a and b can be converted into boolean true |
+|`or`|( a b -- c:bool ) |  where c is true if either a or b can be converted into boolean true |
+|`xor`|( a b -- c:bool ) |  where c is true if either a or b can be converted into boolean true, but not both |
+|`not`|( a -- b:bool ) |  where b is true if a can be converted into boolean true, false otherwise |
+|`dup`|( a -- a a ) | |
+|`dup2`|( a b -- a b a b ) | |
+|`swap`|( a b -- b a ) | |
+|`rot`|( a b c -- b c a ) | |
+|`unrot`|( a b c -- c a b ) | |
+|`drop`|( a -- ) | |
+|`over`|( a b -- a b a ) | |
+|`depth`|( -- n ) |  where n is the number of elements on the stack |
+|`exists`| (a -- a) | ends execution if a isn't an active variable |
+|`deref`| (&var -- $var) | takes the value from var and copies it on the stack |
+|`=`|( a &var -- &var ) |  sets var to the value of a and keeps var reference on the stack |
+|`ifn`|( a b c -- b or c ) | keeps b on the stack if a can be converted into boolean true, keeps c otherwise |
+|`end`|( a -- ) |  ends execution if a can be converted into boolean false |
 
-In addition, when using `RPNLIB_ADVANCED_MATH` flag:
+In addition, when using `RPNLIB_ADVANCED_MATH` flag, these operators are available for floating point numbers:
 |Name|Stack operation|Description|
 |-|-|-|
-|`sqrt`|  ( a -> sqrt(a) ) | |
-|`log`|  ( a -> log(a) ) | |
-|`log10`|  ( a -> log10(a) ) | |
-|`exp`|  ( a -> e^a ) | |
-|`fmod`|  ( a b -> a\b ) | returns the reminder for the a/b division as real numbers |
-|`pow`|  ( a b -> a^b ) | |
-|`cos`|  ( a -> cos(a) ) | a in radians |
-|`sin`|  ( a -> sin(a) ) | a in radians |
-|`tan`|  ( a -> tan(a) ) | a in radians |
+|`sqrt`|  ( a -- b ) | where b is the square root of a (note: ends execution when a is not float) |
+|`log`|  ( a -- b ) | where b is the log of a |
+|`log10`|  ( a -- b ) | where b is the log10 of a |
+|`exp`|  ( a -- b ) | where b is exponential power of a (e^a)  |
+|`fmod`|  ( a b -- c ) | where c is the reminder of the a/b division |
+|`pow`|  ( a b -- c ) | where c is a power b |
+|`cos`|  ( a -- b ) | where b is cos(a). a is specified in radians |
+|`sin`|  ( a -- b ) | where b is sin(a). a is specified in radians |
+|`tan`|  ( a -- b ) | where b is tan(a). a is specified in radians |
 
 ## Maintainer's notice
 

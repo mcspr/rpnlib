@@ -636,6 +636,9 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             return false;
 
         // Everything else that did not go through the token matching
+        // TODO: class forth systems store word inside of the stack when in compilation mode
+        //       consider adding a flag that never does any stack pop / push operations and just places a 'operation' code on the stack
+        //       this might bloat rpn_value though :/ (yet again)
         case Token::Word: {
             auto result = std::find_if(ctxt.operators.cbegin(), ctxt.operators.cend(), [&token](const rpn_operator& op) {
                 return op.name == token;

@@ -704,6 +704,7 @@ rpn_value rpn_value::operator+(const rpn_value& other) {
 rpn_value rpn_value::operator-(const rpn_value& other) {
     rpn_value val;
 
+    // return Error when operation does not make sense
     auto error = _rpn_can_call_math_operator(*this, other);
     if (rpn_value_error::Ok != error) {
         val = rpn_value(error);

@@ -160,6 +160,18 @@ rpn_error _rpn_e(rpn_context & ctxt) {
     return 0;
 }
 
+rpn_error _rpn_nan(rpn_context & ctxt) {
+    static auto value = rpn_value { static_cast<rpn_float>(std::numeric_limits<rpn_float>::quiet_NaN()) };
+    rpn_stack_push(ctxt, value);
+    return 0;
+}
+
+rpn_error _rpn_inf(rpn_context & ctxt) {
+    static auto value = rpn_value { static_cast<rpn_float>(std::numeric_limits<rpn_float>::infinity()) };
+    rpn_stack_push(ctxt, value);
+    return 0;
+}
+
 // ----------------------------------------------------------------------------
 // Math
 // ----------------------------------------------------------------------------
@@ -578,6 +590,9 @@ rpn_error _rpn_floor(rpn_context & ctxt) {
 
 // [a b c] -> [b] when a resolves `true`
 // [a b c] -> [c] when a resolves `false`
+//
+// Note: classing forth has `if`, `then` and `else`, which place unresolved *forward* reference on the stack
+//       thus, having an ability to have 'delayed' expressions inside `then` and `else`
 rpn_error _rpn_ifn(rpn_context & ctxt) {
     auto& stack = ctxt.stack.get();
 
@@ -753,6 +768,8 @@ bool rpn_operators_init(rpn_context & ctxt) {
 
     rpn_operator_set(ctxt, "pi", 0, _rpn_pi);
     rpn_operator_set(ctxt, "e", 0, _rpn_e);
+    rpn_operator_set(ctxt, "nan", 0, _rpn_nan);
+    rpn_operator_set(ctxt, "inf", 0, _rpn_inf);
 
     rpn_operator_set(ctxt, "+", 2, _rpn_sum);
     rpn_operator_set(ctxt, "-", 2, _rpn_substract);

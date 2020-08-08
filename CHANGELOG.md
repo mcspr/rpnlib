@@ -7,15 +7,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Support escaped `\n`, `\t`, `\r`, `\xFF` in strings used in expressions
 - `position` member of the context's `error` object, which will be set by rpn\_process()
+- For floats in expressions, either integral or fractional part can be omitted when equal to 0. But, not both at the same time.
+- Add `i` and `u` suffix for integral numbers in expressions, changing default type from Float to Integer or Unsigned respectively
+- Add `rpn_value::checkedToInt()`, `rpn_value::checkedToFloat()` and `rpn_value::checkedToUint()` that return error when conversion fails
+- Add `inf` and `nan` operators
 
 ### Changed
 - Preserve variable reference after `ifn`
 - Allow negative offsets for `index`
 - rpnlib\_util.h is included automatically
+- `eq` will try to compare floating point numbers by comparing values distance with type's epsilon
 
 ### Fixed
 - Parser no longer uses fuzzy matching for built-ins, avoiding conflict with operators
 - Parser no longer uses fuzzy matching for numbers written in scientific notation
+- Parser accepts more characters as end of the token, in addition to the space (` `):
+  newline (`\n`), carriage return (`\r`), horizontal tab (`\t`), vertical tab (`\v`)
+- Fix incorrect casts between int / uint / float when calculating numeric limits
 
 ## [0.23.0] 2020-07-26
 ### Added
