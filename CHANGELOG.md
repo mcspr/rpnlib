@@ -3,7 +3,7 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.24.0] IN DEVELOPMENT
+## [0.24.0] 2020-08-08
 ### Added
 - Support escaped `\n`, `\t`, `\r`, `\xFF` in strings used in expressions
 - `position` member of the context's `error` object, which will be set by rpn\_process()
