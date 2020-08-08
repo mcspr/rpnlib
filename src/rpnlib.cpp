@@ -316,7 +316,7 @@ on_number:
 
     if ((*p == '+') || (*p == '-')) {
         ++p;
-        if (!isdigit(*p)) {
+        if (*p != '.' && !isdigit(*p)) {
             goto on_word;
         }
     } else if (*p == '.') {
