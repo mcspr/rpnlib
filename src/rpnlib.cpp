@@ -102,9 +102,50 @@ void rpn_error::reset() {
 //       - by having a separate branch which fully parses everything, but instead of updating stack or calling operators preserves
 //         operations order, which later will be replayed
 
-namespace {
+rpn_input_buffer& rpn_input_buffer::operator+=(char c) {
+    if (((_length + 1) >= Size) || _overflow) {
+        _overflow = true;
+        return *this;
+    }
 
-const String _rpn_empty_token;
+    _buffer[_length++] = c;
+    _buffer[_length] = '\0';
+
+    return *this;
+}
+
+rpn_input_buffer& rpn_input_buffer::write(const char* data, size_t data_length) {
+    if (((_length + data_length + 1) > Size) || _overflow) {
+        _overflow = true;
+        return *this;
+    }
+
+    std::copy(data, data + data_length, _buffer + _length);
+    _length += data_length;
+    _buffer[_length] = '\0';
+
+    return *this;
+}
+
+bool rpn_input_buffer::operator==(const String& other) const {
+    return other.equals(_buffer);
+}
+
+void rpn_input_buffer::reset() {
+    _overflow = false;
+    _length = 0;
+    _buffer[0] = '\0';
+}
+
+const char* rpn_input_buffer::c_str() const {
+    return _buffer;
+}
+
+size_t rpn_input_buffer::length() const {
+    return _length;
+}
+
+namespace {
 
 // convert raw word to bool. we only need to match one of `true` or `false`, since we expect tokenizer to ensure we have the correct string
 bool _rpn_token_as_bool(const char* token) {
@@ -143,17 +184,6 @@ uint8_t _rpn_hexchar_to_byte(char ch) {
     }
 }
 
-// XXX: using out param since we don't know the length beforehand, and out is re-used
-
-void _rpn_token_copy(const char* start, const char* stop, String& out) {
-    out = "";
-    const char* ptr = start;
-    while (ptr != stop) {
-        out += *ptr;
-        ++ptr;
-    }
-}
-
 enum class Token {
     Unknown,
     Error,
@@ -176,8 +206,8 @@ enum class Token {
 // - https://github.com/TartanLlama/function_ref
 
 template <typename CallbackType>
-size_t _rpn_tokenize(const char* buffer, String& token, CallbackType callback) {
-    const char *p = buffer;
+size_t _rpn_tokenize(const char* input, rpn_input_buffer& token, CallbackType callback) {
+    const char *p = input;
     const char *start_of_word = nullptr;
 
     Token type = Token::Unknown;
@@ -201,6 +231,8 @@ loop:
         ++p;
         goto loop;
     }
+
+    token.reset();
 
     if (*p == '&') {
         type = Token::VariableReference;
@@ -244,7 +276,7 @@ on_word:
         ++p;
     }
 
-    goto push_token;
+    goto push_word;
 
 // Some reserved words for base types
 // TODO: we *could* use operator dict, but we would need un-deletable entries
@@ -257,7 +289,7 @@ on_null:
             && (*(++p) == 'l')
             && (_rpn_end_of_token(*(++p))))
         {
-            goto push_token;
+            goto push_word;
         }
     }
 
@@ -271,7 +303,7 @@ on_boolean:
             && (*(++p) == 'e')
             && (_rpn_end_of_token(*(++p))))
         {
-            goto push_token;
+            goto push_word;
         }
     } else if (*p == 'f') {
         if ((*(++p) == 'a')
@@ -280,7 +312,7 @@ on_boolean:
             && (*(++p) == 'e')
             && (_rpn_end_of_token(*(++p))))
         {
-            goto push_token;
+            goto push_word;
         }
     }
 
@@ -295,7 +327,7 @@ on_stack_change:
         goto on_word;
     }
 
-    if (!callback(type, _rpn_empty_token)) {
+    if (!callback(type, token)) {
         goto stop_parsing;
     }
 
@@ -343,7 +375,7 @@ on_number:
                            (*p == 'u') ? Token::Unsigned :
                            Token::Error;
                     ++p;
-                    goto push_token;
+                    goto push_word;
                 }
                 goto on_word;
             default:
@@ -353,7 +385,7 @@ on_number:
         ++p;
     }
 
-    goto push_token;
+    goto push_word;
 
 // we have encountered floating point dot
 // only allow digits, exponent or end-of-token after this point
@@ -377,7 +409,7 @@ on_number_float:
         ++p;
     }
 
-    goto push_token;
+    goto push_word;
 
 // we have encountered floating point exponent
 // only allow digits after this point
@@ -391,7 +423,7 @@ on_number_digits:
         ++p;
     }
 
-    goto push_token;
+    goto push_word;
 
 // $var or &var
 
@@ -409,17 +441,10 @@ on_variable:
     }
 
     if ((p - start_of_word) > 1) {
-        token.reserve(p - start_of_word);
-        _rpn_token_copy(start_of_word + 1, p, token);
-    } else {
-        token = "";
+        token.write(start_of_word + 1, (p - start_of_word) - 1);
     }
 
-    if (!callback(type, token)) {
-        goto stop_parsing;
-    }
-
-    goto loop;
+    goto push_token;
 
 // "...something..."
 // Unlike the above, we start buffering the token right away to allow escape sequences
@@ -430,34 +455,41 @@ on_variable:
 on_string:
 
     ++p;
-    token = "";
+    ++start_of_word;
 
     while (*p != '\0') {
         // we've reached the end, break right away so the action below skips this char
         if (*p == '"') {
             break;
         // support some generic escape sequences + \x61\x62\x63 hex codes
+        // write what we've seen so far and continue incrementing ptr after that, as usual
         } else if (*p == '\\') {
+            token.write(start_of_word, (p - start_of_word));
             switch (*(p + 1)) {
             case '"':
                 token += '"';
                 p += 2;
+                start_of_word = p;
                 break;
             case 'n':
                 token += '\n';
                 p += 2;
+                start_of_word = p;
                 break;
             case 'r':
                 token += '\r';
                 p += 2;
+                start_of_word = p;
                 break;
             case 't':
                 token += '\t';
                 p += 2;
+                start_of_word = p;
                 break;
             case '\\':
                 token += '\\';
                 p += 2;
+                start_of_word = p;
                 break;
             case 'x':
                 if (_rpn_is_hexchar(*(p + 2)) && _rpn_is_hexchar(*(p + 3))) {
@@ -466,6 +498,7 @@ on_string:
                         | (_rpn_hexchar_to_byte(*(p + 3)))
                     );
                     p += 4;
+                    start_of_word = p;
                 } else {
                     goto push_unknown;
                 }
@@ -474,7 +507,7 @@ on_string:
                 goto push_unknown;
             }
         } else {
-            token += *(p++);
+            ++p;
         }
     }
 
@@ -482,23 +515,31 @@ on_string:
         goto push_unknown;
     }
 
+    token.write(start_of_word, (p - start_of_word));
     ++p;
 
-    if (!callback(type, token)) {
-        goto stop_parsing;
-    }
-
-    goto loop;
+    goto push_token;
 
 // We either push what we gathered so far
 
 push_token:
 
-    token.reserve(p - start_of_word);
-    _rpn_token_copy(start_of_word, p, token);
     if (!callback(type, token)) {
         goto stop_parsing;
     }
+    token.reset();
+
+    goto loop;
+
+// Or, buffer the word based on the current position
+
+push_word:
+
+    token.write(start_of_word, p - start_of_word);
+    if (!callback(type, token)) {
+        goto stop_parsing;
+    }
+    token.reset();
 
     goto loop;
 
@@ -506,7 +547,8 @@ push_token:
 
 push_unknown:
 
-    callback(Token::Unknown, _rpn_empty_token);
+    token.reset();
+    callback(Token::Unknown, token);
 
 stop_parsing:
 
@@ -523,11 +565,15 @@ stop_parsing:
 bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exist) {
 
     ctxt.error.reset();
-    ctxt.input_buffer = "";
+    ctxt.input_buffer.reset();
 
-    auto position = _rpn_tokenize(input, ctxt.input_buffer, [&](Token type, const String& token) {
+    auto position = _rpn_tokenize(input, ctxt.input_buffer, [&](Token type, const rpn_input_buffer& token) {
 
         //printf(":token \"%s\" type %d\n", token.c_str(), static_cast<int>(type));
+        if (!token.ok()) {
+            ctxt.error = rpn_processing_error::InputBufferOverflow;
+            return false;
+        }
 
         // Is token a null, bool, number, string or a variable?
         switch (type) {
@@ -575,7 +621,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         }
 
         case Token::String:
-            ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(token));
+            ctxt.stack.get().emplace_back(std::make_shared<rpn_value>(token.c_str()));
             return true;
 
         case Token::VariableValue:
@@ -585,7 +631,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
                 return false;
             }
             auto var = std::find_if(ctxt.variables.cbegin(), ctxt.variables.cend(), [&token](const rpn_variable& v) {
-                return (v.name == token);
+                return (token == v.name);
             });
             const bool found = (var != ctxt.variables.end());
 
@@ -604,7 +650,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             // since we don't have the variable yet, push uninitialized one
             } else {
                 auto null = std::make_shared<rpn_value>();
-                ctxt.variables.emplace_back(token, null);
+                ctxt.variables.emplace_back(token.c_str(), null);
                 ctxt.stack.get().emplace_back(
                     rpn_stack_value::Type::Variable, null
                 );
@@ -641,7 +687,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
         //       this might bloat rpn_value though :/ (yet again)
         case Token::Word: {
             auto result = std::find_if(ctxt.operators.cbegin(), ctxt.operators.cend(), [&token](const rpn_operator& op) {
-                return op.name == token;
+                return token == op.name;
             });
 
             if (result != ctxt.operators.end()) {
@@ -684,7 +730,6 @@ bool rpn_debug(rpn_context & ctxt, rpn_context::debug_callback_type callback) {
 }
 
 bool rpn_init(rpn_context & ctxt) {
-    ctxt.input_buffer.reserve(RPNLIB_EXPRESSION_BUFFER_SIZE);
     return rpn_operators_init(ctxt);
 }
 

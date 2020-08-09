@@ -93,6 +93,9 @@ struct rpn_error_decoder {
         case rpn_processing_error::TokenNotHandled:
             callback("Token was not handled");
             break;
+        case rpn_processing_error::InputBufferOverflow:
+            callback("Token is larger than the available buffer");
+            break;
         }
     }
 

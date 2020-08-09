@@ -43,6 +43,37 @@ struct rpn_context;
 #include "rpnlib_variable.h"
 #include "rpnlib_stack.h"
 
+// XXX: In theory, this could be Arduino String class. However, String::concat(cstring, length) is hidden by default.
+// We *could* easily make it public via subclassing, however some implementations do resort to using strcpy, completely ignoring 'length' param:
+// - https://github.com/bxparks/UnixHostDuino/blob/8564fdde95c1a41b01d8dd87e22cf01aa24332e5/WString.cpp#L264-L272
+// - https://github.com/arduino/ArduinoCore-API/blob/45e4e5aba6ad1a5b67026b686099cc0fce437cdc/api/String.cpp#L267-L275
+// Thus, making it harder to streamline the testing :/ As the hardware version will work just fine b/c it uses either memmove or memcpy:
+// - https://github.com/esp8266/Arduino/blob/fc2426a5e96525a90b9b97f3bd9b679ed904b141/cores/esp8266/WString.cpp#L332
+// - https://github.com/espressif/arduino-esp32/blob/4d98cea085d619bed7026b37071bd8402a485d95/cores/esp32/WString.cpp#L335-L338
+// XXX: std::string vs. String, stdlib's option seems more reasonable. we don't care about sso stuff, but *do* care about code bloat because of multiple string implementations
+
+struct rpn_input_buffer {
+    constexpr static size_t Size = RPNLIB_EXPRESSION_BUFFER_SIZE;
+
+    bool ok() const {
+        return !_overflow;
+    }
+
+    const char* c_str() const;
+    size_t length() const;
+    bool operator==(const String& other) const;
+
+    rpn_input_buffer& operator+=(char c);
+    rpn_input_buffer& write(const char* data, size_t data_length);
+    void reset();
+
+    private:
+
+    char _buffer[Size] __attribute__((aligned(4))) { 0 };
+    size_t _length { 0ul };
+    bool _overflow { false };
+};
+
 struct rpn_context {
     using debug_callback_type = void(*)(rpn_context &, const char *);
     using operators_type = std::vector<rpn_operator>;
@@ -50,7 +81,7 @@ struct rpn_context {
 
     debug_callback_type debug_callback;
 
-    String input_buffer;
+    rpn_input_buffer input_buffer;
     rpn_error error;
 
     variables_type variables;

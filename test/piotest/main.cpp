@@ -795,19 +795,13 @@ void test_strings() {
 
     rpn_value original { String("12345") };
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", original));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "&value &value +"));
+    run_and_compare_ctx(ctxt, "&value &value +", rpn_values("1234512345"));
 
     rpn_value value;
     TEST_ASSERT_TRUE(rpn_variable_get(ctxt, "value", value));
     TEST_ASSERT_EQUAL_STRING_MESSAGE(
         "12345", value.toString().c_str(),
         "Stack string value should remain intact"
-    );
-
-    TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_STRING_MESSAGE(
-        "1234512345", value.toString().c_str(),
-        "Stack string value should contain concatenated string"
     );
 
     TEST_ASSERT(rpn_value("Non-empty string is true").toBoolean());
@@ -848,39 +842,13 @@ void test_parse_bool() {
 }
 
 void test_parse_string() {
-    rpn_context ctxt;
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_FALSE(rpn_process(ctxt, "\"12345 +"));
-
-    rpn_value value;
-    TEST_ASSERT_FALSE_MESSAGE(
-        rpn_stack_pop(ctxt, value),
-        "Parser should fail without closing quote"
-    );
-
-    TEST_ASSERT_FALSE(rpn_process(ctxt, "12345\""));
-    TEST_ASSERT_FALSE_MESSAGE(
-        rpn_stack_pop(ctxt, value),
-        "Parser should fail without opening quote"
-    );
-
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "\"12345\""));
-    stack_compare(ctxt, rpn_values("12345"));
-
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "\"aaaaa\" \"bbbbb\" +"));
-    stack_compare(ctxt, rpn_values("aaaaabbbbb"));
-
-    TEST_ASSERT_FALSE(rpn_process(ctxt, "\"aaaaa\" \"bbbbb\" -"));
-    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
-
-    TEST_ASSERT_FALSE(rpn_process(ctxt, "\"aaaaa\" \"bbbbb\" /"));
-    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
-
-    TEST_ASSERT_FALSE(rpn_process(ctxt, "\"aaaaa\" \"bbbbb\" *"));
-    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
-
-
-    TEST_ASSERT_TRUE(rpn_clear(ctxt));
+    run_and_error("\"12345 +", rpn_processing_error::UnknownToken);
+    run_and_error("12345\"", rpn_processing_error::UnknownOperator);
+    run_and_compare("\"12345\"", rpn_values("12345"));
+    run_and_compare("\"aaaaa\" \"bbbbb\" +", rpn_values("aaaaabbbbb"));
+    run_and_error("\"aaaaa\" \"bbbbb\" -", rpn_value_error::InvalidOperation);
+    run_and_error("\"aaaaa\" \"bbbbb\" /", rpn_value_error::InvalidOperation);
+    run_and_error("\"aaaaa\" \"bbbbb\" *", rpn_value_error::InvalidOperation);
 }
 
 void test_parse_string_escaped() {
@@ -1019,16 +987,14 @@ void test_nested_stack_operator() {
     TEST_ASSERT_EQUAL_FLOAT(2.0, value.toFloat());
 }
 
-#if RPNLIB_PIOTEST_HOST_TEST
 void test_memory() {
+
     // Unlike the embedded environment, we would need to play valgrind
     // and count every new / malloc and ensure we have the same amount
     // of delete / free
+#if RPNLIB_PIOTEST_HOST_TEST
     TEST_IGNORE_MESSAGE("running on host");
-}
 #else
-void test_memory() {
-
     unsigned long start = ESP.getFreeHeap();
 
     // Note that just running rpn_clear() will not release the memory, as internal data structures
@@ -1043,9 +1009,35 @@ void test_memory() {
     }
 
     TEST_ASSERT_EQUAL_INT32(start, ESP.getFreeHeap());
+#endif
 
 }
-#endif
+
+void test_overflow() {
+    rpn_context ctxt;
+    TEST_ASSERT_TRUE(rpn_init(ctxt));
+
+    String a;
+    auto size = ctxt.input_buffer.Size + 1;
+    while (size--) {
+        a += 'x';
+    }
+
+    static auto callback = [](rpn_context&) -> rpn_error {
+        return 0;
+    };
+
+    String b(a.substring(1));
+    String c(a.substring(2));
+
+    TEST_ASSERT_TRUE(rpn_operator_set(ctxt, a.c_str(), 0, callback));
+    TEST_ASSERT_TRUE(rpn_operator_set(ctxt, b.c_str(), 0, callback));
+    TEST_ASSERT_TRUE(rpn_operator_set(ctxt, c.c_str(), 0, callback));
+
+    run_and_error_ctx(ctxt, a.c_str(), rpn_processing_error::InputBufferOverflow);
+    run_and_error_ctx(ctxt, b.c_str(), rpn_processing_error::InputBufferOverflow);
+    run_and_compare_ctx(ctxt, c.c_str(), rpn_values());
+}
 
 // -----------------------------------------------------------------------------
 // Main
@@ -1088,6 +1080,7 @@ int run_tests() {
     RUN_TEST(test_parse_multiline);
     RUN_TEST(test_nested_stack_parse);
     RUN_TEST(test_nested_stack_operator);
+    RUN_TEST(test_overflow);
     return UNITY_END();
 }
 
