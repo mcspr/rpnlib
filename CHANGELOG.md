@@ -3,9 +3,9 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.24.1] XXXX-XX-XX
+## [0.24.1] 2020-08-10
 ### Changed
-- Speed-up string parsing wihout escape sequences
+- Faster parsing for strings without escape sequences
 - Rework internal token buffering
 
 ## [0.24.0] 2020-08-08
