@@ -552,7 +552,7 @@ push_unknown:
 
 stop_parsing:
 
-    return (p - start_of_word);
+    return (p - input);
 
 }
 
