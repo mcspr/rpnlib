@@ -129,14 +129,13 @@ void _stack_compare(rpn_context& ctxt, T expected, int line) {
     while (rpn_stack_size(ctxt)) {
         stack_values.push_back(rpn_stack_pop(ctxt));
     }
-    std::reverse(stack_values.begin(), stack_values.end());
 
     char buffer[512] = {0};
 
     // start checking from the top
     auto expect = expected.rbegin();
-    auto stack = stack_values.rbegin();
-    while ((expect != expected.rend()) && (stack != stack_values.rend())) {
+    auto stack = stack_values.begin();
+    while ((expect != expected.rend()) && (stack != stack_values.end())) {
         if (!(*expect).is((*stack).type)) {
             sprintf(buffer, "Index %zu TYPE MISMATCH : Expected %s, Got %s",
                 index, explain_type((*expect).type), explain_type((*stack).type));
