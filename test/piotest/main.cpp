@@ -257,6 +257,28 @@ void test_rpn_value() {
     TEST_ASSERT_EQUAL_STRING("12345", as_string.toString().c_str());
 }
 
+void test_rpn_stack() {
+    rpn_context ctxt;
+    TEST_ASSERT(rpn_init(ctxt));
+
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value()));
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(
+        static_cast<rpn_int>(1))));
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(
+        static_cast<rpn_uint>(100u))));
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(
+        static_cast<rpn_float>(-50.0))));
+    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(
+        "test-string-test-string")));
+
+    stack_compare(ctxt, rpn_values(
+        rpn_value(),
+        static_cast<rpn_int>(1),
+        static_cast<rpn_uint>(100u),
+        static_cast<rpn_float>(-50.0),
+        rpn_value("test-string-test-string")));
+}
+
 // Ensures default configuration works, but we may encounter different combinations...
 void test_conversions() {
 
@@ -928,6 +950,7 @@ void test_overflow() {
 int run_tests() {
     UNITY_BEGIN();
     RUN_TEST(test_rpn_value);
+    RUN_TEST(test_rpn_stack);
     RUN_TEST(test_conversions);
     RUN_TEST(test_math);
     RUN_TEST(test_math_advanced);
