@@ -124,6 +124,8 @@ void _stack_compare(rpn_context& ctxt, T expected, int line) {
 
     // 'expected' is arranged as `begin()` == bottom and `end() - 1` == top
     std::vector<rpn_value> stack_values;
+    stack_values.reserve(rpn_stack_size(ctxt));
+
     while (rpn_stack_size(ctxt)) {
         stack_values.push_back(rpn_stack_pop(ctxt));
     }
@@ -341,76 +343,26 @@ void test_math_advanced() {
 #endif
 }
 
-// TODO: we can't insert integers without creating rpn_value manually
-//       every number parsed from expression will be floating point
 void test_math_uint() {
-    rpn_context ctxt;
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-
-    const auto first_value = static_cast<rpn_uint>(12345);
-    const auto second_value = static_cast<rpn_uint>(56789);
-
-    rpn_value first(first_value);
-    rpn_value second(second_value);
-
-    TEST_ASSERT(first.isUint());
-    TEST_ASSERT_EQUAL(first_value, first.toUint());
-
-    TEST_ASSERT(second.isUint());
-    TEST_ASSERT_EQUAL(second_value, second.toUint());
-
-    auto check_expression = [&](const char* expression, rpn_uint result) {
-        TEST_ASSERT(rpn_stack_push(ctxt, first));
-        TEST_ASSERT(rpn_stack_push(ctxt, second));
-        TEST_ASSERT_EQUAL(2, rpn_stack_size(ctxt));
-
-        TEST_ASSERT(rpn_process(ctxt, expression));
-        TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
-
-        rpn_value output(rpn_stack_pop(ctxt));
-        TEST_ASSERT_EQUAL(result, output.toUint());
-    };
-
-    check_expression("+", first_value + second_value);
-    check_expression("-", first_value - second_value);
-    check_expression("*", first_value * second_value);
-    check_expression("/", first_value / second_value);
+    run_and_compare("12345u 56789u +",
+        rpn_values(static_cast<rpn_uint>(12345u) + static_cast<rpn_uint>(56789u)));
+    run_and_compare("12345u 56789u -",
+        rpn_values(static_cast<rpn_uint>(12345u) - static_cast<rpn_uint>(56789u)));
+    run_and_compare("12345u 56789u *",
+        rpn_values(static_cast<rpn_uint>(12345u) * static_cast<rpn_uint>(56789u)));
+    run_and_compare("12345u 56789u /",
+        rpn_values(static_cast<rpn_uint>(12345u) / static_cast<rpn_uint>(56789u)));
 }
 
 void test_math_int() {
-
-    rpn_context ctxt;
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-
-    const auto first_value = static_cast<rpn_int>(50);
-    const auto second_value = static_cast<rpn_int>(25);
-
-    rpn_value first(first_value);
-    rpn_value second(second_value);
-
-    TEST_ASSERT(first.isInt());
-    TEST_ASSERT_EQUAL(first_value, first.toInt());
-
-    TEST_ASSERT(second.isInt());
-    TEST_ASSERT_EQUAL(second_value, second.toInt());
-
-    auto check_expression = [&](const char* expression, rpn_int result) {
-        TEST_ASSERT(rpn_stack_push(ctxt, first));
-        TEST_ASSERT(rpn_stack_push(ctxt, second));
-        TEST_ASSERT_EQUAL(2, rpn_stack_size(ctxt));
-
-        TEST_ASSERT(rpn_process(ctxt, expression));
-        TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
-
-        rpn_value output(rpn_stack_pop(ctxt));
-        TEST_ASSERT_EQUAL(result, output.toInt());
-    };
-
-    check_expression("+", first_value + second_value);
-    check_expression("-", first_value - second_value);
-    check_expression("*", first_value * second_value);
-    check_expression("/", first_value / second_value);
-
+    run_and_compare("50i 25i +",
+        rpn_values(static_cast<rpn_int>(50) + static_cast<rpn_int>(25)));
+    run_and_compare("50i 25i -",
+        rpn_values(static_cast<rpn_int>(50) - static_cast<rpn_int>(25)));
+    run_and_compare("50i 25i *",
+        rpn_values(static_cast<rpn_int>(50) * static_cast<rpn_int>(25)));
+    run_and_compare("50i 25 /",
+        rpn_values(static_cast<rpn_int>(50) / static_cast<rpn_int>(25)));
 }
 
 void test_trig() {
@@ -524,69 +476,32 @@ void test_boolean() {
     run_and_compare("true 1 or", rpn_values(true));
     run_and_compare("true true or", rpn_values(true));
 
-    // strings are also convertible to boolean based on length
-    {
-        run_and_compare("\"\" true and", rpn_values(false));
-        run_and_compare("\"\" \"\" and", rpn_values(false));
-        run_and_compare("\"\" \"\" or", rpn_values(false));
-        run_and_compare("\"\" \"not empty\" or", rpn_values(true));
-        run_and_compare("\"not empty\" \"not empty, again\" and", rpn_values(true));
-    }
-
-    // integer values have the same semantics as float
-    {
-        rpn_context ctxt;
-        TEST_ASSERT(rpn_init(ctxt));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(12345))));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(0))));
-        run_and_compare_ctx(ctxt, "and", rpn_values(false));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(12345))));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(67890))));
-        run_and_compare_ctx(ctxt, "and", rpn_values(true));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(1))));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(1))));
-        run_and_compare_ctx(ctxt, "or", rpn_values(true));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(0))));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(1))));
-        run_and_compare_ctx(ctxt, "or", rpn_values(true));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(0))));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(0))));
-        run_and_compare_ctx(ctxt, "or", rpn_values(false));
-
-    }
-
-    {
-        rpn_context ctxt;
-        TEST_ASSERT(rpn_init(ctxt));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(12345))));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(56789))));
-        run_and_compare_ctx(ctxt, "and", rpn_values(true));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(12345))));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(67890))));
-        run_and_compare_ctx(ctxt, "and", rpn_values(true));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(0))));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(1))));
-        run_and_compare_ctx(ctxt, "or", rpn_values(true));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(1))));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(1))));
-        run_and_compare_ctx(ctxt, "or", rpn_values(true));
-
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(0))));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(0))));
-        run_and_compare_ctx(ctxt, "or", rpn_values(false));
-    }
-
     run_and_compare("2 0 and 2 0 or 2 0 xor 1 not",
             rpn_values(false, true, true, false));
+
+    // strings are also convertible to boolean based on length
+    run_and_compare("\"\" true and", rpn_values(false));
+    run_and_compare("\"\" \"\" and", rpn_values(false));
+    run_and_compare("\"\" \"\" or", rpn_values(false));
+    run_and_compare("\"\" \"not empty\" or", rpn_values(true));
+    run_and_compare("\"not empty\" \"not empty, again\" and", rpn_values(true));
+
+    // integer values have the same semantics as float
+    run_and_compare("12345i 0i and", rpn_values(false));
+    run_and_compare("12345i 67890i and", rpn_values(true));
+    run_and_compare("1i 1i or", rpn_values(true));
+    run_and_compare("0i 1i or", rpn_values(true));
+    run_and_compare("1i 0i or", rpn_values(true));
+    run_and_compare("0i 0i or", rpn_values(false));
+
+    run_and_compare("0u 12345u and", rpn_values(false));
+    run_and_compare("56789u 12345u and", rpn_values(true));
+    run_and_compare("12345u 67890u and", rpn_values(true));
+    run_and_compare("0u 1u or", rpn_values(true));
+    run_and_compare("1u 1u or", rpn_values(true));
+    run_and_compare("0u 0u or", rpn_values(false));
+    run_and_compare("12345u 67890u and", rpn_values(true));
+
 }
 
 void test_variable() {
@@ -720,19 +635,15 @@ void test_custom_operator() {
     rpn_context ctxt;
     
     TEST_ASSERT_TRUE(rpn_operator_set(ctxt, "cube", 1, [](rpn_context & ctxt) -> rpn_error {
-        rpn_value a;
-        rpn_stack_pop(ctxt, a);
+        auto a = rpn_stack_pop(ctxt);
         rpn_stack_push(ctxt, a*a*a);
         return 0;
     }));
 
-    run_and_compare_ctx(ctxt, "3 cube", rpn_values(27.0));
-
-    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_int>(2))));
-    run_and_compare_ctx(ctxt, "cube", rpn_values<rpn_int>(8));
-
-    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value(static_cast<rpn_uint>(4))));
-    run_and_compare_ctx(ctxt, "cube", rpn_values(static_cast<rpn_uint>(64)));
+    run_and_compare_ctx(ctxt, "3 cube 2i cube 4u cube", rpn_values(
+                static_cast<rpn_float>(27.0),
+                static_cast<rpn_int>(8),
+                static_cast<rpn_uint>(64)));
 
 }
 
@@ -741,24 +652,11 @@ void test_error_divide_by_zero() {
     run_and_error("0 0 /", rpn_value_error::DivideByZero);
     run_and_error("105 0 mod", rpn_value_error::DivideByZero);
 
-    rpn_context ctxt;
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
+    run_and_error("12345i 0i /", rpn_value_error::DivideByZero);
+    run_and_error("56789i 0i mod", rpn_value_error::DivideByZero);
 
-    const char* ops[] {"/", "mod"};
-
-    for (auto& op : ops) {
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_int>(12345)}));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_int>(0)}));
-        run_and_error_ctx(ctxt, op, rpn_value_error::DivideByZero);
-    }
-    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
-
-    for (auto& op : ops) {
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_uint>(56789u)}));
-        TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_uint>(0u)}));
-        run_and_error_ctx(ctxt, op, rpn_value_error::DivideByZero);
-    }
-    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
+    run_and_error("56789u 0u /", rpn_value_error::DivideByZero);
+    run_and_error("19283u 0u mod", rpn_value_error::DivideByZero);
 }
 
 void test_error_argument_count_mismatch() {
@@ -812,34 +710,18 @@ void test_strings() {
 }
 
 void test_parse_bool() {
-    rpn_context ctxt;
-
-    TEST_ASSERT_TRUE(rpn_init(ctxt));
-
-    // parsing sometimes takes shortcuts and interprets similar 'words' as true or false
-    // TODO: less clever parser
-    TEST_ASSERT_FALSE(rpn_process(ctxt, "trrr"));
-    TEST_ASSERT_FALSE(rpn_process(ctxt, "fllll"));
-    TEST_ASSERT_EQUAL(0, rpn_stack_size(ctxt));
+    // ensure parsing never takes shortcuts and interprets similar 'words' as true or false
+    run_and_error("trrr", rpn_processing_error::UnknownOperator);
+    run_and_error("fllll", rpn_processing_error::UnknownOperator);
 
     // some valid expressions
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "true true and"));
-    stack_compare(ctxt, rpn_values(true));
-
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "false true and"));
-    stack_compare(ctxt, rpn_values(false));
+    run_and_compare("true true and", rpn_values(true));
+    run_and_compare("false true and", rpn_values(false));
+    run_and_compare("true false and", rpn_values(false));
+    run_and_compare("false false and", rpn_values(false));
 
     // we can convert every value type
-    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_int>(1)}));
-    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{static_cast<rpn_uint>(12345u)}));
-    TEST_ASSERT(rpn_stack_push(ctxt, rpn_value{String("test_string")}));
-    TEST_ASSERT_EQUAL(3, rpn_stack_size(ctxt));
-
-    TEST_ASSERT(rpn_process(ctxt, "and"));
-    TEST_ASSERT(rpn_process(ctxt, "and"));
-    stack_compare(ctxt, rpn_values(true));
-
-    TEST_ASSERT_TRUE(rpn_clear(ctxt));
+    run_and_compare("true 1i 12345u \"test string\" and and and", rpn_values(true));
 }
 
 void test_parse_string() {
