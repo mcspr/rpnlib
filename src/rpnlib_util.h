@@ -28,7 +28,8 @@ template <typename Callback>
 void rpn_stack_foreach(rpn_context & ctxt, Callback callback) {
     auto& stack = ctxt.stack.get();
     for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
-        callback((*it).type, *((*it).value.get()));
+        auto& val = *it;
+        callback(val.block, val.type, *(val.value.get()));
     }
 }
 
@@ -90,6 +91,9 @@ struct rpn_error_decoder {
         case rpn_processing_error::NoMoreStacks:
             callback("Already in the top stack");
             break;
+        case rpn_processing_error::StackMismatch:
+            callback("Attempted to pop the stack of a different type");
+            break;
         case rpn_processing_error::TokenNotHandled:
             callback("Token was not handled");
             break;
@@ -115,6 +119,12 @@ struct rpn_error_decoder {
             break;
         case rpn_operator_error::CannotContinue:
             callback("Processing was stopped, cannot continue");
+            break;
+        case rpn_operator_error::CannotInterpret:
+            callback("Cannot interpret the top value as block");
+            break;
+        case rpn_operator_error::InvalidDepth:
+            callback("Specifed depth is more that the available stack size");
             break;
         }
     }

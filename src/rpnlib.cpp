@@ -127,6 +127,11 @@ rpn_input_buffer& rpn_input_buffer::write(const char* data, size_t data_length) 
     return *this;
 }
 
+rpn_input_buffer& rpn_input_buffer::assign(const char* data, size_t data_length) {
+    reset();
+    return write(data, data_length);
+}
+
 bool rpn_input_buffer::operator==(const String& other) const {
     return other.equals(_buffer);
 }
@@ -197,7 +202,9 @@ enum class Token {
     VariableReference,
     VariableValue,
     StackPush,
-    StackPop
+    StackPop,
+    BlockPush,
+    BlockPop
 };
 
 // TODO: check that callback has this signature:
@@ -254,9 +261,19 @@ loop:
         goto on_null;
     } else if (*p == '[') {
         type = Token::StackPush;
+        token += '[';
         goto on_stack_change;
     } else if (*p == ']') {
         type = Token::StackPop;
+        token += ']';
+        goto on_stack_change;
+    } else if (*p == '{') {
+        token += '{';
+        type = Token::BlockPush;
+        goto on_stack_change;
+    } else if (*p == '}') {
+        token += '}';
+        type = Token::BlockPop;
         goto on_stack_change;
     } else {
         type = Token::Word;
@@ -318,7 +335,7 @@ on_boolean:
 
     goto on_word;
 
-// Stack manipulation words `[`, `]`
+// Stack manipulation words '[', ']', '{' and '}'
 // TODO: same as bool and null, should these be implemented as un-deletable built-in dict?
 
 on_stack_change:
@@ -575,6 +592,62 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             return false;
         }
 
+        switch (type) {
+        case Token::VariableValue:
+        case Token::VariableReference:
+            if (!token.length()) {
+                ctxt.error = rpn_processing_error::UnknownToken;
+                return false;
+            }
+        default:
+            break;
+        }
+
+        // We are inside of block and that means we:
+        // - push variables / refs as a string + special tag
+        // - push operators as a string + special tag
+
+        if (rpn_nested_stack::Reason::Block == ctxt.stack.stacks_reason()) {
+
+            auto current { rpn_stack_value::Type::None };
+
+            switch (type) {
+
+            case Token::VariableValue:
+                current = rpn_stack_value::Type::VariableValueName;
+                break;
+
+            case Token::VariableReference:
+                current = rpn_stack_value::Type::VariableReferenceName;
+                break;
+
+            case Token::Word:
+                current = rpn_stack_value::Type::OperatorName;
+                break;
+
+            case Token::BlockPush:
+            case Token::BlockPop:
+                break;
+
+            case Token::StackPush:
+            case Token::StackPop:
+                current = rpn_stack_value::Type::StackKeyword;
+                break;
+
+            case Token::Null:
+            case Token::Unknown:
+                break;
+
+            }
+
+            if (rpn_stack_value::Type::None != current) {
+                ctxt.stack.get().emplace_back(
+                    current, std::make_shared<rpn_value>(token.c_str())
+                );
+                return true;
+            }
+        }
+
         // Is token a null, bool, number, string or a variable?
         switch (type) {
 
@@ -626,10 +699,6 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
         case Token::VariableValue:
         case Token::VariableReference: {
-            if (!token.length()) {
-                ctxt.error = rpn_processing_error::UnknownToken;
-                return false;
-            }
             auto var = std::find_if(ctxt.variables.cbegin(), ctxt.variables.cend(), [&token](const rpn_variable& v) {
                 return (token == v.name);
             });
@@ -658,14 +727,27 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             }
         }
 
+        case Token::BlockPush:
         case Token::StackPush:
-            ctxt.stack.stacks_push();
+            ctxt.stack.stacks_push(
+                (type == Token::StackPush) ? rpn_nested_stack::Reason::Array :
+                (type == Token::BlockPush) ? rpn_nested_stack::Reason::Block :
+                rpn_nested_stack::Reason::None
+            );
             return true;
 
+        case Token::BlockPop:
         case Token::StackPop: {
             if (ctxt.stack.stacks_size() > 1) {
-                ctxt.stack.stacks_merge();
-                return true;
+                auto res = ctxt.stack.stacks_merge(
+                    (type == Token::StackPop) ? rpn_nested_stack::Reason::Array :
+                    (type == Token::BlockPop) ? rpn_nested_stack::Reason::Block :
+                    rpn_nested_stack::Reason::None
+                );
+                ctxt.error = res
+                    ? rpn_processing_error::Ok
+                    : rpn_processing_error::StackMismatch;
+                return res;
             }
 
             ctxt.error = rpn_processing_error::NoMoreStacks;
@@ -713,6 +795,9 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
     if (0 != ctxt.error.code) {
         ctxt.error.position = position;
+        if ((ctxt.stack.stacks_size() > 1) && (rpn_nested_stack::Reason::Block == ctxt.stack.stacks_reason())) {
+            ctxt.stack.stacks_clear();
+        }
     }
 
     // clean-up temporaries when

@@ -31,11 +31,13 @@ enum class rpn_error_category {
 
 enum class rpn_processing_error {
     Ok,
+    NotImplemented,
     UnknownToken,
     InvalidToken,
     VariableDoesNotExist,
     UnknownOperator,
     NoMoreStacks,
+    StackMismatch,
     TokenNotHandled,
     InputBufferOverflow
 };
@@ -45,7 +47,9 @@ enum class rpn_operator_error {
     CannotContinue,
     ArgumentCountMismatch,
     InvalidType,
-    InvalidArgument
+    InvalidArgument,
+    CannotInterpret,
+    InvalidDepth
 };
 
 enum class rpn_value_error {

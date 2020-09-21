@@ -714,7 +714,7 @@ rpn_error _rpn_deref(rpn_context & ctxt) {
     auto value = *top.value;
     stack.pop_back();
 
-    stack.push_back(value);
+    stack.push_back(rpn_stack_value(std::move(value)));
 
     return 0;
 }
@@ -757,6 +757,112 @@ bool rpn_operators_clear(rpn_context & ctxt) {
     ctxt.operators.clear();
     return true;
 }
+
+namespace {
+
+rpn_error _rpn_interpret(rpn_context& ctxt);
+
+rpn_error _rpn_interpret_value(rpn_context& ctxt, rpn_stack_value& value) {
+    auto& stack = ctxt.stack.get();
+
+    if (value.block > 2) {
+        --value.block;
+        stack.push_back(std::move(value));
+        return 0;
+    }
+
+    switch (value.type) {
+
+    case rpn_stack_value::Type::Array:
+    case rpn_stack_value::Type::Block:
+    case rpn_stack_value::Type::Value:
+        stack.push_back(std::move(value));
+        break;
+
+    case rpn_stack_value::Type::VariableValueName:
+    case rpn_stack_value::Type::VariableReferenceName: {
+        String name = (*value.value.get()).toString();
+        auto var = std::find_if(ctxt.variables.cbegin(), ctxt.variables.cend(), [&name](const rpn_variable& v) {
+            return (name == v.name);
+        });
+
+        if (var != ctxt.variables.end()) {
+            if (value.type == rpn_stack_value::Type::VariableValueName) {
+                stack.emplace_back(*((*var).value));
+            } else if (value.type == rpn_stack_value::Type::VariableReferenceName) {
+                stack.emplace_back(rpn_stack_value::Type::Variable, (*var).value);
+            }
+        } else if (value.type == rpn_stack_value::Type::VariableValueName) {
+            return rpn_processing_error::VariableDoesNotExist;
+        } else if (value.type == rpn_stack_value::Type::VariableReferenceName) {
+            auto null = std::make_shared<rpn_value>();
+            ctxt.variables.emplace_back(name, null);
+            ctxt.stack.get().emplace_back(
+                rpn_stack_value::Type::Variable, null
+            );
+        }
+        break;
+    }
+
+    case rpn_stack_value::Type::OperatorName: {
+        String name = (*value.value.get()).toString();
+        auto result = std::find_if(ctxt.operators.cbegin(), ctxt.operators.cend(), [&name](const rpn_operator& op) {
+            return name == op.name;
+        });
+        if (result != ctxt.operators.end()) {
+            if ((*result).argc > stack.size()) {
+                return rpn_operator_error::ArgumentCountMismatch;
+            }
+            auto error = ((*result).callback)(ctxt);
+            if (!error) {
+                return error;
+            }
+        }
+        break;
+    }
+
+    case rpn_stack_value::Type::StackKeyword:
+        return rpn_processing_error::NotImplemented;
+
+    case rpn_stack_value::Type::None:
+        return rpn_processing_error::UnknownToken;
+
+    }
+
+    return 0;
+
+}
+
+rpn_error _rpn_interpret(rpn_context& ctxt) {
+    auto& stack = ctxt.stack.get();
+
+    auto& top = *(stack.end() - 1);
+    if (top.type != rpn_stack_value::Type::Block) {
+        return rpn_operator_error::CannotInterpret;
+    }
+
+    auto depth = (*top.value.get()).toUint();
+    if ((stack.size() - 1) < depth) {
+        return rpn_operator_error::InvalidDepth;
+    }
+
+    auto end = stack.end();
+    auto front = end - 1 - depth;
+
+    std::vector<rpn_stack_value> copy(front, end - 1);
+    stack.erase(front, end);
+
+    for (auto& value : copy) {
+        auto err = _rpn_interpret_value(ctxt, value);
+        if (!err) {
+            return err;
+        }
+    }
+
+    return 0;
+}
+
+} // namespace
 
 bool rpn_operators_init(rpn_context & ctxt) {
 
@@ -816,6 +922,8 @@ bool rpn_operators_init(rpn_context & ctxt) {
 
     rpn_operator_set(ctxt, "ifn", 3, _rpn_ifn);
     rpn_operator_set(ctxt, "end", 1, _rpn_end);
+
+    rpn_operator_set(ctxt, "interpret", 1, _rpn_interpret);
 
     #ifdef RPNLIB_ADVANCED_MATH
         rpn_operators_fmath_init(ctxt);

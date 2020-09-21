@@ -49,9 +49,11 @@ bool _rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& out) {
     if (index >= size) return false;
 
     const auto& ref = stack.at(size - index - 1);
-    if (ref.value == nullptr) return false;
+    if (!ref.value) {
+        return false;
+    }
 
-    out = *ref.value.get();
+    out = *(ref.value.get());
     return true;
 }
 
@@ -96,17 +98,35 @@ rpn_stack_value::Type rpn_stack_inspect(rpn_context & ctxt) {
     return ctxt.stack.back().type;
 }
 
-void rpn_nested_stack::stacks_merge() {
-    auto& prev = *(_stacks.end() - 2);
-    prev.insert(
-        prev.end(),
-        (*_current).begin(),
-        (*_current).end()
-    );
-    prev.emplace_back(
-        rpn_stack_value::Type::Array,
-        rpn_value(static_cast<rpn_uint>((*_current).size()))
-    );
+bool rpn_nested_stack::stacks_merge(Reason reason) {
+    if ((reason != Reason::None) && (reason == _stacks.back().reason)) {
+        auto& prev = *(_stacks.end() - 2);
+        prev.stack.reserve(prev.stack.size() + _current->stack.size());
 
-    stacks_pop();
+        auto block = stacks_size();
+        for (auto&& current : _current->stack) {
+            if (current.block < block) {
+                current.block = block;
+            }
+            prev.stack.push_back(std::move(current));
+        }
+
+        auto type = (Reason::Array == reason) ? rpn_stack_value::Type::Array :
+                    (Reason::Block == reason) ? rpn_stack_value::Type::Block :
+                    rpn_stack_value::Type::None;
+
+        if (rpn_stack_value::Type::None != type) {
+            prev.stack.emplace_back(
+                block,
+                type,
+                rpn_value(static_cast<rpn_uint>(_current->stack.size()))
+            );
+        }
+
+        stacks_pop();
+
+        return true;
+    }
+
+    return false;
 }

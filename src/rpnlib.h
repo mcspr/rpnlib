@@ -61,10 +61,12 @@ struct rpn_input_buffer {
 
     const char* c_str() const;
     size_t length() const;
+
     bool operator==(const String& other) const;
 
     rpn_input_buffer& operator+=(char c);
     rpn_input_buffer& write(const char* data, size_t data_length);
+    rpn_input_buffer& assign(const char* data, size_t data_length);
     void reset();
 
     private:

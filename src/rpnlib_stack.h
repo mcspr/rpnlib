@@ -38,72 +38,100 @@ struct rpn_stack_value {
         None,
         Value,
         Variable,
-        Array
+        VariableValueName,
+        VariableReferenceName,
+        OperatorName,
+        StackKeyword,
+        Array,
+        Block
     };
 
     rpn_stack_value() = delete;
 
     template <typename Value>
-    rpn_stack_value(Type type, Value&& value) :
-        type(type),
-        value(std::make_shared<rpn_value>(std::forward<Value>(value)))
+    rpn_stack_value(unsigned char block_, Type type_, Value&& value_) :
+        block(block_),
+        type(type_),
+        value(std::make_shared<rpn_value>(std::forward<Value>(value_)))
     {}
 
-    rpn_stack_value(Type type, ValuePtr ptr) :
-        type(type),
-        value(ptr)
+    template <typename Value>
+    rpn_stack_value(Type type_, Value&& value_) :
+        rpn_stack_value(0u, type_, std::forward<Value>(value_))
     {}
 
-    rpn_stack_value(ValuePtr ptr) :
+    rpn_stack_value(unsigned char block_, Type type_, ValuePtr value_) :
+        block(block_),
+        type(type_),
+        value(value_)
+    {}
+
+    rpn_stack_value(Type type_, ValuePtr value_) :
+        rpn_stack_value(0u, type_, value_)
+    {}
+
+    explicit rpn_stack_value(ValuePtr ptr) :
         rpn_stack_value(Type::Value, ptr)
     {}
 
-    rpn_stack_value(rpn_value&& value) :
-        rpn_stack_value(Type::Value, std::move(value))
+    explicit rpn_stack_value(rpn_value&& value_) :
+        rpn_stack_value(Type::Value, std::move(value_))
     {}
 
-    rpn_stack_value(const rpn_value& value) :
-        rpn_stack_value(Type::Value, value)
+    explicit rpn_stack_value(const rpn_value& _value) :
+        rpn_stack_value(Type::Value, _value)
     {}
 
-    Type type;
+    unsigned char block { 0u };
+    Type type { Type::Value };
     ValuePtr value;
 };
 
 struct rpn_nested_stack {
-    using stack_type = std::vector<rpn_stack_value>;
-    using stacks_type = std::vector<stack_type>;
+    enum class Reason {
+        None,
+        Main,
+        Array,
+        Block
+    };
 
-    rpn_nested_stack() :
-        _stacks({{}}),
-        _current(&_stacks.back())
-    {}
+    using stack_type = std::vector<rpn_stack_value>;
+    struct Container {
+        Reason reason;
+        stack_type stack;
+    };
+
+    using stacks_type = std::vector<Container>;
+
+    rpn_nested_stack() {
+        stacks_push(Reason::Main);
+    }
 
     stack_type& get() {
-        return *_current;
+        return _current->stack;
     }
 
     size_t size() {
-        return (*_current).size();
+        return _current->stack.size();
     }
 
     void pop() {
-        (*_current).pop_back();
+        _current->stack.pop_back();
     }
 
     void clear() {
-        (*_current).clear();
+        _current->stack.clear();
     }
 
     rpn_stack_value& back() {
-        return (*_current).back();
+        return _current->stack.back();
     }
 
     // notice that we clear the whole chain, not just the current stack
     void stacks_clear() {
         _stacks.resize(1);
         _current = &_stacks.back();
-        (*_current).clear();
+        _current->stack.clear();
     }
 
     // pop out of the stack without changing anything
@@ -115,9 +143,10 @@ struct rpn_nested_stack {
     }
 
     // create a new stack and select it as the current one
-    void stacks_push() {
-        _stacks.resize(_stacks.size() + 1);
+    void stacks_push(Reason reason) {
+        _stacks.push_back(Container{reason, {}});
         _current = &_stacks.back();
+        auto block = stacks_size();
     }
 
     // create a new stack and select it as the current one
@@ -127,12 +156,16 @@ struct rpn_nested_stack {
 
     // merge current stack with the previous one + insert size value
     // then, pop out of the stack
-    void stacks_merge();
+    bool stacks_merge(Reason reason);
+
+    Reason stacks_reason() {
+        return _current->reason;
+    }
 
     private:
 
     stacks_type _stacks;
-    stack_type* _current;
+    Container* _current;
 };
 
 rpn_stack_value::Type rpn_stack_inspect(rpn_context & ctxt);

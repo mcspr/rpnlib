@@ -14,6 +14,18 @@ const char* stack_type(rpn_stack_value::Type type) {
             return "VALUE";
         case rpn_stack_value::Type::Variable:
             return "VARIABLE";
+        case rpn_stack_value::Type::VariableValueName:
+            return "VARIABLE NAME";
+        case rpn_stack_value::Type::VariableReferenceName:
+            return "REFERENCE NAME";
+        case rpn_stack_value::Type::OperatorName:
+            return "OPERATOR NAME";
+        case rpn_stack_value::Type::StackKeyword:
+            return "STACK KEYWORD";
+        case rpn_stack_value::Type::Array:
+            return "ARRAY SIZE";
+        case rpn_stack_value::Type::Block:
+            return "BLOCK SIZE";
         default:
             return "UNKNOWN";
     }
@@ -54,9 +66,16 @@ void dump_variables(rpn_context & ctxt) {
 }
 
 void dump_stack(rpn_context & ctxt) {
+    std::cout << "REASON: " << (
+        (ctxt.stack.stacks_reason() == rpn_nested_stack::Reason::Main) ? "Main" :
+        (ctxt.stack.stacks_reason() == rpn_nested_stack::Reason::Array) ? "Array" :
+        (ctxt.stack.stacks_reason() == rpn_nested_stack::Reason::Block) ? "Block" :
+        "UNKNOWN!"
+    ) << " DEPTH: " << ctxt.stack.stacks_size() << std::endl;
     size_t index = rpn_stack_size(ctxt);
-    rpn_stack_foreach(ctxt, [&index](rpn_stack_value::Type type, const rpn_value& value) {
+    rpn_stack_foreach(ctxt, [&index](unsigned char block, rpn_stack_value::Type type, const rpn_value& value) {
         std::cout << std::setfill('0') << std::setw(3) << --index << ": ";
+        std::cout << std::setfill('0') << std::setw(3) << static_cast<int>(block) << ": ";
         dump_value(value);
         std::cout << " (" << stack_type(type) << ")" << std::endl;
     });
@@ -154,8 +173,10 @@ int main(int argc, char** argv) {
             auto handler = [&ctxt](const String& decoded) {
                 auto pos = ctxt.error.position;
                 std::cout << "    ";
-                while (--pos) {
-                    std::cout << ' ';
+                if (pos > 0) {
+                    while (--pos) {
+                        std::cout << ' ';
+                    }
                 }
                 std::cout << "^\n";
                 std::cout << "ERR: " << decoded.c_str() << std::endl;
