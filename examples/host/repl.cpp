@@ -20,8 +20,6 @@ const char* stack_type(rpn_stack_value::Type type) {
             return "REFERENCE NAME";
         case rpn_stack_value::Type::OperatorName:
             return "OPERATOR NAME";
-        case rpn_stack_value::Type::StackKeyword:
-            return "STACK KEYWORD";
         case rpn_stack_value::Type::Array:
             return "ARRAY SIZE";
         case rpn_stack_value::Type::Block:

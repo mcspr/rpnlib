@@ -765,7 +765,7 @@ rpn_error _rpn_interpret(rpn_context& ctxt);
 rpn_error _rpn_interpret_value(rpn_context& ctxt, rpn_stack_value& value) {
     auto& stack = ctxt.stack.get();
 
-    if (value.block > 2) {
+    if (value.block > 1) {
         --value.block;
         stack.push_back(std::move(value));
         return 0;
@@ -776,6 +776,7 @@ rpn_error _rpn_interpret_value(rpn_context& ctxt, rpn_stack_value& value) {
     case rpn_stack_value::Type::Array:
     case rpn_stack_value::Type::Block:
     case rpn_stack_value::Type::Value:
+    case rpn_stack_value::Type::Variable:
         stack.push_back(std::move(value));
         break;
 
@@ -820,9 +821,6 @@ rpn_error _rpn_interpret_value(rpn_context& ctxt, rpn_stack_value& value) {
         }
         break;
     }
-
-    case rpn_stack_value::Type::StackKeyword:
-        return rpn_processing_error::NotImplemented;
 
     case rpn_stack_value::Type::None:
         return rpn_processing_error::UnknownToken;

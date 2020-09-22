@@ -103,7 +103,7 @@ bool rpn_nested_stack::stacks_merge(Reason reason) {
         auto& prev = *(_stacks.end() - 2);
         prev.stack.reserve(prev.stack.size() + _current->stack.size());
 
-        auto block = stacks_size();
+        auto block = stacks_size() - 1;
         for (auto&& current : _current->stack) {
             if (current.block < block) {
                 current.block = block;

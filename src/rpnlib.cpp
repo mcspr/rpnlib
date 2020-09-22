@@ -609,35 +609,20 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
 
         if (rpn_nested_stack::Reason::Block == ctxt.stack.stacks_reason()) {
 
-            auto current { rpn_stack_value::Type::None };
+            auto current = rpn_stack_value::Type::None;
 
             switch (type) {
-
             case Token::VariableValue:
                 current = rpn_stack_value::Type::VariableValueName;
                 break;
-
             case Token::VariableReference:
                 current = rpn_stack_value::Type::VariableReferenceName;
                 break;
-
             case Token::Word:
                 current = rpn_stack_value::Type::OperatorName;
                 break;
-
-            case Token::BlockPush:
-            case Token::BlockPop:
+            default:
                 break;
-
-            case Token::StackPush:
-            case Token::StackPop:
-                current = rpn_stack_value::Type::StackKeyword;
-                break;
-
-            case Token::Null:
-            case Token::Unknown:
-                break;
-
             }
 
             if (rpn_stack_value::Type::None != current) {

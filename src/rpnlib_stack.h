@@ -41,7 +41,6 @@ struct rpn_stack_value {
         VariableValueName,
         VariableReferenceName,
         OperatorName,
-        StackKeyword,
         Array,
         Block
     };
