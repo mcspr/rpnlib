@@ -145,7 +145,6 @@ struct rpn_nested_stack {
     void stacks_push(Reason reason) {
         _stacks.push_back(Container{reason, {}});
         _current = &_stacks.back();
-        auto block = stacks_size();
     }
 
     // create a new stack and select it as the current one
