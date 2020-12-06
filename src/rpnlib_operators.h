@@ -31,11 +31,15 @@ struct rpn_operator {
     rpn_operator(const char*, unsigned char, callback_type);
 
     rpn_operator(const rpn_operator&) = default;
-    rpn_operator(rpn_operator&&) = default;
+    rpn_operator(rpn_operator&& other) noexcept :
+        name(std::move(other.name)),
+        argc(other.argc),
+        callback(other.callback)
+    {}
 
-    const String name;
-    const unsigned char argc;
-    const callback_type callback;
+    String name;
+    unsigned char argc;
+    callback_type callback;
 };
 
 bool rpn_operators_fmath_init(rpn_context &);
