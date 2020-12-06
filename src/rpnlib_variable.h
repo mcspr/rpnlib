@@ -30,6 +30,12 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <type_traits>
 
 struct rpn_variable {
+    rpn_variable(const rpn_variable&) = default;
+    rpn_variable(rpn_variable&& other) noexcept :
+        name(std::move(other.name)),
+        value(std::move(other.value))
+    {}
+
     template <typename Name>
     rpn_variable(Name&& name, std::shared_ptr<rpn_value> value) :
         name(std::forward<Name>(name)),
