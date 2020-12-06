@@ -44,9 +44,9 @@ add_library(esp8266 STATIC
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/user_interface.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/noniso.c
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/flash_hal_mock.cpp
-	${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/spiffs_mock.cpp
-	${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/littlefs_mock.cpp
-	${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/sdfs_mock.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/spiffs_mock.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/littlefs_mock.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/sdfs_mock.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/ArduinoMainLittlefs.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/ArduinoMainSpiffs.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/cores/esp8266/core_esp8266_noniso.cpp

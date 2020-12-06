@@ -831,17 +831,28 @@ rpn_error _rpn_interpret_value(rpn_context& ctxt, rpn_stack_value& value) {
 
 }
 
-rpn_error _rpn_interpret(rpn_context& ctxt) {
-    auto& stack = ctxt.stack.get();
-
-    auto& top = *(stack.end() - 1);
-    if (top.type != rpn_stack_value::Type::Block) {
+rpn_error _rpn_block_depth(rpn_nested_stack::stack_type& stack, rpn_nested_stack::stack_type::iterator position, rpn_uint& result) {
+    if ((*position).type != rpn_stack_value::Type::Block) {
         return rpn_operator_error::CannotInterpret;
     }
 
-    auto depth = (*top.value.get()).toUint();
+    auto depth = ((*position).value.get())->toUint();
     if ((stack.size() - 1) < depth) {
         return rpn_operator_error::InvalidDepth;
+    }
+
+    result = depth;
+
+    return rpn_operator_error::Ok;
+}
+
+rpn_error _rpn_interpret(rpn_context& ctxt) {
+    auto& stack = ctxt.stack.get();
+
+    rpn_uint depth { 0u };
+    auto err = _rpn_block_depth(stack, stack.end() - 1, depth);
+    if (!err) {
+        return err;
     }
 
     auto end = stack.end();
@@ -858,6 +869,49 @@ rpn_error _rpn_interpret(rpn_context& ctxt) {
     }
 
     return 0;
+}
+
+using stack_values = std::vector<rpn_stack_value>;
+
+rpn_error _rpn_take_block(stack_values& stack, stack_values& out) {
+    stack_values copy;
+
+    rpn_uint depth { 0u };
+    auto err = _rpn_block_depth(stack, stack.end() - 1, depth);
+    if (!err) {
+        return err;
+    }
+
+    auto end = stack.end();
+    auto front = end - 1 - depth;
+
+    out.reserve(depth);
+    out.insert(out.end(), front, end);
+    stack.erase(front, end);
+
+    return rpn_operator_error::Ok;
+}
+
+rpn_error _rpn_if(rpn_context& ctxt) {
+    auto& stack = ctxt.stack.get();
+
+    stack_values block;
+    auto err = _rpn_take_block(stack, block);
+    if (!err) {
+        return err;
+    }
+
+    rpn_value condition;
+    if (!rpn_stack_pop(ctxt, condition)) {
+        return rpn_operator_error::InvalidDepth;
+    }
+
+    if (condition.toBoolean()) {
+        stack.insert(stack.end(), block.begin(), block.end());
+        return _rpn_interpret(ctxt);
+    }
+
+    return rpn_operator_error::Ok;
 }
 
 } // namespace
@@ -922,6 +976,7 @@ bool rpn_operators_init(rpn_context & ctxt) {
     rpn_operator_set(ctxt, "end", 1, _rpn_end);
 
     rpn_operator_set(ctxt, "interpret", 1, _rpn_interpret);
+    rpn_operator_set(ctxt, "if", 2, _rpn_if);
 
     #ifdef RPNLIB_ADVANCED_MATH
         rpn_operators_fmath_init(ctxt);

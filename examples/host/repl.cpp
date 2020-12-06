@@ -160,6 +160,18 @@ int main(int argc, char** argv) {
         std::cout << "DEBUG: " << message << std::endl;
     });
 
+    auto error_handler = [&ctxt](const String& decoded) {
+        auto pos = ctxt.error.position;
+        std::cout << "    ";
+        if (pos > 0) {
+            while (--pos) {
+                std::cout << ' ';
+            }
+        }
+        std::cout << "^\n";
+        std::cout << "ERR: " << decoded.c_str() << std::endl;
+    };
+
     while (true) {
         std::cout << ">>> ";
         std::string input;
@@ -168,18 +180,7 @@ int main(int argc, char** argv) {
             break;
         }
         if (!rpn_process(ctxt, input.c_str())) {
-            auto handler = [&ctxt](const String& decoded) {
-                auto pos = ctxt.error.position;
-                std::cout << "    ";
-                if (pos > 0) {
-                    while (--pos) {
-                        std::cout << ' ';
-                    }
-                }
-                std::cout << "^\n";
-                std::cout << "ERR: " << decoded.c_str() << std::endl;
-            };
-            rpn_handle_error(ctxt.error, rpn_decode_errors(handler));
+            rpn_handle_error(ctxt.error, rpn_decode_errors(error_handler));
         }
         dump_state(ctxt);
         std::cout << std::endl;
