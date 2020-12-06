@@ -22,7 +22,6 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-#include <Arduino.h>
 #include <unity.h>
 #include <unity_internals.h>
 
@@ -161,8 +160,8 @@ void _run_and_compare(rpn_context & ctxt, const char* command, T expected, int l
     UnityMessage(command, line);
 
     if (!rpn_process(ctxt, command)) {
-        String message("rpn_process() failed with \"");
-        rpn_handle_error(ctxt.error, rpn_decode_errors([&message](const String& decoded) {
+        std::string message("rpn_process() failed with \"");
+        rpn_handle_error(ctxt.error, rpn_decode_errors([&message](const std::string& decoded) {
             message += decoded;
         }));
         message += "\" at position ";
@@ -726,7 +725,7 @@ void test_strings() {
     rpn_context ctxt;
     TEST_ASSERT_TRUE(rpn_init(ctxt));
 
-    rpn_value original { String("12345") };
+    rpn_value original { std::string("12345") };
     TEST_ASSERT_TRUE(rpn_variable_set(ctxt, "value", original));
     run_and_compare_ctx(ctxt, "&value &value +", rpn_values("1234512345"));
 
@@ -934,7 +933,7 @@ void test_overflow() {
     rpn_context ctxt;
     TEST_ASSERT_TRUE(rpn_init(ctxt));
 
-    String a;
+    std::string a;
     auto size = ctxt.input_buffer.Size + 1;
     while (size--) {
         a += 'x';
@@ -944,8 +943,8 @@ void test_overflow() {
         return 0;
     };
 
-    String b(a.substring(1));
-    String c(a.substring(2));
+    std::string b(a.substr(1));
+    std::string c(a.substr(2));
 
     TEST_ASSERT_TRUE(rpn_operator_set(ctxt, a.c_str(), 0, callback));
     TEST_ASSERT_TRUE(rpn_operator_set(ctxt, b.c_str(), 0, callback));

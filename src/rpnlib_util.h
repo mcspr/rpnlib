@@ -35,14 +35,14 @@ void rpn_stack_foreach(rpn_context & ctxt, Callback callback) {
 template <typename Callback>
 void rpn_variables_foreach(rpn_context & ctxt, Callback callback) {
     for (auto& var : ctxt.variables) {
-        callback(var.name, *(var.value.get()));
+        callback(var.name.c_str(), *(var.value.get()));
     }
 }
 
 template <typename Callback>
 void rpn_operators_foreach(rpn_context & ctxt, Callback callback) {
     for (auto& op : ctxt.operators) {
-        callback(op.name, op.argc, op.callback);
+        callback(op.name.c_str(), op.argc, op.callback);
     }
 }
 
@@ -65,7 +65,6 @@ void rpn_handle_error(const rpn_error& error, Visitor&& visitor) {
 
 template <typename Callback>
 struct rpn_error_decoder {
-
     rpn_error_decoder(Callback&& callback) :
         callback(callback)
     {}
@@ -152,11 +151,12 @@ struct rpn_error_decoder {
     }
 
     void operator()(int code) {
-        callback(String("Unknown error #") + String(code));
+        char buffer[33];
+        snprintf(buffer, sizeof(buffer), "Unknown error #%d", code);
+        callback(buffer);
     }
 
     Callback callback;
-
 };
 
 template <typename Callback>

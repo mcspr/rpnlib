@@ -23,8 +23,6 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef rpnlib_h
 #define rpnlib_h
 
-#include <Arduino.h>
-
 #include "rpnlib_config.h"
 #include "rpnlib_error.h"
 
@@ -62,7 +60,7 @@ struct rpn_input_buffer {
 
     const char* c_str() const;
     size_t length() const;
-    bool operator==(const String& other) const;
+    bool operator==(const std::string& other) const;
 
     rpn_input_buffer& operator+=(char c);
     rpn_input_buffer& write(const char* data, size_t data_length);

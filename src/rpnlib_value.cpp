@@ -144,7 +144,7 @@ rpn_value::rpn_value() :
 
 rpn_value::rpn_value(const rpn_value& other) {
     if (other.type == rpn_value::Type::String) {
-        new (&as_string) String(other.as_string);
+        new (&as_string) std::string(other.as_string);
         type = Type::String;
     } else {
         assignPrimitive(other);
@@ -158,8 +158,8 @@ rpn_value::rpn_value(const rpn_value& other) {
 rpn_value::rpn_value(rpn_value&& other) noexcept {
     if (other.type == rpn_value::Type::String) {
         type = Type::String;
-        new (&as_string) String(std::move(other.as_string));
-        other.as_string.~String();
+        new (&as_string) std::string(std::move(other.as_string));
+        other.as_string.~basic_string();
     } else {
         assignPrimitive(other);
     }
@@ -194,24 +194,24 @@ rpn_value::rpn_value(rpn_float value) :
 rpn_value::rpn_value(const char* value) :
     type(rpn_value::Type::String)
 {
-    new (&as_string) String(value);
+    new (&as_string) std::string(value);
 }
 
-rpn_value::rpn_value(const String& value) :
+rpn_value::rpn_value(const std::string& value) :
     type(rpn_value::Type::String)
 {
-    new (&as_string) String(value);
+    new (&as_string) std::string(value);
 }
 
-rpn_value::rpn_value(String&& value) :
+rpn_value::rpn_value(std::string&& value) :
     type(rpn_value::Type::String)
 {
-    new (&as_string) String(std::move(value));
+    new (&as_string) std::string(std::move(value));
 }
 
 rpn_value::~rpn_value() {
     if (type == rpn_value::Type::String) {
-        as_string.~String();
+        as_string.~basic_string();
     }
 }
 
@@ -245,7 +245,7 @@ void rpn_value::assign(const rpn_value& other) noexcept {
         if (type == rpn_value::Type::String) {
             as_string = other.as_string;
         } else {
-            new (&as_string) String(other.as_string);
+            new (&as_string) std::string(other.as_string);
         }
     } else {
         assignPrimitive(other);
@@ -289,7 +289,7 @@ bool rpn_value::toBoolean() const {
         result = static_cast<rpn_float>(0.0) != as_float;
         break;
     case rpn_value::Type::String: {
-        using size_type = decltype(std::declval<String>().length());
+        using size_type = decltype(std::declval<std::string>().length());
         result = static_cast<size_type>(0ul) < as_string.length();
         break;
     }
@@ -435,29 +435,30 @@ rpn_float rpn_value::toFloat() const {
     return isFloat() ? as_float : checkedToFloat().value();
 }
 
-String rpn_value::toString() const {
-    String result("");
+std::string rpn_value::toString() const {
+    std::string result;
 
     switch (type) {
     case rpn_value::Type::Null:
-        result = F("null");
+        result = "null";
         break;
-    case rpn_value::Type::Error:
-        result = F("<rpn_value_error:");
-        result += String(static_cast<int>(as_error));
-        result += F(">");
+    case rpn_value::Type::Error: {
+        char buffer[33];
+        sprintf(buffer, "error %d", static_cast<int>(as_error));
+        result = buffer;
         break;
+    }
     case rpn_value::Type::Boolean:
-        result = as_boolean ? F("true") : F("false");
+        result = as_boolean ? "true" : "false";
         break;
     case rpn_value::Type::Integer:
-        result = String(as_integer);
+        result = std::to_string(as_integer);
         break;
     case rpn_value::Type::Unsigned:
-        result = String(as_unsigned);
+        result = std::to_string(as_unsigned);
         break;
     case rpn_value::Type::Float:
-        result = String(as_float);
+        result = std::to_string(as_float);
         break;
     case rpn_value::Type::String:
         result = as_string;
@@ -649,7 +650,7 @@ rpn_value rpn_value::operator+(const rpn_value& other) {
         const auto our_size = as_string.length();
         const auto other_size = other.as_string.length();
 
-        new (&val.as_string) String();
+        new (&val.as_string) std::string();
         val.as_string.reserve(our_size + other_size + 1);
         val.as_string += as_string;
         val.as_string += other.as_string;

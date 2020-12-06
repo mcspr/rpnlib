@@ -25,6 +25,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdlib>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 #include <memory>
 #include <limits>
@@ -97,8 +98,8 @@ struct rpn_value {
     explicit rpn_value(rpn_uint);
     explicit rpn_value(rpn_float);
     explicit rpn_value(const char*);
-    explicit rpn_value(const String&);
-    explicit rpn_value(String&&);
+    explicit rpn_value(const std::string&);
+    explicit rpn_value(std::string&&);
 
     template <typename T>
     explicit rpn_value(rpn_optional<T> value) :
@@ -136,7 +137,7 @@ struct rpn_value {
     rpn_int toInt() const;
     rpn_uint toUint() const;
     rpn_float toFloat() const;
-    String toString() const;
+    std::string toString() const;
 
     // Optional result when we need to ensure that target
     // value did convert without any issues
@@ -166,7 +167,7 @@ struct rpn_value {
         rpn_int as_integer;
         rpn_uint as_unsigned;
         rpn_float as_float;
-        String as_string;
+        std::string as_string;
     };
 
 };

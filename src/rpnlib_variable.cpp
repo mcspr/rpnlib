@@ -49,8 +49,8 @@ bool rpn_variables_unref(rpn_context& ctxt) {
 namespace {
 
 template<typename Value>
-bool _rpn_variable_set(rpn_context & ctxt, const String& name, Value&& value) {
-    if (!name.length() || (name.indexOf(' ') >= 0)) {
+bool _rpn_variable_set(rpn_context & ctxt, const std::string& name, Value&& value) {
+    if (!name.length() || (name.find(' ') != std::string::npos)) {
         return false;
     }
 
@@ -66,15 +66,15 @@ bool _rpn_variable_set(rpn_context & ctxt, const String& name, Value&& value) {
 
 }
 
-bool rpn_variable_set(rpn_context & ctxt, const String& name, const rpn_value& value) {
+bool rpn_variable_set(rpn_context & ctxt, const std::string& name, const rpn_value& value) {
     return _rpn_variable_set(ctxt, name, value);
 }
 
-bool rpn_variable_set(rpn_context & ctxt, const String& name, rpn_value&& value) {
+bool rpn_variable_set(rpn_context & ctxt, const std::string& name, rpn_value&& value) {
     return _rpn_variable_set(ctxt, name, std::move(value));
 }
 
-bool rpn_variable_get(rpn_context & ctxt, const String& name, rpn_value& value) {
+bool rpn_variable_get(rpn_context & ctxt, const std::string& name, rpn_value& value) {
     for (auto& v : ctxt.variables) {
         if (v.name != name) continue;
         value = *v.value.get();
@@ -83,13 +83,13 @@ bool rpn_variable_get(rpn_context & ctxt, const String& name, rpn_value& value) 
     return false;
 }
 
-rpn_value rpn_variable_get(rpn_context & ctxt, const String& name) {
+rpn_value rpn_variable_get(rpn_context & ctxt, const std::string& name) {
     rpn_value value;
     rpn_variable_get(ctxt, name, value);
     return value;
 }
 
-bool rpn_variable_del(rpn_context & ctxt, const String& name) {
+bool rpn_variable_del(rpn_context & ctxt, const std::string& name) {
     auto end = ctxt.variables.end();
     auto prev = ctxt.variables.before_begin();
     auto v = prev;

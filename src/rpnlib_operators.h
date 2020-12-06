@@ -28,7 +28,13 @@ struct rpn_operator {
     using callback_type = rpn_error(*)(rpn_context &);
 
     rpn_operator() = delete;
-    rpn_operator(const char*, unsigned char, callback_type);
+
+    template <typename T>
+    rpn_operator(T&& name_, unsigned char argc_, callback_type callback_) :
+        name(std::forward<T>(name_)),
+        argc(argc_),
+        callback(callback_)
+    {}
 
     rpn_operator(const rpn_operator&) = default;
     rpn_operator(rpn_operator&& other) noexcept :
@@ -37,7 +43,7 @@ struct rpn_operator {
         callback(other.callback)
     {}
 
-    String name;
+    std::string name;
     unsigned char argc;
     callback_type callback;
 };

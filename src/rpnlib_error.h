@@ -22,6 +22,8 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <cstddef>
+
 enum class rpn_error_category {
     Unknown,
     Processing,
