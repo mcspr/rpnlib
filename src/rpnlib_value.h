@@ -22,18 +22,21 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <cstdlib>
-#include <cstdint>
-#include <cstring>
-#include <string>
 
-#include <memory>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <limits>
+#include <memory>
+#include <string>
+#include <type_traits>
 
 #include "rpnlib_error.h"
 
 template <typename T>
 struct rpn_optional {
+    //static_assert(std::is_trivially_constructible<T>::value, "");
+
     rpn_optional() = delete;
     rpn_optional(T default_value, rpn_value_error default_error) :
         _value(default_value),

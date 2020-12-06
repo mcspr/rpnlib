@@ -25,11 +25,10 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <limits>
 
+#include <string>
 #include <cstring>
 #include <cmath>
 #include <cstdlib>
-
-#include "rpnlib_compat.h"
 
 // TODO: implement fs_math operations
 
@@ -331,7 +330,7 @@ rpn_optional<rpn_int> rpn_value::checkedToInt() const {
         constexpr rpn_float upper = std::numeric_limits<rpn_int>::max();
         constexpr rpn_float lower = std::numeric_limits<rpn_int>::min();
         if ((lower <= as_float) && (as_float <= upper)) {
-            result = rpnlib_round(as_float);
+            result = std::round(as_float);
             break;
         }
         result = rpn_value_error::OutOfRangeConversion;
@@ -382,7 +381,7 @@ rpn_optional<rpn_uint> rpn_value::checkedToUint() const {
         constexpr rpn_float upper = std::numeric_limits<rpn_uint>::max();
         constexpr rpn_float lower = std::numeric_limits<rpn_uint>::min();
         if ((as_float >= lower) && (as_float <= upper)) {
-            result = rpnlib_round(as_float);
+            result = std::round(as_float);
             break;
         }
         result = rpn_value_error::OutOfRangeConversion;
@@ -451,15 +450,24 @@ std::string rpn_value::toString() const {
     case rpn_value::Type::Boolean:
         result = as_boolean ? "true" : "false";
         break;
-    case rpn_value::Type::Integer:
-        result = std::to_string(as_integer);
+    case rpn_value::Type::Integer: {
+        char buffer[33];
+        snprintf(buffer, sizeof(buffer), "%ld", static_cast<long>(as_integer));
+        result = buffer;
         break;
-    case rpn_value::Type::Unsigned:
-        result = std::to_string(as_unsigned);
+    }
+    case rpn_value::Type::Unsigned: {
+        char buffer[33];
+        snprintf(buffer, sizeof(buffer), "%lu", static_cast<unsigned long>(as_unsigned));
+        result = buffer;
         break;
-    case rpn_value::Type::Float:
-        result = std::to_string(as_float);
+    }
+    case rpn_value::Type::Float: {
+        char buffer[65];
+        snprintf(buffer, sizeof(buffer), "%f", as_float);
+        result = buffer;
         break;
+    }
     case rpn_value::Type::String:
         result = as_string;
         break;
@@ -596,13 +604,13 @@ bool rpn_value::operator==(const rpn_value& other) const {
         // - https://www.embeddeduse.com/2019/08/26/qt-compare-two-floats/
         constexpr auto epsilon = std::numeric_limits<rpn_float>::epsilon();
         if (other.isFloat()) {
-            result = rpnlib_abs(as_float - other.as_float) <= epsilon;
+            result = std::abs(as_float - other.as_float) <= epsilon;
             break;
         }
 
         auto conversion = other.checkedToFloat();
         if (conversion.ok()) {
-            result = rpnlib_abs(as_float - conversion.value()) <= epsilon;
+            result = std::abs(as_float - conversion.value()) <= epsilon;
             break;
         }
 

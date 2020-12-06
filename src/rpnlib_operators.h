@@ -37,11 +37,7 @@ struct rpn_operator {
     {}
 
     rpn_operator(const rpn_operator&) = default;
-    rpn_operator(rpn_operator&& other) noexcept :
-        name(std::move(other.name)),
-        argc(other.argc),
-        callback(other.callback)
-    {}
+    rpn_operator(rpn_operator&& other) noexcept = default;
 
     std::string name;
     unsigned char argc;

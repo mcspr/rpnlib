@@ -31,10 +31,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 struct rpn_variable {
     rpn_variable(const rpn_variable&) = default;
-    rpn_variable(rpn_variable&& other) noexcept :
-        name(std::move(other.name)),
-        value(std::move(other.value))
-    {}
+    rpn_variable(rpn_variable&& other) noexcept = default;
 
     template <typename Name>
     rpn_variable(Name&& name, std::shared_ptr<rpn_value> value) :

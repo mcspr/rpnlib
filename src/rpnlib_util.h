@@ -22,6 +22,8 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include "rpnlib.h"
+
+#include <cstdio>
 #include <utility>
 
 template <typename Callback>
