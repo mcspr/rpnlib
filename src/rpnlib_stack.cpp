@@ -42,9 +42,7 @@ namespace {
 
 // we only can manipulate the current stack
 // stack shifting, push and pop is only handled via the [ and ] keywords
-bool _rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& out) {
-    auto& stack = ctxt.stack.get();
-
+bool _rpn_stack_get(rpn_nested_stack::stack_type& stack, unsigned char index, rpn_value& out) {
     const auto size = stack.size();
     if (index >= size) return false;
 
@@ -53,6 +51,11 @@ bool _rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& out) {
 
     out = *ref.value.get();
     return true;
+}
+
+bool _rpn_stack_get(rpn_context & ctxt, unsigned char index, rpn_value& out) {
+    auto& stack = ctxt.stack.get();
+    return _rpn_stack_get(stack, index, out);
 }
 
 } // namespace
@@ -68,8 +71,9 @@ rpn_value rpn_stack_pop(rpn_context & ctxt, unsigned char index) {
 }
 
 bool rpn_stack_pop(rpn_context & ctxt, rpn_value& out) {
-    if (_rpn_stack_get(ctxt, 0, out)) {
-        ctxt.stack.pop();
+    auto& stack = ctxt.stack.get();
+    if (_rpn_stack_get(stack, 0, out)) {
+        stack.pop_back();
         return true;
     }
     return false;
@@ -82,7 +86,7 @@ rpn_value rpn_stack_pop(rpn_context & ctxt) {
 }
 
 size_t rpn_stack_size(rpn_context & ctxt) {
-    return ctxt.stack.size();
+    return ctxt.stack.get().size();
 }
 
 bool rpn_stack_clear(rpn_context & ctxt) {
@@ -92,8 +96,12 @@ bool rpn_stack_clear(rpn_context & ctxt) {
 }
 
 rpn_stack_value::Type rpn_stack_inspect(rpn_context & ctxt) {
-    if (!ctxt.stack.size()) return rpn_stack_value::Type::None;
-    return ctxt.stack.back().type;
+    auto& stack = ctxt.stack.get();
+    if (stack.size()) {
+        return stack.back().type;
+    }
+
+    return rpn_stack_value::Type::None;
 }
 
 void rpn_nested_stack::stacks_merge() {

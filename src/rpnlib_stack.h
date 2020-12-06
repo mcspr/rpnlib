@@ -54,19 +54,19 @@ struct rpn_stack_value {
         value(ptr)
     {}
 
-    rpn_stack_value(ValuePtr ptr) :
+    explicit rpn_stack_value(ValuePtr ptr) :
         rpn_stack_value(Type::Value, ptr)
     {}
 
-    rpn_stack_value(rpn_value&& value) :
+    explicit rpn_stack_value(rpn_value&& value) :
         rpn_stack_value(Type::Value, std::move(value))
     {}
 
-    rpn_stack_value(const rpn_value& value) :
+    explicit rpn_stack_value(const rpn_value& value) :
         rpn_stack_value(Type::Value, value)
     {}
 
-    Type type;
+    Type type { Type:: None };
     ValuePtr value;
 };
 
@@ -84,29 +84,13 @@ struct rpn_nested_stack {
         _current(&_stacks.back())
     {}
 
-    rpn_nested_stack(rpn_nested_stack&& other) :
+    rpn_nested_stack(rpn_nested_stack&& other) noexcept :
         _stacks(std::move(other._stacks)),
         _current(&_stacks.back())
     {}
 
     stack_type& get() {
         return *_current;
-    }
-
-    size_t size() {
-        return (*_current).size();
-    }
-
-    void pop() {
-        (*_current).pop_back();
-    }
-
-    void clear() {
-        (*_current).clear();
-    }
-
-    rpn_stack_value& back() {
-        return (*_current).back();
     }
 
     // notice that we clear the whole chain, not just the current stack

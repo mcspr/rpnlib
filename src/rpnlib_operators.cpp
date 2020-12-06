@@ -714,7 +714,7 @@ rpn_error _rpn_deref(rpn_context & ctxt) {
     auto value = *top.value;
     stack.pop_back();
 
-    stack.push_back(value);
+    stack.emplace_back(value);
 
     return 0;
 }
