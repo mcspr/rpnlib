@@ -79,6 +79,16 @@ struct rpn_nested_stack {
         _current(&_stacks.back())
     {}
 
+    rpn_nested_stack(const rpn_nested_stack& other) :
+        _stacks(other._stacks),
+        _current(&_stacks.back())
+    {}
+
+    rpn_nested_stack(rpn_nested_stack&& other) :
+        _stacks(std::move(other._stacks)),
+        _current(&_stacks.back())
+    {}
+
     stack_type& get() {
         return *_current;
     }
