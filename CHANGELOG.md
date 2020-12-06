@@ -3,6 +3,15 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.24.2] XXXX-XX-XX
+### Changed
+- Use linked list for variables, replacing vector
+- Use linked list for operators, replacing vector. Ensure we don't over-reserve space when new operators are added.
+
+### Fixed
+- Make sure we copy current stack reference with the object itself
+- Context error position is now relative to the start of the input string
+
 ## [0.24.1] 2020-08-10
 ### Changed
 - Faster parsing for strings without escape sequences
