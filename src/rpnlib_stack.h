@@ -43,6 +43,12 @@ struct rpn_stack_value {
 
     rpn_stack_value() = delete;
 
+    rpn_stack_value(const rpn_stack_value&) = default;
+    rpn_stack_value(rpn_stack_value&&) noexcept = default;
+
+    rpn_stack_value& operator=(const rpn_stack_value&) = default;
+    rpn_stack_value& operator=(rpn_stack_value&&) noexcept = default;
+
     template <typename Value>
     rpn_stack_value(Type type, Value&& value) :
         type(type),

@@ -106,14 +106,16 @@ rpn_stack_value::Type rpn_stack_inspect(rpn_context & ctxt) {
 
 void rpn_nested_stack::stacks_merge() {
     auto& prev = *(_stacks.end() - 2);
+    auto& current = get();
+
     prev.insert(
         prev.end(),
-        (*_current).begin(),
-        (*_current).end()
+        current.begin(),
+        current.end()
     );
     prev.emplace_back(
         rpn_stack_value::Type::Array,
-        rpn_value(static_cast<rpn_uint>((*_current).size()))
+        rpn_value(static_cast<rpn_uint>(current.size()))
     );
 
     stacks_pop();
