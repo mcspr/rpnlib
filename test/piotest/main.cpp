@@ -630,24 +630,37 @@ void test_variable_cleanup() {
     rpn_context ctxt;
 
     TEST_ASSERT_TRUE(rpn_init(ctxt));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "12.3 &tmp ="));
-    TEST_ASSERT_EQUAL(1, rpn_stack_size(ctxt));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "12.3 &one ="));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "1.23 &two ="));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "0.12 &three ="));
+    TEST_ASSERT_EQUAL(3, rpn_stack_size(ctxt));
 
     rpn_value value;
     TEST_ASSERT_TRUE(rpn_stack_pop(ctxt, value));
-    TEST_ASSERT_EQUAL_FLOAT(12.3, value.toFloat());
-    TEST_ASSERT_EQUAL(1, rpn_variables_size(ctxt));
+    TEST_ASSERT_EQUAL_FLOAT(0.12, value.toFloat());
+    TEST_ASSERT_EQUAL(3, rpn_variables_size(ctxt));
 
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "&tmp exists"));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "null &tmp ="));
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "&tmp exists"));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&one exists"));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&two exists"));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&three exists"));
+
+    TEST_ASSERT_TRUE(rpn_variable_del(ctxt, "two"));
+    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
+    TEST_ASSERT_EQUAL(2, rpn_variables_size(ctxt));
+
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&one exists"));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&three exists"));
     TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
 
-    TEST_ASSERT_TRUE(rpn_process(ctxt, "&tmp"));
-    TEST_ASSERT_TRUE(rpn_variable_del(ctxt, "tmp"));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "null &two ="));
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&two exists"));
+    TEST_ASSERT_TRUE(rpn_stack_clear(ctxt));
+
+    TEST_ASSERT_TRUE(rpn_process(ctxt, "&two"));
+    TEST_ASSERT_TRUE(rpn_variable_del(ctxt, "two"));
     TEST_ASSERT_FALSE(rpn_process(ctxt, "exists"));
 
-    TEST_ASSERT_EQUAL(0, rpn_variables_size(ctxt));
+    TEST_ASSERT_EQUAL(2, rpn_variables_size(ctxt));
     TEST_ASSERT_TRUE(rpn_clear(ctxt));
 }
 

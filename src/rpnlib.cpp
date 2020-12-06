@@ -650,7 +650,7 @@ bool rpn_process(rpn_context & ctxt, const char * input, bool variable_must_exis
             // since we don't have the variable yet, push uninitialized one
             } else {
                 auto null = std::make_shared<rpn_value>();
-                ctxt.variables.emplace_back(token.c_str(), null);
+                ctxt.variables.emplace_front(token.c_str(), null);
                 ctxt.stack.get().emplace_back(
                     rpn_stack_value::Type::Variable, null
                 );

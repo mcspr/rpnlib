@@ -749,7 +749,7 @@ rpn_operator::rpn_operator(const char* name, unsigned char argc, callback_type c
 {}
 
 bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, rpn_operator::callback_type callback) {
-    ctxt.operators.emplace_back(name, argc, callback);
+    ctxt.operators.emplace_front(name, argc, callback);
     return true;
 }
 

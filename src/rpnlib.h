@@ -29,6 +29,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include "rpnlib_error.h"
 
 #include <vector>
+#include <forward_list>
 
 using rpn_int = RPNLIB_INT_TYPE;
 using rpn_float = RPNLIB_FLOAT_TYPE;
@@ -76,8 +77,8 @@ struct rpn_input_buffer {
 
 struct rpn_context {
     using debug_callback_type = void(*)(rpn_context &, const char *);
-    using operators_type = std::vector<rpn_operator>;
-    using variables_type = std::vector<rpn_variable>;
+    using operators_type = std::forward_list<rpn_operator>;
+    using variables_type = std::forward_list<rpn_variable>;
 
     debug_callback_type debug_callback;
 

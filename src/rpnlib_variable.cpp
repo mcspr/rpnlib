@@ -31,7 +31,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
 size_t rpn_variables_size(rpn_context & ctxt) {
-    return ctxt.variables.size();
+    return std::distance(ctxt.variables.begin(), ctxt.variables.end());
 }
 
 bool rpn_variables_clear(rpn_context & ctxt) {
@@ -39,13 +39,10 @@ bool rpn_variables_clear(rpn_context & ctxt) {
     return true;
 }
 
-bool rpn_variables_unref(rpn_context & ctxt) {
-    ctxt.variables.erase(
-        std::remove_if(ctxt.variables.begin(), ctxt.variables.end(), [](const rpn_variable& var) {
-            return (var.value.use_count() == 1) && (!static_cast<bool>(*var.value));
-        }),
-        ctxt.variables.end()
-    );
+bool rpn_variables_unref(rpn_context& ctxt) {
+    ctxt.variables.remove_if([](const rpn_variable& var) {
+        return (var.value.use_count() == 1) && (!static_cast<bool>(*var.value));
+    });
     return true;
 }
 
@@ -63,7 +60,7 @@ bool _rpn_variable_set(rpn_context & ctxt, const String& name, Value&& value) {
         return true;
     }
 
-    ctxt.variables.emplace_back(name, std::make_shared<rpn_value>(std::forward<Value>(value)));
+    ctxt.variables.emplace_front(name, std::make_shared<rpn_value>(std::forward<Value>(value)));
     return true;
 }
 
@@ -93,12 +90,18 @@ rpn_value rpn_variable_get(rpn_context & ctxt, const String& name) {
 }
 
 bool rpn_variable_del(rpn_context & ctxt, const String& name) {
-    for (auto v = ctxt.variables.begin(); v != ctxt.variables.end(); ++v) {
+    auto end = ctxt.variables.end();
+    auto prev = ctxt.variables.before_begin();
+    auto v = prev;
+
+    while (v != end) {
+        prev = v++;
         if ((*v).name == name) {
-            ctxt.variables.erase(v);
+            ctxt.variables.erase_after(prev);
             return true;
         }
     }
+
     return false;
 }
 
