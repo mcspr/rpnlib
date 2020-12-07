@@ -464,7 +464,7 @@ std::string rpn_value::toString() const {
     }
     case rpn_value::Type::Float: {
         char buffer[20 + std::numeric_limits<rpn_float>::max_exponent10];
-        snprintf(buffer, sizeof(buffer), "%f", as_float);
+        snprintf(buffer, sizeof(buffer), "%g", as_float);
         result = buffer;
         break;
     }
