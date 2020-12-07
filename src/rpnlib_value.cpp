@@ -442,7 +442,7 @@ std::string rpn_value::toString() const {
         result = "null";
         break;
     case rpn_value::Type::Error: {
-        char buffer[33];
+        char buffer[10 + (4 * sizeof(int))];
         sprintf(buffer, "error %d", static_cast<int>(as_error));
         result = buffer;
         break;
@@ -451,19 +451,19 @@ std::string rpn_value::toString() const {
         result = as_boolean ? "true" : "false";
         break;
     case rpn_value::Type::Integer: {
-        char buffer[33];
+        char buffer[4 * sizeof(rpn_int)];
         snprintf(buffer, sizeof(buffer), "%ld", static_cast<long>(as_integer));
         result = buffer;
         break;
     }
     case rpn_value::Type::Unsigned: {
-        char buffer[33];
+        char buffer[4 * sizeof(rpn_uint)];
         snprintf(buffer, sizeof(buffer), "%lu", static_cast<unsigned long>(as_unsigned));
         result = buffer;
         break;
     }
     case rpn_value::Type::Float: {
-        char buffer[65];
+        char buffer[20 + std::numeric_limits<rpn_float>::max_exponent10];
         snprintf(buffer, sizeof(buffer), "%f", as_float);
         result = buffer;
         break;
