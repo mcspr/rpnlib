@@ -434,6 +434,63 @@ rpn_float rpn_value::toFloat() const {
     return isFloat() ? as_float : checkedToFloat().value();
 }
 
+namespace {
+
+inline std::string _rpn_value_to_string(int value) {
+    char buffer[4 * sizeof(int)];
+    snprintf(buffer, sizeof(buffer), "%d", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(unsigned int value) {
+    char buffer[4 * sizeof(unsigned int)];
+    snprintf(buffer, sizeof(buffer), "%u", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(unsigned long value) {
+    char buffer[4 * sizeof(unsigned long)];
+    snprintf(buffer, sizeof(buffer), "%lu", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(unsigned long long value) {
+    char buffer[4 * sizeof(unsigned long long)];
+    snprintf(buffer, sizeof(buffer), "%llu", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(long value) {
+    char buffer[4 * sizeof(long)];
+    snprintf(buffer, sizeof(buffer), "%ld", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(long long value) {
+    char buffer[4 * sizeof(long long)];
+    snprintf(buffer, sizeof(buffer), "%lld", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(double value) {
+    char buffer[20 + std::numeric_limits<double>::max_exponent10];
+    snprintf(buffer, sizeof(buffer), "%g", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(rpn_value_error value) {
+    static_assert(sizeof(int) >= sizeof(std::underlying_type<rpn_value_error>::type), "");
+    char buffer[10 + (4 * sizeof(int))];
+    snprintf(buffer, sizeof(buffer), "error %d", static_cast<int>(value));
+    return buffer;
+}
+
+std::string _rpn_value_to_string(bool value) {
+    return value ? "true" : "false";
+}
+
+} // namespace
+
 std::string rpn_value::toString() const {
     std::string result;
 
@@ -441,33 +498,21 @@ std::string rpn_value::toString() const {
     case rpn_value::Type::Null:
         result = "null";
         break;
-    case rpn_value::Type::Error: {
-        char buffer[10 + (4 * sizeof(int))];
-        sprintf(buffer, "error %d", static_cast<int>(as_error));
-        result = buffer;
+    case rpn_value::Type::Error:
+        result = _rpn_value_to_string(as_error);
         break;
-    }
     case rpn_value::Type::Boolean:
-        result = as_boolean ? "true" : "false";
+        result = _rpn_value_to_string(as_boolean);
         break;
-    case rpn_value::Type::Integer: {
-        char buffer[4 * sizeof(rpn_int)];
-        snprintf(buffer, sizeof(buffer), "%ld", static_cast<long>(as_integer));
-        result = buffer;
+    case rpn_value::Type::Integer:
+        result = _rpn_value_to_string(as_integer);
         break;
-    }
-    case rpn_value::Type::Unsigned: {
-        char buffer[4 * sizeof(rpn_uint)];
-        snprintf(buffer, sizeof(buffer), "%lu", static_cast<unsigned long>(as_unsigned));
-        result = buffer;
+    case rpn_value::Type::Unsigned:
+        result = _rpn_value_to_string(as_unsigned);
         break;
-    }
-    case rpn_value::Type::Float: {
-        char buffer[20 + std::numeric_limits<rpn_float>::max_exponent10];
-        snprintf(buffer, sizeof(buffer), "%g", as_float);
-        result = buffer;
+    case rpn_value::Type::Float:
+        result = _rpn_value_to_string(as_float);
         break;
-    }
     case rpn_value::Type::String:
         result = as_string;
         break;
