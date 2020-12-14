@@ -473,6 +473,7 @@ inline std::string _rpn_value_to_string(long long value) {
 }
 
 inline std::string _rpn_value_to_string(double value) {
+    asm(".global _printf_float");
     char buffer[20 + std::numeric_limits<double>::max_exponent10];
     snprintf(buffer, sizeof(buffer), "%g", value);
     return buffer;
