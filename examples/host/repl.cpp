@@ -19,37 +19,10 @@ const char* stack_type(rpn_stack_value::Type type) {
     }
 }
 
-void dump_value(const rpn_value& val) {
-    switch (val.type) {
-        case rpn_value::Type::Boolean:
-            std::cout << (val.toBoolean() ? "true" : "false") << " (Boolean) ";
-            break;
-        case rpn_value::Type::Integer:
-            std::cout << val.toInt() << " (Integer) ";
-            break;
-        case rpn_value::Type::Unsigned:
-            std::cout << val.toUint() << " (Unsigned) ";
-            break;
-        case rpn_value::Type::Float:
-            std::cout << val.toFloat() << " (Float) ";
-            break;
-        case rpn_value::Type::String:
-            std::cout << val.toString().c_str() << " (String) ";
-            break;
-        case rpn_value::Type::Error:
-            std::cout << "error ";
-            break;
-        case rpn_value::Type::Null:
-            std::cout << "null ";
-            break;
-    }
-}
-
 void dump_variables(rpn_context & ctxt) {
     rpn_variables_foreach(ctxt, [](const char* name, rpn_value& value) {
         std::cout << "$" << name << " is ";
-        dump_value(value);
-        std::cout << std::endl;
+        std::cout << value.toString() << std::endl;
     });
 }
 
@@ -57,7 +30,7 @@ void dump_stack(rpn_context & ctxt) {
     size_t index = rpn_stack_size(ctxt);
     rpn_stack_foreach(ctxt, [&index](rpn_stack_value::Type type, const rpn_value& value) {
         std::cout << std::setfill('0') << std::setw(3) << --index << ": ";
-        dump_value(value);
+        std::cout << value.toString();
         std::cout << " (" << stack_type(type) << ")" << std::endl;
     });
     std::cout << std::endl;

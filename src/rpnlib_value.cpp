@@ -474,9 +474,24 @@ inline std::string _rpn_value_to_string(long long value) {
 
 inline std::string _rpn_value_to_string(double value) {
     asm(".global _printf_float");
-    char buffer[20 + std::numeric_limits<double>::max_exponent10];
-    snprintf(buffer, sizeof(buffer), "%g", value);
-    return buffer;
+
+    constexpr int StackSize { 64 };
+    constexpr int HeapSize { 20 + std::numeric_limits<double>::max_exponent10 };
+
+    char buffer[StackSize];
+    auto len = snprintf(buffer, StackSize, "%g", value);
+    if (len < 0) {
+        return {};
+    }
+
+    if (len <= StackSize) {
+        return buffer;
+    }
+
+    std::string string(HeapSize, '\0');
+    len = snprintf(&string.front(), HeapSize, "%g", value);
+    string.resize(len);
+    return string;
 }
 
 inline std::string _rpn_value_to_string(rpn_value_error value) {
