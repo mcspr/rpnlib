@@ -21,6 +21,8 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <cstdint>
+
 #ifndef RPNLIB_INT_TYPE
 #define RPNLIB_INT_TYPE int32_t
 #endif

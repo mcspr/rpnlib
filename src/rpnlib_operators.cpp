@@ -28,8 +28,6 @@ extern "C" {
     #include "fs_math.h"
 }
 
-#include "rpnlib_compat.h"
-
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
@@ -239,8 +237,8 @@ rpn_error _rpn_abs(rpn_context & ctxt) {
     }
 
     rpn_value result =
-        (top.isFloat()) ? rpn_value(rpnlib_abs(top.toFloat())) :
-        (top.isInt()) ? rpn_value(rpnlib_abs(top.toInt())) :
+        (top.isFloat()) ? rpn_value(std::abs(top.toFloat())) :
+        (top.isInt()) ? rpn_value(std::abs(top.toInt())) :
         (rpn_value{});
 
     _rpn_stack_eat(ctxt, 1);
@@ -392,7 +390,7 @@ rpn_error _rpn_index(rpn_context & ctxt) {
         return conversion.error();
     }
 
-    auto offset = rpnlib_round(conversion.value());
+    auto offset = std::round(conversion.value());
     if (offset >= 0.) {
         if ((offset + 1) > size) {
             return rpn_operator_error::InvalidArgument;
@@ -539,7 +537,7 @@ rpn_error _rpn_round(rpn_context & ctxt) {
         return conversion.error();
     }
 
-    rpn_float limit = rpnlib_round(conversion.value());
+    rpn_float limit = std::round(conversion.value());
     rpn_float multiplier = 1.0;
     for (int i = 0; i < limit; ++i) {
         multiplier *= 10.0;
@@ -741,12 +739,6 @@ rpn_error _rpn_assign(rpn_context & ctxt) {
 // ----------------------------------------------------------------------------
 // Functions methods
 // ----------------------------------------------------------------------------
-
-rpn_operator::rpn_operator(const char* name, unsigned char argc, callback_type callback) :
-    name(name),
-    argc(argc),
-    callback(callback)
-{}
 
 bool rpn_operator_set(rpn_context & ctxt, const char * name, unsigned char argc, rpn_operator::callback_type callback) {
     ctxt.operators.emplace_front(name, argc, callback);

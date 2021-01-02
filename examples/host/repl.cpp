@@ -19,37 +19,10 @@ const char* stack_type(rpn_stack_value::Type type) {
     }
 }
 
-void dump_value(const rpn_value& val) {
-    switch (val.type) {
-        case rpn_value::Type::Boolean:
-            std::cout << (val.toBoolean() ? "true" : "false") << " (Boolean) ";
-            break;
-        case rpn_value::Type::Integer:
-            std::cout << val.toInt() << " (Integer) ";
-            break;
-        case rpn_value::Type::Unsigned:
-            std::cout << val.toUint() << " (Unsigned) ";
-            break;
-        case rpn_value::Type::Float:
-            std::cout << val.toFloat() << " (Float) ";
-            break;
-        case rpn_value::Type::String:
-            std::cout << val.toString().c_str() << " (String) ";
-            break;
-        case rpn_value::Type::Error:
-            std::cout << "error ";
-            break;
-        case rpn_value::Type::Null:
-            std::cout << "null ";
-            break;
-    }
-}
-
 void dump_variables(rpn_context & ctxt) {
-    rpn_variables_foreach(ctxt, [](const String& name, rpn_value& value) {
-        std::cout << "$" << name.c_str() << " is ";
-        dump_value(value);
-        std::cout << std::endl;
+    rpn_variables_foreach(ctxt, [](const char* name, rpn_value& value) {
+        std::cout << "$" << name << " is ";
+        std::cout << value.toString() << std::endl;
     });
 }
 
@@ -57,7 +30,7 @@ void dump_stack(rpn_context & ctxt) {
     size_t index = rpn_stack_size(ctxt);
     rpn_stack_foreach(ctxt, [&index](rpn_stack_value::Type type, const rpn_value& value) {
         std::cout << std::setfill('0') << std::setw(3) << --index << ": ";
-        dump_value(value);
+        std::cout << value.toString();
         std::cout << " (" << stack_type(type) << ")" << std::endl;
     });
     std::cout << std::endl;
@@ -65,9 +38,9 @@ void dump_stack(rpn_context & ctxt) {
 
 void dump_operators(rpn_context & ctxt) {
     size_t index = 0;
-    rpn_operators_foreach(ctxt, [&index](const String& name, size_t argc, rpn_operator::callback_type) {
+    rpn_operators_foreach(ctxt, [&index](const char* name, size_t argc, rpn_operator::callback_type) {
         std::cout << std::setfill('0') << std::setw(3) << ++index << ": ";
-        std::cout << name.c_str() << "(...), " << argc << std::endl;
+        std::cout << name << "(...), " << argc << std::endl;
     });
 }
 
@@ -151,14 +124,14 @@ int main(int argc, char** argv) {
             break;
         }
         if (!rpn_process(ctxt, input.c_str())) {
-            auto handler = [&ctxt](const String& decoded) {
+            auto handler = [&ctxt](const char* decoded) {
                 auto pos = ctxt.error.position;
                 std::cout << "    ";
                 while (--pos) {
                     std::cout << ' ';
                 }
                 std::cout << "^\n";
-                std::cout << "ERR: " << decoded.c_str() << std::endl;
+                std::cout << "ERR: " << decoded << std::endl;
             };
             rpn_handle_error(ctxt.error, rpn_decode_errors(handler));
         }

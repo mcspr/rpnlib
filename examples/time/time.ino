@@ -26,6 +26,10 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/time.h>
 #include <rpnlib.h>
 
+// time_t value on ESP8266 could be either 4 or 8 bytes, but it might not always be able to fit into rpn_int
+// (but, it is possible to tweak time funcs to accept time_t as LOW and HIGH parts, requiring special operators to handle such values)
+static_assert(sizeof(rpn_int) >= sizeof(time_t), "time_t should be able to fit into a single rpn_value");
+
 void dump_stack(rpn_context & ctxt) {
     rpn_value value;
     auto index = rpn_stack_size(ctxt) - 1;
@@ -115,11 +119,11 @@ void setup() {
         return 0;
     });
 
-    rpn_variable_set(ctxt, F("time"),
+    rpn_variable_set(ctxt, "time",
         rpn_value(static_cast<rpn_int>(time(nullptr)))
     );
 
-    rpn_variables_foreach(ctxt, [](const String& name, const rpn_value& value) {
+    rpn_variables_foreach(ctxt, [](const char* name, const rpn_value& value) {
         Serial.println(name);
         Serial.println(value.toInt());
     });

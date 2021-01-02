@@ -127,8 +127,8 @@ rpn_input_buffer& rpn_input_buffer::write(const char* data, size_t data_length) 
     return *this;
 }
 
-bool rpn_input_buffer::operator==(const String& other) const {
-    return other.equals(_buffer);
+bool rpn_input_buffer::operator==(const std::string& other) const {
+    return other == _buffer;
 }
 
 void rpn_input_buffer::reset() {

@@ -39,8 +39,8 @@ void dump_stack(rpn_context & ctxt) {
 
 void dump_variables(rpn_context & ctxt) {
     Serial.printf("Variables\n--------------------\n");
-    rpn_variables_foreach(ctxt, [](const String& name, const rpn_value& value) {
-        Serial.printf("$%s = %.2f\n", name.c_str(), value.toFloat());
+    rpn_variables_foreach(ctxt, [](const char* name, const rpn_value& value) {
+        Serial.printf("$%s = %.2f\n", name, value.toFloat());
     });
 
     Serial.println();
@@ -85,7 +85,7 @@ void setup() {
     // Last parameter in rpn_process forces variable check,
     // the execution will fail if the variable does not exist
     if (!rpn_process(ctxt, "$temperatue 18 21 cmp3 1 + 1 $relay 0 3 index", true)) {
-        rpn_handle_error(ctxt.error, rpn_decode_errors([](const String& decoded) {
+        rpn_handle_error(ctxt.error, rpn_decode_errors([](const char* decoded) {
             Serial.println("rpn_process stopped after an error: ");
             Serial.println(decoded);
         }));

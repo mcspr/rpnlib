@@ -22,17 +22,21 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <cstdlib>
-#include <cstdint>
-#include <cstring>
 
-#include <memory>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <limits>
+#include <memory>
+#include <string>
+#include <type_traits>
 
 #include "rpnlib_error.h"
 
 template <typename T>
 struct rpn_optional {
+    //static_assert(std::is_trivially_constructible<T>::value, "");
+
     rpn_optional() = delete;
     rpn_optional(T default_value, rpn_value_error default_error) :
         _value(default_value),
@@ -97,8 +101,8 @@ struct rpn_value {
     explicit rpn_value(rpn_uint);
     explicit rpn_value(rpn_float);
     explicit rpn_value(const char*);
-    explicit rpn_value(const String&);
-    explicit rpn_value(String&&);
+    explicit rpn_value(const std::string&);
+    explicit rpn_value(std::string&&);
 
     template <typename T>
     explicit rpn_value(rpn_optional<T> value) :
@@ -136,7 +140,7 @@ struct rpn_value {
     rpn_int toInt() const;
     rpn_uint toUint() const;
     rpn_float toFloat() const;
-    String toString() const;
+    std::string toString() const;
 
     // Optional result when we need to ensure that target
     // value did convert without any issues
@@ -166,7 +170,7 @@ struct rpn_value {
         rpn_int as_integer;
         rpn_uint as_unsigned;
         rpn_float as_float;
-        String as_string;
+        std::string as_string;
     };
 
 };

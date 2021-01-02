@@ -31,10 +31,7 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 struct rpn_variable {
     rpn_variable(const rpn_variable&) = default;
-    rpn_variable(rpn_variable&& other) noexcept :
-        name(std::move(other.name)),
-        value(std::move(other.value))
-    {}
+    rpn_variable(rpn_variable&& other) noexcept = default;
 
     template <typename Name>
     rpn_variable(Name&& name, std::shared_ptr<rpn_value> value) :
@@ -48,18 +45,18 @@ struct rpn_variable {
         value(std::make_shared<rpn_value>(std::forward<Value>(value)))
     {}
 
-    String name;
+    std::string name;
     std::shared_ptr<rpn_value> value;
 };
 
-bool rpn_variable_set(rpn_context &, const String& name, const rpn_value& value);
-bool rpn_variable_set(rpn_context &, const String& name, rpn_value&& value);
+bool rpn_variable_set(rpn_context &, const std::string& name, const rpn_value& value);
+bool rpn_variable_set(rpn_context &, const std::string& name, rpn_value&& value);
 
-bool rpn_variable_get(rpn_context &, const String& name, rpn_value& value);
-rpn_value rpn_variable_get(rpn_context &, const String& name);
+bool rpn_variable_get(rpn_context &, const std::string& name, rpn_value& value);
+rpn_value rpn_variable_get(rpn_context &, const std::string& name);
 
 
-bool rpn_variable_del(rpn_context &, const String& name);
+bool rpn_variable_del(rpn_context &, const std::string& name);
 
 size_t rpn_variables_size(rpn_context &);
 bool rpn_variables_clear(rpn_context &);

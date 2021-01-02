@@ -25,11 +25,10 @@ along with the rpnlib library.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <limits>
 
+#include <string>
 #include <cstring>
 #include <cmath>
 #include <cstdlib>
-
-#include "rpnlib_compat.h"
 
 // TODO: implement fs_math operations
 
@@ -144,7 +143,7 @@ rpn_value::rpn_value() :
 
 rpn_value::rpn_value(const rpn_value& other) {
     if (other.type == rpn_value::Type::String) {
-        new (&as_string) String(other.as_string);
+        new (&as_string) std::string(other.as_string);
         type = Type::String;
     } else {
         assignPrimitive(other);
@@ -158,8 +157,8 @@ rpn_value::rpn_value(const rpn_value& other) {
 rpn_value::rpn_value(rpn_value&& other) noexcept {
     if (other.type == rpn_value::Type::String) {
         type = Type::String;
-        new (&as_string) String(std::move(other.as_string));
-        other.as_string.~String();
+        new (&as_string) std::string(std::move(other.as_string));
+        other.as_string.~basic_string();
     } else {
         assignPrimitive(other);
     }
@@ -194,24 +193,24 @@ rpn_value::rpn_value(rpn_float value) :
 rpn_value::rpn_value(const char* value) :
     type(rpn_value::Type::String)
 {
-    new (&as_string) String(value);
+    new (&as_string) std::string(value);
 }
 
-rpn_value::rpn_value(const String& value) :
+rpn_value::rpn_value(const std::string& value) :
     type(rpn_value::Type::String)
 {
-    new (&as_string) String(value);
+    new (&as_string) std::string(value);
 }
 
-rpn_value::rpn_value(String&& value) :
+rpn_value::rpn_value(std::string&& value) :
     type(rpn_value::Type::String)
 {
-    new (&as_string) String(std::move(value));
+    new (&as_string) std::string(std::move(value));
 }
 
 rpn_value::~rpn_value() {
     if (type == rpn_value::Type::String) {
-        as_string.~String();
+        as_string.~basic_string();
     }
 }
 
@@ -245,7 +244,7 @@ void rpn_value::assign(const rpn_value& other) noexcept {
         if (type == rpn_value::Type::String) {
             as_string = other.as_string;
         } else {
-            new (&as_string) String(other.as_string);
+            new (&as_string) std::string(other.as_string);
         }
     } else {
         assignPrimitive(other);
@@ -289,7 +288,7 @@ bool rpn_value::toBoolean() const {
         result = static_cast<rpn_float>(0.0) != as_float;
         break;
     case rpn_value::Type::String: {
-        using size_type = decltype(std::declval<String>().length());
+        using size_type = decltype(std::declval<std::string>().length());
         result = static_cast<size_type>(0ul) < as_string.length();
         break;
     }
@@ -331,7 +330,7 @@ rpn_optional<rpn_int> rpn_value::checkedToInt() const {
         constexpr rpn_float upper = std::numeric_limits<rpn_int>::max();
         constexpr rpn_float lower = std::numeric_limits<rpn_int>::min();
         if ((lower <= as_float) && (as_float <= upper)) {
-            result = rpnlib_round(as_float);
+            result = std::round(as_float);
             break;
         }
         result = rpn_value_error::OutOfRangeConversion;
@@ -382,7 +381,7 @@ rpn_optional<rpn_uint> rpn_value::checkedToUint() const {
         constexpr rpn_float upper = std::numeric_limits<rpn_uint>::max();
         constexpr rpn_float lower = std::numeric_limits<rpn_uint>::min();
         if ((as_float >= lower) && (as_float <= upper)) {
-            result = rpnlib_round(as_float);
+            result = std::round(as_float);
             break;
         }
         result = rpn_value_error::OutOfRangeConversion;
@@ -435,29 +434,100 @@ rpn_float rpn_value::toFloat() const {
     return isFloat() ? as_float : checkedToFloat().value();
 }
 
-String rpn_value::toString() const {
-    String result("");
+namespace {
+
+inline std::string _rpn_value_to_string(int value) {
+    char buffer[4 * sizeof(int)];
+    snprintf(buffer, sizeof(buffer), "%d", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(unsigned int value) {
+    char buffer[4 * sizeof(unsigned int)];
+    snprintf(buffer, sizeof(buffer), "%u", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(unsigned long value) {
+    char buffer[4 * sizeof(unsigned long)];
+    snprintf(buffer, sizeof(buffer), "%lu", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(unsigned long long value) {
+    char buffer[4 * sizeof(unsigned long long)];
+    snprintf(buffer, sizeof(buffer), "%llu", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(long value) {
+    char buffer[4 * sizeof(long)];
+    snprintf(buffer, sizeof(buffer), "%ld", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(long long value) {
+    char buffer[4 * sizeof(long long)];
+    snprintf(buffer, sizeof(buffer), "%lld", value);
+    return buffer;
+}
+
+inline std::string _rpn_value_to_string(double value) {
+    asm(".global _printf_float");
+
+    constexpr int StackSize { 64 };
+    constexpr int HeapSize { 20 + std::numeric_limits<double>::max_exponent10 };
+
+    char buffer[StackSize];
+    auto len = snprintf(buffer, StackSize, "%g", value);
+    if (len < 0) {
+        return {};
+    }
+
+    if (len <= StackSize) {
+        return buffer;
+    }
+
+    std::string string(HeapSize, '\0');
+    len = snprintf(&string.front(), HeapSize, "%g", value);
+    string.resize(len);
+    return string;
+}
+
+inline std::string _rpn_value_to_string(rpn_value_error value) {
+    static_assert(sizeof(int) >= sizeof(std::underlying_type<rpn_value_error>::type), "");
+    char buffer[10 + (4 * sizeof(int))];
+    snprintf(buffer, sizeof(buffer), "error %d", static_cast<int>(value));
+    return buffer;
+}
+
+std::string _rpn_value_to_string(bool value) {
+    return value ? "true" : "false";
+}
+
+} // namespace
+
+std::string rpn_value::toString() const {
+    std::string result;
 
     switch (type) {
     case rpn_value::Type::Null:
-        result = F("null");
+        result = "null";
         break;
     case rpn_value::Type::Error:
-        result = F("<rpn_value_error:");
-        result += String(static_cast<int>(as_error));
-        result += F(">");
+        result = _rpn_value_to_string(as_error);
         break;
     case rpn_value::Type::Boolean:
-        result = as_boolean ? F("true") : F("false");
+        result = _rpn_value_to_string(as_boolean);
         break;
     case rpn_value::Type::Integer:
-        result = String(as_integer);
+        result = _rpn_value_to_string(as_integer);
         break;
     case rpn_value::Type::Unsigned:
-        result = String(as_unsigned);
+        result = _rpn_value_to_string(as_unsigned);
         break;
     case rpn_value::Type::Float:
-        result = String(as_float);
+        result = _rpn_value_to_string(as_float);
         break;
     case rpn_value::Type::String:
         result = as_string;
@@ -595,13 +665,13 @@ bool rpn_value::operator==(const rpn_value& other) const {
         // - https://www.embeddeduse.com/2019/08/26/qt-compare-two-floats/
         constexpr auto epsilon = std::numeric_limits<rpn_float>::epsilon();
         if (other.isFloat()) {
-            result = rpnlib_abs(as_float - other.as_float) <= epsilon;
+            result = std::abs(as_float - other.as_float) <= epsilon;
             break;
         }
 
         auto conversion = other.checkedToFloat();
         if (conversion.ok()) {
-            result = rpnlib_abs(as_float - conversion.value()) <= epsilon;
+            result = std::abs(as_float - conversion.value()) <= epsilon;
             break;
         }
 
@@ -649,7 +719,7 @@ rpn_value rpn_value::operator+(const rpn_value& other) {
         const auto our_size = as_string.length();
         const auto other_size = other.as_string.length();
 
-        new (&val.as_string) String();
+        new (&val.as_string) std::string();
         val.as_string.reserve(our_size + other_size + 1);
         val.as_string += as_string;
         val.as_string += other.as_string;
