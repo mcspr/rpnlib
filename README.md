@@ -153,48 +153,53 @@ rpn_clear(ctxt);
 
 |Name|Stack operation|Description|
 |-|-|-|
-|`pi`|( -- a:float ) |  where a is the value of PI|
-|`e`|( -- a:float ) |  where a is the value of e (base of the Napierian (Naperian) logarithm)|
-|`inf`|( -- a:float ) |  where a is the value of floating point inf |
-|`nan`|( -- a:float ) |  where a is the value of floating point quiet NaN |
-|`+`|( a b -- c ) | (note: when a and b types are different, convers b type into the type of a) |
-|`-`|( a b -- c ) | - |
-|`*`|( a b -- c ) | - |
-|`/`|( a b -- c ) | (note: ends execution if b equals 0) |
-|`mod`|( a b -- c ) |  where c is the reminder of the a/b division |
-|`abs`|( a -- b ) | absolute value of the number. throws an error when a is not float, int or uint |
-|`round`|( a n -- b ) | where b is a rounded to the n-th decimal |
-|`ceil`|( a -- b ) |  where b is the smallest integral value not less than a |
-|`floor`|( a -- b ) |  where b is the largest integral value not greater than a |
-|`int`|( a -- b ) |  alias for "floor" (note: does **not** change value type to Integer) |
-|`eq`|( a b -- c:bool ) | |
-|`ne`|( a b -- c:bool ) | |
-|`gt`|( a b -- c:bool ) | |
-|`ge`|( a b -- c:bool ) | |
-|`lt`|( a b -- c:bool ) | |
-|`le`|( a b -- c:bool ) | |
-|`cmp`|( a b -- c ) |  c is -1 if a<b, 0 if a==b and 1 if a>b |
-|`cmp3`|( a b c -- d ) |  d is -1 if a<b, 1 if a>c and 0 if equals to b or c or in the middle|
+|`+`|( a b -- c ) | sum a and b (when a and b types are different, convers b type into the type of a before doing the operation) |
+|`-`|( a b -- c ) | subtract b from a |
+|`*`|( a b -- c ) | multiply b by a |
+|`/`|( a b -- c ) | divide a by b (ends execution if b equals 0) |
+|`mod`|( a b -- c ) |  remainder of the division of b by a |
+|`abs`|( a -- b ) | absolute value of the a (integer or float) |
+|`round`|( a n -- b ) | round a (float) to the n-th decimal |
+|`ceil`|( a -- b ) |  b is the smallest integral value not less than a |
+|`floor`|( a -- b ) |  b is the largest integral value not greater than a |
+|`int`|( a -- b ) |  alias for "floor" |
+|`eq`|( a b -- c ) | put true (boolean) on the stack when a equals to b, false (boolean) otherwise |
+|`ne`|( a b -- c ) | a is not equal to b |
+|`gt`|( a b -- c ) | a is greater than b |
+|`ge`|( a b -- c ) | a is greater than or equal to b |
+|`lt`|( a b -- c ) | a is less than b |
+|`le`|( a b -- c ) | a is less than or equal to b |
+|`cmp`|( a b -- c ) |  c (integer) is -1 if a<b, 0 if a==b and 1 if a>b |
+|`cmp3`|( a b c -- d ) |  d (integer) is -1 if a<b, 1 if a>c and 0 if equals to b or c or in the middle|
 |`index`|( a v1 v2 ... b -- c ) |  returns the a-nth value from the v# list, b is the number of values in the v# list. also accepts the result of `]` as list's length |
 |`map`| ( a b c d e -- f ) |  performs a rule of 3 mapping of the value a (number) which goes from b to c to d to e |
-|`constrain`| (a b c -- d) |  ensures a is between the range of b and c (inlusive) |
-|`and`|( a b -- c:bool ) |  where c is true if both a and b can be converted into boolean true |
-|`or`|( a b -- c:bool ) |  where c is true if either a or b can be converted into boolean true |
-|`xor`|( a b -- c:bool ) |  where c is true if either a or b can be converted into boolean true, but not both |
-|`not`|( a -- b:bool ) |  where b is true if a can be converted into boolean true, false otherwise |
-|`dup`|( a -- a a ) | |
+|`constrain`| (a b c -- d) |  ensures a is between the range of b and c (inclusive) |
+|`and`|( a b -- c ) | logical operation on the stack |
+|`or`|( a b -- c ) | |
+|`xor`|( a b -- c ) | only one of a or b can be converted into boolean true |
+|`not`|( a -- b ) | |
+|`dup`|( a -- a a ) | (note that references are duplicated instead of the values themselves) |
 |`dup2`|( a b -- a b a b ) | |
 |`swap`|( a b -- b a ) | |
 |`rot`|( a b c -- b c a ) | |
 |`unrot`|( a b c -- c a b ) | |
 |`drop`|( a -- ) | |
 |`over`|( a b -- a b a ) | |
-|`depth`|( -- n ) |  where n is the number of elements on the stack |
-|`exists`| (a -- a) | ends execution if a isn't an active variable |
+|`depth`|( -- n ) |  where n (unsigned) is the number of elements on the stack |
+|`exists`| (&var -- &var) | ends execution if var isn't an active variable |
 |`deref`| (&var -- $var) | takes the value from var and copies it on the stack |
 |`=`|( a &var -- &var ) |  sets var to the value of a and keeps var reference on the stack |
-|`ifn`|( a b c -- b or c ) | keeps b on the stack if a can be converted into boolean true, keeps c otherwise |
-|`end`|( a -- ) |  ends execution if a can be converted into boolean false |
+|`ifn`|( a b c -- b or c ) | if a (boolean) is true, keeps b on the stack. otherwise, keeps c |
+|`end`|( a -- ) |  ends execution if a (boolean) is false |
+
+Some operators are used in place of constant variables:
+
+|Name|Stack operation|Description|
+|-|-|-|
+|`pi`|( -- a ) |  where a (float) is the value of PI |
+|`e`|( -- a ) |  where a (float) is the value of e (base of the Napierian (Naperian) logarithm)|
+|`inf`|( -- a ) |  where a (float) is the value of floating point inf |
+|`nan`|( -- a ) |  where a (float) is the value of floating point quiet NaN |
 
 In addition, when using `RPNLIB_ADVANCED_MATH` flag, these operators are available for floating point numbers:
 |Name|Stack operation|Description|
