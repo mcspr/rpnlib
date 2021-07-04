@@ -17,6 +17,7 @@ jobs:
       with:
         repository: esp8266/Arduino
         path: esp8266
+        submodules: true
 
     - run: |
         sudo apt install cmake

@@ -50,7 +50,7 @@ add_library(esp8266 STATIC
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/WMath.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MockUART.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MockTools.cpp
-    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MockLwIP.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MocklwIP.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MockDigital.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MockEsp.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/UdpContextSocket.cpp
