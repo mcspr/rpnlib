@@ -1,0 +1,25 @@
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: rpnlib
+
+    - uses: actions/checkout@v2
+      with:
+        repository: ThrowTheSwitch/Unity
+        path: unity
+
+    - uses: actions/checkout@v2
+      with:
+        repository: esp8266/Arduino
+        path: esp8266
+
+    - run: |
+        sudo apt install cmake
+        cmake -S ../rpnlib/examples/host -B build ESP8266_ARDUINO_CORE_PATH=${GITHUB_WORKDIR}/esp8266 UNITY_PATH=${GITHUB_WORKDIR}/unity/src --build
+        cmake --build build --target piotest
+        ./build/piotest

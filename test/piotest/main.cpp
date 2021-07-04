@@ -422,6 +422,23 @@ void test_index() {
     run_and_error("index", rpn_operator_error::ArgumentCountMismatch);
 }
 
+void test_nth() {
+    rpn_context ctxt;
+    TEST_ASSERT_TRUE(rpn_operator_set(ctxt, "nth", 2, [](rpn_context & ctxt) -> rpn_error {
+        auto top = rpn_stack_pop(ctxt);
+
+        auto index = top.checkedToInt();
+        TEST_ASSERT(index.ok());
+
+        top = rpn_stack_pop(ctxt);
+        auto size = top.checkedToUint();
+        TEST_ASSERT(size.ok());
+
+        return rpn_operator_error::CannotContinue;
+    }));
+    run_and_compare_ctx(ctxt, "123 5u -1i nth", rpn_values(123.0));
+}
+
 void test_map() {
     run_and_compare("256 0 1024 0 100 map", rpn_values(25.0));
     run_and_compare("1 0 100 0 1000 map", rpn_values(10.0));
@@ -973,6 +990,7 @@ int run_tests() {
     RUN_TEST(test_cast);
     RUN_TEST(test_cmp);
     RUN_TEST(test_index);
+    RUN_TEST(test_nth);
     RUN_TEST(test_map);
     RUN_TEST(test_constrain);
     RUN_TEST(test_conditionals);

@@ -7,6 +7,9 @@
 cmake_minimum_required(VERSION 3.5)
 project(host-examples VERSION 1 LANGUAGES C CXX)
 
+set(CMAKE_C_STANDARD 11 CACHE STRING "Global C standard version (...does not yet work with 17 though)")
+set(CMAKE_CXX_STANDARD 17 "Global C++ standard version")
+
 # required for esp8266 host mocking
 set(COMMON_FLAGS
     -Os
@@ -30,6 +33,13 @@ target_include_directories(unity PUBLIC
     ${UNITY_PATH}
 )
 
+# mock'ed Arduino Core headers sometimes expect to be included with some pre-requisites, which we obviously don't have
+add_library(common INTERFACE)
+target_compile_options(common INTERFACE
+    "SHELL:-include ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/mock.h"
+    "SHELL:-include ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/c_types.h"
+)
+
 # try to hack esp8266 host test layer
 # - we need to specify bunch of things that the original Makefile does
 # - there are a lot of cross-dependencies, we need to include a lot of .cpp files here
@@ -37,19 +47,26 @@ add_library(esp8266 STATIC
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/Arduino.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/ArduinoMain.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/ArduinoMainUdp.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/WMath.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MockUART.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MockTools.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MockLwIP.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MockDigital.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/MockEsp.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/UdpContextSocket.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/user_interface.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/md5.c
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/noniso.c
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/flash_hal_mock.cpp
-	${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/spiffs_mock.cpp
-	${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/littlefs_mock.cpp
-	${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/sdfs_mock.cpp
-    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/ArduinoMainLittlefs.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/spiffs_mock.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/littlefs_mock.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/sdfs_mock.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/ArduinoMainUdp.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/ArduinoMainSpiffs.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/ArduinoMainLittlefs.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/user_interface.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/cores/esp8266/core_esp8266_noniso.cpp
+    ${ESP8266_ARDUINO_CORE_PATH}/cores/esp8266/stdlib_noniso.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/cores/esp8266/WString.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/cores/esp8266/HardwareSerial.cpp
     ${ESP8266_ARDUINO_CORE_PATH}/cores/esp8266/Print.cpp
@@ -75,10 +92,6 @@ target_include_directories(esp8266 PUBLIC
     ${ESP8266_ARDUINO_CORE_PATH}/libraries/SPI/
     ${ESP8266_ARDUINO_CORE_PATH}/libraries/ESP8266SdFat/src
 )
-target_compile_options(esp8266 BEFORE PRIVATE
-    "SHELL:-include ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/mock.h"
-    "SHELL:-include ${ESP8266_ARDUINO_CORE_PATH}/tests/host/common/c_types.h"
-)
 target_compile_options(esp8266 PUBLIC
     ${COMMON_FLAGS}
     -DF_CPU=80000000
@@ -88,6 +101,7 @@ target_compile_options(esp8266 PUBLIC
     -Wl,--defsym,_FS_block=0x2000
     -Wl,--defsym,_EEPROM_start=0x411fb000
 )
+target_link_libraries(esp8266 PUBLIC common)
 
 # our library source (can probably add as *.cpp + *.c)
 add_library(rpnlib STATIC
