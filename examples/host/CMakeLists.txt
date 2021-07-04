@@ -22,7 +22,7 @@ set(COMMON_FLAGS
 )
 set(RPNLIB_PATH ${CMAKE_SOURCE_DIR}/../../ CACHE FILEPATH "RPNLIB source code repo root")
 
-# base for test/piotest
+# base for runtime tests binary
 add_library(unity STATIC
     ${UNITY_PATH}/unity.c
 )
@@ -139,13 +139,13 @@ target_link_libraries(rpnlib esp8266)
 target_link_libraries(repl rpnlib)
 
 # like `pio test`, but without `pio`
-add_executable(piotest ${RPNLIB_PATH}/test/piotest/main.cpp)
-target_link_libraries(piotest unity rpnlib)
-target_compile_options(piotest PRIVATE
+add_executable(test ${RPNLIB_PATH}/test/unit/main.cpp)
+target_link_libraries(test unity rpnlib)
+target_compile_options(test PRIVATE
     ${COMMON_FLAGS}
     -Wall
 )
-set_target_properties(piotest PROPERTIES COMPILE_FLAGS -g)
+set_target_properties(test PROPERTIES COMPILE_FLAGS -g)
 
 # try out example code
 function(example_build)

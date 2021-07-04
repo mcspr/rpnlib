@@ -1,8 +1,6 @@
 /*
 
-RPNlib
-
-PlatformIO Unit Tests
+RPNlib Tests
 
 Copyright (C) 2018-2019 by Xose Pérez <xose dot perez at gmail dot com>
 Copyright (C) 2020 by Maxim Prokhorov <prokhorov dot max at outlook dot com>
@@ -1021,6 +1019,12 @@ int run_tests() {
 }
 
 #if RPNLIB_PIOTEST_HOST_TEST
+
+void setUp() {
+}
+
+void tearDown() {
+}
 
 int main(int argc, char** argv) {
     return run_tests();

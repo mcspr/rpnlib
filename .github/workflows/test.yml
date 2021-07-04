@@ -49,5 +49,5 @@ jobs:
           -DUNITY_PATH=${GITHUB_WORKSPACE}/unity/src \
           -S rpnlib/examples/host \
           -B build
-        cmake --build build --target piotest
-        ./build/piotest
+        cmake --build build --target test
+        ./build/test
