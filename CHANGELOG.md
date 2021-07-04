@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Make sure we copy current stack reference with the object itself
 - Context error position is now relative to the start of the input string
+- Assignment operator now able to handle moved values
 
 ## [0.24.1] 2020-08-10
 ### Changed

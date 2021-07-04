@@ -143,27 +143,11 @@ rpn_value::rpn_value() :
 {}
 
 rpn_value::rpn_value(const rpn_value& other) {
-    if (other.type == rpn_value::Type::String) {
-        new (&as_string) String(other.as_string);
-        type = Type::String;
-    } else {
-        assignPrimitive(other);
-    }
+    *this = other;
 }
 
-// TODO: global flag RPNLIB_STRING_IMPLEMENTATION, default String
-//       implement `template <T> _rpn_value_destroy_string(rpn_value&) { ... }`
-//       - ~basic_string() for std::String to test on host
-//       - ~String() for Arduino String
 rpn_value::rpn_value(rpn_value&& other) noexcept {
-    if (other.type == rpn_value::Type::String) {
-        type = Type::String;
-        new (&as_string) String(std::move(other.as_string));
-        other.as_string.~String();
-    } else {
-        assignPrimitive(other);
-    }
-    other.type = rpn_value::Type::Null;
+    *this = std::move(other);
 }
 
 rpn_value::rpn_value(bool value) :
@@ -235,21 +219,10 @@ void rpn_value::assignPrimitive(const rpn_value& other) noexcept {
         as_float = other.as_float;
         break;
     case rpn_value::Type::String:
-        break;
+        // XXX: handled externally, noexcept
+        return;
     }
-    type = other.type;
-}
 
-void rpn_value::assign(const rpn_value& other) noexcept {
-    if (other.type == Type::String) {
-        if (type == rpn_value::Type::String) {
-            as_string = other.as_string;
-        } else {
-            new (&as_string) String(other.as_string);
-        }
-    } else {
-        assignPrimitive(other);
-    }
     type = other.type;
 }
 
@@ -936,8 +909,35 @@ rpn_value rpn_value::operator%(const rpn_value& other) {
     return val;
 }
 
+// TODO: template both and also handle noexcept?
+// TODO: note that both are used for ctors as well
+
 rpn_value& rpn_value::operator=(const rpn_value& other) {
-    assign(other);
+    if (other.type == Type::String) {
+        if (type == rpn_value::Type::String) {
+            as_string = other.as_string;
+        } else {
+            new (&as_string) String(other.as_string);
+        }
+    } else {
+        assignPrimitive(other);
+    }
+    type = other.type;
+    return *this;
+}
+
+rpn_value& rpn_value::operator=(rpn_value&& other) noexcept {
+    if (other.type == rpn_value::Type::String) {
+        if (type == rpn_value::Type::String) {
+            as_string = std::move(other.as_string);
+        } else {
+            new (&as_string) String(std::move(other.as_string));
+        }
+    } else {
+        assignPrimitive(other);
+    }
+    type = other.type;
+    other.type = rpn_value::Type::Null;
     return *this;
 }
 

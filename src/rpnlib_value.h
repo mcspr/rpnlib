@@ -88,8 +88,8 @@ struct rpn_value {
     };
 
     rpn_value();
-    rpn_value(rpn_value&&) noexcept;
     rpn_value(const rpn_value&);
+    rpn_value(rpn_value&&) noexcept;
 
     explicit rpn_value(rpn_value_error);
     explicit rpn_value(bool);
@@ -110,8 +110,8 @@ struct rpn_value {
 
     ~rpn_value();
 
-    void assign(const rpn_value&) noexcept;
     rpn_value& operator=(const rpn_value&);
+    rpn_value& operator=(rpn_value&&) noexcept;
 
     explicit operator bool() const;
 
@@ -156,8 +156,7 @@ struct rpn_value {
 
     Type type;
 
-    private:
-
+private:
     void assignPrimitive(const rpn_value&) noexcept;
 
     union {
@@ -168,6 +167,5 @@ struct rpn_value {
         rpn_float as_float;
         String as_string;
     };
-
 };
 
