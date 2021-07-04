@@ -142,11 +142,15 @@ rpn_value::rpn_value() :
     type(rpn_value::Type::Null)
 {}
 
-rpn_value::rpn_value(const rpn_value& other) {
+rpn_value::rpn_value(const rpn_value& other) :
+    type(rpn_value::Type::Null)
+{
     *this = other;
 }
 
-rpn_value::rpn_value(rpn_value&& other) noexcept {
+rpn_value::rpn_value(rpn_value&& other) noexcept :
+    type(rpn_value::Type::Null)
+{
     *this = std::move(other);
 }
 
