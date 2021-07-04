@@ -20,6 +20,10 @@ jobs:
 
     - run: |
         sudo apt install cmake
-        cmake -S ../rpnlib/examples/host -B build ESP8266_ARDUINO_CORE_PATH=${GITHUB_WORKDIR}/esp8266 UNITY_PATH=${GITHUB_WORKDIR}/unity/src --build
+        cmake \
+          -DESP8266_ARDUINO_CORE_PATH=${GITHUB_WORKDIR}/esp8266 \
+          -DUNITY_PATH=${GITHUB_WORKDIR}/unity/src \
+          -S rpnlib/examples/host \
+          -B build
         cmake --build build --target piotest
         ./build/piotest
