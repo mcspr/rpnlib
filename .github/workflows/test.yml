@@ -1,4 +1,7 @@
-on: [push]
+name: Test
+
+on:
+  push:
 
 jobs:
   build:
@@ -46,8 +49,8 @@ jobs:
     - run: |
         sudo apt install cmake
         cmake \
-          -DESP8266_ARDUINO_CORE_PATH=${GITHUB_WORKDIR}/esp8266 \
-          -DUNITY_PATH=${GITHUB_WORKDIR}/unity/src \
+          -DESP8266_ARDUINO_CORE_PATH=${GITHUB_WORKSPACE}/esp8266 \
+          -DUNITY_PATH=${GITHUB_WORKSPACE}/unity/src \
           -S rpnlib/examples/host \
           -B build
         cmake --build build --target piotest
