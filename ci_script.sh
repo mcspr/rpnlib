@@ -11,8 +11,3 @@ for board in d1_mini nano32 ; do
     env PLATFORMIO_CI_SRC=examples/time \
         pio ci --board=$board --lib="."
 done
-
-echo "- Running host tests"
-
-cd test/
-pio test

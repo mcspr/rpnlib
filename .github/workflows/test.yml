@@ -13,11 +13,35 @@ jobs:
         repository: ThrowTheSwitch/Unity
         path: unity
 
-    - uses: actions/checkout@v2
+    - uses: actions/github-script@v4
+      id: esp8266-release
       with:
-        repository: esp8266/Arduino
-        path: esp8266
-        submodules: true
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const releaseObj = await github.repos.getLatestRelease({
+            owner: esp8266,
+            repo: Arduino
+          });
+
+          console.log(releaseObj);
+
+          for (const asset of releaseObj.data.assets) {
+            console.log(asset);
+            if (asset.name.startsWith("esp8266") && asset.name.endsWith(".zip")) {
+              console.log("setting outputs...");
+              core.setOutput("tag", releaseObj.data.tag_name);
+              core.setOutput("url", asset.browser_download_url);
+              return;
+            }
+          }
+
+          throw new Error("Could not fetch esp8266 release");
+
+    - run: |
+        curl -o esp8266.zip -L ${{ steps.esp8266-release.outputs.url }}
+        unzip esp8266.zip
+        mv esp8266-${{ steps.esp8266-release.outputs.tag }} esp8266
+        rm esp8266.zip
 
     - run: |
         sudo apt install cmake
